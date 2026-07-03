@@ -1,8 +1,7 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from typing import List
-import uuid
+from typing import List, Optional
 from datetime import timedelta
 
 from database import SessionLocal, engine
@@ -85,7 +84,23 @@ def quem_sou_eu(current_user: Utilizador = Depends(get_current_user)):
         "nome_completo": current_user.nome_completo
     }
 
-# -------------------- Documentos (protegidos) --------------------
+# -------------------- Listagem de documentos --------------------
+@app.get("/documentos", response_model=List[DocumentoOut])
+def listar_documentos(
+    estado: Optional[EstadoDocumento] = Query(None, description="Filtrar por estado"),
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    query = db.query(Documento)
+    if current_user.perfil == PerfilUtilizador.PARCEIRO:
+        query = query.filter(Documento.parceiro_id == current_user.username)
+    # Empresa e admin veem todos os documentos (sem filtro de parceiro)
+    if estado:
+        query = query.filter(Documento.estado == estado)
+    documentos = query.order_by(Documento.id.desc()).all()
+    return documentos
+
+# -------------------- Documentos individuais (protegidos) --------------------
 @app.post("/documentos/", response_model=DocumentoOut)
 def criar_documento(
     doc: DocumentoCreate,
@@ -96,7 +111,7 @@ def criar_documento(
         raise HTTPException(status_code=403, detail="Apenas parceiros podem criar documentos")
     documento = Documento(
         titulo=doc.titulo,
-        parceiro_id=current_user.username,  # usa o username do token
+        parceiro_id=current_user.username,
         dados=doc.dados,
         estado=EstadoDocumento.RASCUNHO,
         versao_atual=1
@@ -109,21 +124,20 @@ def criar_documento(
 
 @app.get("/documentos/{doc_id}", response_model=DocumentoOut)
 def obter_documento(
-    doc_id: uuid.UUID,
+    doc_id: int,
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
     doc = db.query(Documento).filter(Documento.id == doc_id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Documento não encontrado")
-    # Parceiro só vê os seus próprios documentos; empresa vê todos
     if current_user.perfil == PerfilUtilizador.PARCEIRO and doc.parceiro_id != current_user.username:
         raise HTTPException(status_code=403, detail="Acesso negado")
     return doc
 
 @app.put("/documentos/{doc_id}/editar", response_model=DocumentoOut)
 def editar_documento(
-    doc_id: uuid.UUID,
+    doc_id: int,
     update: DocumentoUpdate,
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
@@ -142,7 +156,7 @@ def editar_documento(
 
 @app.post("/documentos/{doc_id}/submeter", response_model=DocumentoOut)
 def submeter_documento(
-    doc_id: uuid.UUID,
+    doc_id: int,
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
@@ -162,7 +176,7 @@ def submeter_documento(
 
 @app.post("/documentos/{doc_id}/iniciar-revisao", response_model=DocumentoOut)
 def iniciar_revisao(
-    doc_id: uuid.UUID,
+    doc_id: int,
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
@@ -181,7 +195,7 @@ def iniciar_revisao(
 
 @app.post("/documentos/{doc_id}/pedir-alteracoes", response_model=DocumentoOut)
 def pedir_alteracoes(
-    doc_id: uuid.UUID,
+    doc_id: int,
     motivo: MudancaEstado,
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
@@ -201,7 +215,7 @@ def pedir_alteracoes(
 
 @app.post("/documentos/{doc_id}/editar-novamente", response_model=DocumentoOut)
 def editar_novamente(
-    doc_id: uuid.UUID,
+    doc_id: int,
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
@@ -221,7 +235,7 @@ def editar_novamente(
 
 @app.post("/documentos/{doc_id}/aprovar", response_model=DocumentoOut)
 def aprovar_documento(
-    doc_id: uuid.UUID,
+    doc_id: int,
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
@@ -240,7 +254,7 @@ def aprovar_documento(
 
 @app.post("/documentos/{doc_id}/reabrir", response_model=DocumentoOut)
 def reabrir_documento(
-    doc_id: uuid.UUID,
+    doc_id: int,
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
@@ -260,7 +274,7 @@ def reabrir_documento(
 
 @app.get("/documentos/{doc_id}/versoes", response_model=List[VersaoOut])
 def listar_versoes(
-    doc_id: uuid.UUID,
+    doc_id: int,
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):

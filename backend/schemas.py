@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from datetime import datetime
-from uuid import UUID
 from models import EstadoDocumento, PerfilUtilizador
 
 # ---------- Autenticação ----------
@@ -34,7 +33,7 @@ class MudancaEstado(BaseModel):
     comentario: Optional[str] = ""
 
 class DocumentoOut(BaseModel):
-    id: UUID
+    id: int
     titulo: str
     parceiro_id: str
     estado: EstadoDocumento
@@ -44,10 +43,10 @@ class DocumentoOut(BaseModel):
     updated_at: Optional[datetime]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class VersaoOut(BaseModel):
-    id: UUID
+    id: int
     numero_versao: int
     estado: EstadoDocumento
     comentario: Optional[str]
@@ -55,4 +54,4 @@ class VersaoOut(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
