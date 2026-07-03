@@ -2,8 +2,23 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from datetime import datetime
 from uuid import UUID
-from models import EstadoDocumento
+from models import EstadoDocumento, PerfilUtilizador
 
+# ---------- Autenticação ----------
+class UtilizadorCreate(BaseModel):
+    username: str
+    password: str
+    perfil: PerfilUtilizador
+    nome_completo: Optional[str] = ""
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
+# ---------- Documentos ----------
 class DocumentoBase(BaseModel):
     titulo: str
     parceiro_id: str
