@@ -324,7 +324,7 @@ def listar_versoes(
     versoes = db.query(VersaoDocumento).filter(VersaoDocumento.documento_id == doc_id).order_by(VersaoDocumento.numero_versao).all()
     return versoes
 
-# -------------------- Exportar versões para Excel (com correção) --------------------
+# -------------------- Exportar versões para Excel (corrigido) --------------------
 @app.get("/documentos/{doc_id}/exportar-excel")
 def exportar_versoes_excel(
     doc_id: int,
@@ -339,178 +339,183 @@ def exportar_versoes_excel(
             raise HTTPException(status_code=403, detail="Acesso negado")
 
         dados = doc.dados
-
         wb = openpyxl.Workbook()
+        processos = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
 
-        # ---------- Folha: LCA ----------
+        # ---------- Folha LCA ----------
         ws_lca = wb.active
         ws_lca.title = "LCA"
+        row = 1
 
-        ws_lca["A1"] = "LCA - Inputs, Processes e Outputs"
-        ws_lca["A1"].font = Font(bold=True, size=14)
-        ws_lca.merge_cells("A1:H1")
-
-        row = 3
-
-        # Inputs
-        ws_lca.cell(row=row, column=1, value="INPUTS").font = Font(bold=True)
+        # INPUTS
+        ws_lca.cell(row=row, column=1, value="INPUTS").font = Font(bold=True, size=12)
         row += 1
-        cab_inputs = ["Material", "Qty", "Unit", "Description", "CAS", "Distance", "Country", "Data source"]
+        cab_inputs = ["Processo", "Material", "QTY", "Unit", "Material Description", "CAS/Comments", "Distance (km)", "Country", "Data Source"]
         for col, header in enumerate(cab_inputs, start=1):
             ws_lca.cell(row=row, column=col, value=header).font = Font(bold=True)
         row += 1
-        for item in dados.get("inputs", []):
-            ws_lca.cell(row=row, column=1, value=item.get("material", ""))
-            ws_lca.cell(row=row, column=2, value=item.get("qty", ""))
-            ws_lca.cell(row=row, column=3, value=item.get("unit", ""))
-            ws_lca.cell(row=row, column=4, value=item.get("description", ""))
-            ws_lca.cell(row=row, column=5, value=item.get("cas", ""))
-            ws_lca.cell(row=row, column=6, value=item.get("distance", ""))
-            ws_lca.cell(row=row, column=7, value=item.get("country", ""))
-            ws_lca.cell(row=row, column=8, value=item.get("datasource", ""))
-            row += 1
+        for proc in processos:
+            for item in dados.get("lca", {}).get("inputs", {}).get(proc, []):
+                ws_lca.cell(row=row, column=1, value=proc)
+                ws_lca.cell(row=row, column=2, value=item.get("material", ""))
+                ws_lca.cell(row=row, column=3, value=item.get("qty", ""))
+                ws_lca.cell(row=row, column=4, value=item.get("unit", ""))
+                ws_lca.cell(row=row, column=5, value=item.get("description", ""))
+                ws_lca.cell(row=row, column=6, value=item.get("cas", ""))
+                ws_lca.cell(row=row, column=7, value=item.get("distance", ""))
+                ws_lca.cell(row=row, column=8, value=item.get("country", ""))
+                ws_lca.cell(row=row, column=9, value=item.get("datasource", ""))
+                row += 1
         row += 1
 
-        # Processes
-        ws_lca.cell(row=row, column=1, value="PROCESSOS").font = Font(bold=True)
+        # PROCESSES
+        ws_lca.cell(row=row, column=1, value="PROCESSES").font = Font(bold=True, size=12)
         row += 1
-        cab_proc = ["Process", "Qty", "Unit", "Description", "Comments", "Data source"]
+        cab_proc = ["Processo", "Tipo", "QTY", "Unit", "Description", "Comments", "Data Source"]
         for col, header in enumerate(cab_proc, start=1):
             ws_lca.cell(row=row, column=col, value=header).font = Font(bold=True)
         row += 1
-        for item in dados.get("processes", []):
-            ws_lca.cell(row=row, column=1, value=item.get("process", ""))
-            ws_lca.cell(row=row, column=2, value=item.get("qty", ""))
-            ws_lca.cell(row=row, column=3, value=item.get("unit", ""))
-            ws_lca.cell(row=row, column=4, value=item.get("description", ""))
-            ws_lca.cell(row=row, column=5, value=item.get("comments", ""))
-            ws_lca.cell(row=row, column=6, value=item.get("datasource", ""))
-            row += 1
+        for proc in processos:
+            for item in dados.get("lca", {}).get("processes", {}).get(proc, []):
+                ws_lca.cell(row=row, column=1, value=proc)
+                ws_lca.cell(row=row, column=2, value=item.get("tipo", ""))
+                ws_lca.cell(row=row, column=3, value=item.get("qty", ""))
+                ws_lca.cell(row=row, column=4, value=item.get("unit", ""))
+                ws_lca.cell(row=row, column=5, value=item.get("description", ""))
+                ws_lca.cell(row=row, column=6, value=item.get("comments", ""))
+                ws_lca.cell(row=row, column=7, value=item.get("datasource", ""))
+                row += 1
         row += 1
 
-        # Outputs
-        ws_lca.cell(row=row, column=1, value="OUTPUTS").font = Font(bold=True)
+        # OUTPUTS
+        ws_lca.cell(row=row, column=1, value="OUTPUTS").font = Font(bold=True, size=12)
         row += 1
-        cab_out = ["Etapa", "Tipo", "Nome", "Qty", "Unit", "Description", "Comments", "Data source"]
+        cab_out = ["Processo", "Etapa", "Tipo", "Sub-tipo", "QTY", "Unit", "Material description", "Comments", "Data Source"]
         for col, header in enumerate(cab_out, start=1):
             ws_lca.cell(row=row, column=col, value=header).font = Font(bold=True)
         row += 1
-        for item in dados.get("outputs", []):
-            ws_lca.cell(row=row, column=1, value=item.get("etapa", ""))
-            ws_lca.cell(row=row, column=2, value=item.get("tipo", ""))
-            ws_lca.cell(row=row, column=3, value=item.get("nome", ""))
-            ws_lca.cell(row=row, column=4, value=item.get("qty", ""))
-            ws_lca.cell(row=row, column=5, value=item.get("unit", ""))
-            ws_lca.cell(row=row, column=6, value=item.get("description", ""))
-            ws_lca.cell(row=row, column=7, value=item.get("comments", ""))
-            ws_lca.cell(row=row, column=8, value=item.get("datasource", ""))
-            row += 1
+        for proc in processos:
+            for item in dados.get("lca", {}).get("outputs", {}).get(proc, []):
+                ws_lca.cell(row=row, column=1, value=proc)
+                ws_lca.cell(row=row, column=2, value=item.get("etapa", ""))
+                ws_lca.cell(row=row, column=3, value=item.get("tipo", ""))
+                ws_lca.cell(row=row, column=4, value=item.get("sub_tipo", ""))
+                ws_lca.cell(row=row, column=5, value=item.get("qty", ""))
+                ws_lca.cell(row=row, column=6, value=item.get("unit", ""))
+                ws_lca.cell(row=row, column=7, value=item.get("description", ""))
+                ws_lca.cell(row=row, column=8, value=item.get("comments", ""))
+                ws_lca.cell(row=row, column=9, value=item.get("datasource", ""))
+                row += 1
 
-        # Ajustar largura (corrigido para MergedCell)
+        # Ajustar colunas LCA
         for col in ws_lca.columns:
             max_length = 0
             for cell in col:
                 if cell.value and len(str(cell.value)) > max_length:
                     max_length = len(str(cell.value))
-            # Obtém a letra da coluna usando a primeira célula (mesmo que seja MergedCell, tem .column)
-            cell = col[0]
-            column_letter = get_column_letter(cell.column)
-            ws_lca.column_dimensions[column_letter].width = min(max_length + 2, 40)
+            col_letter = get_column_letter(cell.column)
+            ws_lca.column_dimensions[col_letter].width = min(max_length + 2, 40)
 
-        # ---------- Folha: LCC ----------
+        # ---------- Folha LCC ----------
         ws_lcc = wb.create_sheet("LCC")
-        ws_lcc["A1"] = "LCC - Materiais, Equipamentos, Mão-de-obra e Outputs"
-        ws_lcc["A1"].font = Font(bold=True, size=14)
-        ws_lcc.merge_cells("A1:M1")
-        row = 3
+        row = 1
 
-        # Materiais
-        ws_lcc.cell(row=row, column=1, value="MATERIAIS").font = Font(bold=True)
+        # MATERIALS
+        ws_lcc.cell(row=row, column=1, value="COST BREAKDOWN MATERIAL").font = Font(bold=True, size=12)
         row += 1
-        cab_mat = ["Material", "Price (€)", "Qty", "Unit", "Brand", "Amount used", "Distance", "Country", "Data source"]
+        cab_mat = ["Processo", "Material", "Price €", "Qty", "Unit", "Material Description", "Comments", "Distance (km)", "Country", "Data Source"]
         for col, header in enumerate(cab_mat, start=1):
             ws_lcc.cell(row=row, column=col, value=header).font = Font(bold=True)
         row += 1
-        for item in dados.get("lcc_materials", []):
-            ws_lcc.cell(row=row, column=1, value=item.get("material", ""))
-            ws_lcc.cell(row=row, column=2, value=item.get("price", ""))
-            ws_lcc.cell(row=row, column=3, value=item.get("qty", ""))
-            ws_lcc.cell(row=row, column=4, value=item.get("unit", ""))
-            ws_lcc.cell(row=row, column=5, value=item.get("brand", ""))
-            ws_lcc.cell(row=row, column=6, value=item.get("amount_used", ""))
-            ws_lcc.cell(row=row, column=7, value=item.get("distance", ""))
-            ws_lcc.cell(row=row, column=8, value=item.get("country", ""))
-            ws_lcc.cell(row=row, column=9, value=item.get("datasource", ""))
-            row += 1
+        for proc in processos:
+            for item in dados.get("lcc", {}).get("materials", {}).get(proc, []):
+                ws_lcc.cell(row=row, column=1, value=proc)
+                ws_lcc.cell(row=row, column=2, value=item.get("material", ""))
+                ws_lcc.cell(row=row, column=3, value=item.get("price", ""))
+                ws_lcc.cell(row=row, column=4, value=item.get("qty", ""))
+                ws_lcc.cell(row=row, column=5, value=item.get("unit", ""))
+                ws_lcc.cell(row=row, column=6, value=item.get("description", ""))
+                ws_lcc.cell(row=row, column=7, value=item.get("comments", ""))
+                ws_lcc.cell(row=row, column=8, value=item.get("distance", ""))
+                ws_lcc.cell(row=row, column=9, value=item.get("country", ""))
+                ws_lcc.cell(row=row, column=10, value=item.get("datasource", ""))
+                row += 1
         row += 1
 
-        # Equipamentos
-        ws_lcc.cell(row=row, column=1, value="EQUIPAMENTOS").font = Font(bold=True)
+        # EQUIPMENT
+        ws_lcc.cell(row=row, column=1, value="EQUIPMENT").font = Font(bold=True, size=12)
         row += 1
-        cab_eq = ["Equipment", "Process", "Unit cost (€)", "Lifespan (years)", "Maintenance (€/year)", "Industrial equivalent", "Comments", "Data source"]
+        cab_eq = ["Processo", "Equipment", "Process", "Unit Cost (€)", "Lifespan (Years)", "Maintenance €/Year", "Industrial Equivalent", "Comments", "Data Source"]
         for col, header in enumerate(cab_eq, start=1):
             ws_lcc.cell(row=row, column=col, value=header).font = Font(bold=True)
         row += 1
-        for item in dados.get("lcc_equipment", []):
-            ws_lcc.cell(row=row, column=1, value=item.get("equipment", ""))
-            ws_lcc.cell(row=row, column=2, value=item.get("process", ""))
-            ws_lcc.cell(row=row, column=3, value=item.get("unit_cost", ""))
-            ws_lcc.cell(row=row, column=4, value=item.get("lifespan", ""))
-            ws_lcc.cell(row=row, column=5, value=item.get("maintenance", ""))
-            ws_lcc.cell(row=row, column=6, value=item.get("industrial_equiv", ""))
-            ws_lcc.cell(row=row, column=7, value=item.get("comments", ""))
-            ws_lcc.cell(row=row, column=8, value=item.get("datasource", ""))
-            row += 1
+        for proc in processos:
+            for item in dados.get("lcc", {}).get("equipment", {}).get(proc, []):
+                ws_lcc.cell(row=row, column=1, value=proc)
+                ws_lcc.cell(row=row, column=2, value=item.get("equipment", ""))
+                ws_lcc.cell(row=row, column=3, value=item.get("process", ""))
+                ws_lcc.cell(row=row, column=4, value=item.get("unit_cost", ""))
+                ws_lcc.cell(row=row, column=5, value=item.get("lifespan", ""))
+                ws_lcc.cell(row=row, column=6, value=item.get("maintenance", ""))
+                ws_lcc.cell(row=row, column=7, value=item.get("industrial_equiv", ""))
+                ws_lcc.cell(row=row, column=8, value=item.get("comments", ""))
+                ws_lcc.cell(row=row, column=9, value=item.get("datasource", ""))
+                row += 1
         row += 1
 
-        # Mão-de-obra
-        ws_lcc.cell(row=row, column=1, value="MÃO-DE-OBRA").font = Font(bold=True)
+        # LABOUR
+        ws_lcc.cell(row=row, column=1, value="LABOUR").font = Font(bold=True, size=12)
         row += 1
-        cab_lab = ["Process", "Total labour", "Cost (€)", "High skilled", "Moderate", "Unskilled", "High rate (€/h)", "Moderate rate", "Unskilled rate", "Comments", "Data source"]
+        cab_lab = ["Processo", "Name of the process", "Total Labour - Number", "Total Labour - Cost €",
+                   "Number - High Skilled", "Number - Moderated skilled", "Number - Unskilled",
+                   "Rate - High Skilled (€/h)", "Rate - Moderated skilled (€/h)", "Rate - Unskilled (€/h)",
+                   "Comments", "Data Source"]
         for col, header in enumerate(cab_lab, start=1):
             ws_lcc.cell(row=row, column=col, value=header).font = Font(bold=True)
         row += 1
-        for item in dados.get("lcc_labour", []):
-            ws_lcc.cell(row=row, column=1, value=item.get("process", ""))
-            ws_lcc.cell(row=row, column=2, value=item.get("total_labour", ""))
-            ws_lcc.cell(row=row, column=3, value=item.get("cost", ""))
-            ws_lcc.cell(row=row, column=4, value=item.get("high_skilled", ""))
-            ws_lcc.cell(row=row, column=5, value=item.get("moderate", ""))
-            ws_lcc.cell(row=row, column=6, value=item.get("unskilled", ""))
-            ws_lcc.cell(row=row, column=7, value=item.get("high_rate", ""))
-            ws_lcc.cell(row=row, column=8, value=item.get("moderate_rate", ""))
-            ws_lcc.cell(row=row, column=9, value=item.get("unskilled_rate", ""))
-            ws_lcc.cell(row=row, column=10, value=item.get("comments", ""))
-            ws_lcc.cell(row=row, column=11, value=item.get("datasource", ""))
-            row += 1
+        for proc in processos:
+            for item in dados.get("lcc", {}).get("labour", {}).get(proc, []):
+                ws_lcc.cell(row=row, column=1, value=proc)
+                ws_lcc.cell(row=row, column=2, value=item.get("process", ""))
+                ws_lcc.cell(row=row, column=3, value=item.get("total_number", ""))
+                ws_lcc.cell(row=row, column=4, value=item.get("total_cost", ""))
+                ws_lcc.cell(row=row, column=5, value=item.get("high_skilled", ""))
+                ws_lcc.cell(row=row, column=6, value=item.get("moderate_skilled", ""))
+                ws_lcc.cell(row=row, column=7, value=item.get("unskilled", ""))
+                ws_lcc.cell(row=row, column=8, value=item.get("high_rate", ""))
+                ws_lcc.cell(row=row, column=9, value=item.get("moderate_rate", ""))
+                ws_lcc.cell(row=row, column=10, value=item.get("unskilled_rate", ""))
+                ws_lcc.cell(row=row, column=11, value=item.get("comments", ""))
+                ws_lcc.cell(row=row, column=12, value=item.get("datasource", ""))
+                row += 1
         row += 1
 
-        # Outputs LCC
-        ws_lcc.cell(row=row, column=1, value="OUTPUTS (produto final)").font = Font(bold=True)
+        # OUTPUTS LCC
+        ws_lcc.cell(row=row, column=1, value="OUTPUTS").font = Font(bold=True, size=12)
         row += 1
-        cab_outlcc = ["Material", "Market price (€)", "Quantity", "Unit", "Amount produced", "Comments", "Data source"]
-        for col, header in enumerate(cab_outlcc, start=1):
+        cab_out_lcc = ["Processo", "Material", "Market Price €", "Quantity", "Unit", "Amount of product produced", "Comments", "Data Source"]
+        for col, header in enumerate(cab_out_lcc, start=1):
             ws_lcc.cell(row=row, column=col, value=header).font = Font(bold=True)
         row += 1
-        for item in dados.get("lcc_outputs", []):
-            ws_lcc.cell(row=row, column=1, value=item.get("material", ""))
-            ws_lcc.cell(row=row, column=2, value=item.get("market_price", ""))
-            ws_lcc.cell(row=row, column=3, value=item.get("quantity", ""))
-            ws_lcc.cell(row=row, column=4, value=item.get("unit", ""))
-            ws_lcc.cell(row=row, column=5, value=item.get("amount_produced", ""))
-            ws_lcc.cell(row=row, column=6, value=item.get("comments", ""))
-            ws_lcc.cell(row=row, column=7, value=item.get("datasource", ""))
-            row += 1
+        for proc in processos:
+            for item in dados.get("lcc", {}).get("outputs", {}).get(proc, []):
+                ws_lcc.cell(row=row, column=1, value=proc)
+                ws_lcc.cell(row=row, column=2, value=item.get("material", ""))
+                ws_lcc.cell(row=row, column=3, value=item.get("market_price", ""))
+                ws_lcc.cell(row=row, column=4, value=item.get("quantity", ""))
+                ws_lcc.cell(row=row, column=5, value=item.get("unit", ""))
+                ws_lcc.cell(row=row, column=6, value=item.get("amount_produced", ""))
+                ws_lcc.cell(row=row, column=7, value=item.get("comments", ""))
+                ws_lcc.cell(row=row, column=8, value=item.get("datasource", ""))
+                row += 1
 
-        # Ajustar largura (corrigido)
         for col in ws_lcc.columns:
             max_length = 0
             for cell in col:
                 if cell.value and len(str(cell.value)) > max_length:
                     max_length = len(str(cell.value))
-            cell = col[0]
-            column_letter = get_column_letter(cell.column)
-            ws_lcc.column_dimensions[column_letter].width = min(max_length + 2, 40)
+            col_letter = get_column_letter(cell.column)
+            ws_lcc.column_dimensions[col_letter].width = min(max_length + 2, 40)
 
         # ---------- Histórico ----------
         ws_hist = wb.create_sheet("Historico")
@@ -529,25 +534,15 @@ def exportar_versoes_excel(
             for cell in col:
                 if cell.value and len(str(cell.value)) > max_length:
                     max_length = len(str(cell.value))
-            cell = col[0]
-            column_letter = get_column_letter(cell.column)
-            ws_hist.column_dimensions[column_letter].width = min(max_length + 2, 40)
+            col_letter = get_column_letter(cell.column)
+            ws_hist.column_dimensions[col_letter].width = min(max_length + 2, 40)
 
         output = BytesIO()
         wb.save(output)
         output.seek(0)
 
-        headers = {
-            "Content-Disposition": f"attachment; filename=documento_{doc_id}_completo.xlsx"
-        }
-        return StreamingResponse(
-            output,
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers=headers
-        )
+        headers = {"Content-Disposition": f"attachment; filename=documento_{doc_id}_completo.xlsx"}
+        return StreamingResponse(output, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers=headers)
 
     except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"detail": f"Erro ao gerar Excel: {str(e)}"}
-        )
+        return JSONResponse(status_code=500, content={"detail": f"Erro ao gerar Excel: {str(e)}"})

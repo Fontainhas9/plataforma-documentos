@@ -3,6 +3,8 @@ import requests
 import pandas as pd
 
 API_URL = "http://127.0.0.1:8000"
+PROCESSOS = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
+DATASOURCE_OPTIONS = ["Medido", "Calculado", "Estimado", "Literatura"]
 
 st.set_page_config(page_title="Plataforma Documentos", layout="wide")
 
@@ -26,7 +28,87 @@ if "edit_data" not in st.session_state:
 if "new_data" not in st.session_state:
     st.session_state.new_data = None
 
-# ---------- Funções da API ----------
+# ---------- Função para converter documentos antigos para nova estrutura ----------
+def convert_to_new_structure(dados):
+    """
+    Converte um documento da estrutura antiga (listas planas com campo 'processo')
+    para a nova estrutura (dicionário com chaves por processo).
+    Se já tiver a nova estrutura (contém 'lca'), retorna os dados originais.
+    """
+    if not dados:
+        return dados
+    # Se já tem a nova estrutura, retorna
+    if "lca" in dados and "lcc" in dados:
+        return dados
+
+    # Inicializar nova estrutura
+    new_dados = {
+        "lca": {
+            "inputs": {p: [] for p in PROCESSOS},
+            "processes": {p: [] for p in PROCESSOS},
+            "outputs": {p: [] for p in PROCESSOS}
+        },
+        "lcc": {
+            "materials": {p: [] for p in PROCESSOS},
+            "equipment": {p: [] for p in PROCESSOS},
+            "labour": {p: [] for p in PROCESSOS},
+            "outputs": {p: [] for p in PROCESSOS}
+        }
+    }
+
+    # Função auxiliar para adicionar item ao dicionário de processo
+    def add_item(proc, target_dict, item):
+        if proc in target_dict:
+            # Remove o campo 'processo' do item (já não é necessário)
+            item_copy = item.copy()
+            item_copy.pop("processo", None)
+            target_dict[proc].append(item_copy)
+
+    # Converter LCA Inputs
+    if "inputs" in dados:
+        for item in dados["inputs"]:
+            proc = item.get("processo", "Demagnetisation")
+            add_item(proc, new_dados["lca"]["inputs"], item)
+
+    # Converter LCA Processes
+    if "processes" in dados:
+        for item in dados["processes"]:
+            proc = item.get("processo", "Demagnetisation")
+            add_item(proc, new_dados["lca"]["processes"], item)
+
+    # Converter LCA Outputs
+    if "outputs" in dados:
+        for item in dados["outputs"]:
+            proc = item.get("processo", "Demagnetisation")
+            add_item(proc, new_dados["lca"]["outputs"], item)
+
+    # Converter LCC Materials
+    if "lcc_materials" in dados:
+        for item in dados["lcc_materials"]:
+            proc = item.get("processo", "Demagnetisation")
+            add_item(proc, new_dados["lcc"]["materials"], item)
+
+    # Converter LCC Equipment
+    if "lcc_equipment" in dados:
+        for item in dados["lcc_equipment"]:
+            proc = item.get("processo", "Demagnetisation")
+            add_item(proc, new_dados["lcc"]["equipment"], item)
+
+    # Converter LCC Labour
+    if "lcc_labour" in dados:
+        for item in dados["lcc_labour"]:
+            proc = item.get("processo", "Demagnetisation")
+            add_item(proc, new_dados["lcc"]["labour"], item)
+
+    # Converter LCC Outputs
+    if "lcc_outputs" in dados:
+        for item in dados["lcc_outputs"]:
+            proc = item.get("processo", "Demagnetisation")
+            add_item(proc, new_dados["lcc"]["outputs"], item)
+
+    return new_dados
+
+# ---------- Funções da API (mantidas iguais) ----------
 def login(username, password):
     resp = requests.post(f"{API_URL}/login", data={"username": username, "password": password})
     if resp.status_code == 200:
@@ -136,226 +218,261 @@ def exportar_excel(doc_id):
         st.error(f"Falha na exportação: {erro}")
         return None
 
-# ---------- Função para renderizar o formulário LCA/LCC (sem st.form) ----------
-def render_lca_lcc_form(data_key, key_prefix=""):
-    """
-    Renderiza o formulário completo para edição dos dados LCA/LCC.
-    Os dados são lidos e escritos em st.session_state[data_key].
-    Retorna o dicionário atualizado (apenas para conveniência).
-    """
-    # Garantir que os dados existem
+# ---------- Funções de renderização das tabelas LCA (mantidas iguais) ----------
+def render_lca_inputs(data_key, prefix=""):
+    st.subheader("Inputs")
+    for proc in PROCESSOS:
+        with st.expander(f"Inputs - {proc}", expanded=False):
+            items = st.session_state[data_key]["lca"]["inputs"][proc]
+            for i, item in enumerate(items):
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    item["material"] = st.text_input("Material", item.get("material",""), key=f"{prefix}lca_in_{proc}_mat_{i}")
+                with col2:
+                    item["qty"] = st.text_input("QTY", item.get("qty",""), key=f"{prefix}lca_in_{proc}_qty_{i}")
+                    item["unit"] = st.text_input("Unit", item.get("unit",""), key=f"{prefix}lca_in_{proc}_unit_{i}")
+                with col3:
+                    item["description"] = st.text_area("Material Description", item.get("description",""), key=f"{prefix}lca_in_{proc}_desc_{i}")
+                    item["cas"] = st.text_input("CAS/Comments", item.get("cas",""), key=f"{prefix}lca_in_{proc}_cas_{i}")
+                with col4:
+                    item["distance"] = st.text_input("Distance (km)", item.get("distance",""), key=f"{prefix}lca_in_{proc}_dist_{i}")
+                    item["country"] = st.text_input("Country", item.get("country",""), key=f"{prefix}lca_in_{proc}_country_{i}")
+                    item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
+                                                      index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                                                      key=f"{prefix}lca_in_{proc}_ds_{i}")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button(f"➕ Adicionar input - {proc}", key=f"{prefix}add_lca_in_{proc}"):
+                    items.append({})
+                    st.rerun()
+            with col2:
+                if items and st.button(f"🗑️ Remover último input - {proc}", key=f"{prefix}rem_lca_in_{proc}"):
+                    items.pop()
+                    st.rerun()
+
+def render_lca_processes(data_key, prefix=""):
+    st.subheader("Processes")
+    for proc in PROCESSOS:
+        with st.expander(f"Processes - {proc}", expanded=False):
+            items = st.session_state[data_key]["lca"]["processes"][proc]
+            num_groups = len(items) // 3
+            for g in range(num_groups):
+                base = g * 3
+                with st.expander(f"Grupo de processos #{g+1}", expanded=False):
+                    tipos = ["Energy Consumption (kWh)", "Rate Power of the Equipment (W)", "Operating Time (h)"]
+                    for j, tipo in enumerate(tipos):
+                        idx = base + j
+                        if idx < len(items):
+                            item = items[idx]
+                            item["tipo"] = tipo
+                            with st.expander(f"{tipo}", expanded=False):
+                                col1, col2, col3 = st.columns(3)
+                                with col1:
+                                    item["qty"] = st.text_input("QTY", item.get("qty",""), key=f"{prefix}lca_proc_{proc}_qty_{idx}")
+                                    item["unit"] = st.text_input("Unit", item.get("unit",""), key=f"{prefix}lca_proc_{proc}_unit_{idx}")
+                                with col2:
+                                    item["description"] = st.text_area("Description", item.get("description",""), key=f"{prefix}lca_proc_{proc}_desc_{idx}")
+                                with col3:
+                                    item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lca_proc_{proc}_comments_{idx}")
+                                    item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
+                                                                      index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                                                                      key=f"{prefix}lca_proc_{proc}_ds_{idx}")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button(f"➕ Adicionar processo (3 linhas) - {proc}", key=f"{prefix}add_lca_proc_{proc}"):
+                    items.append({"tipo": "Energy Consumption (kWh)", "qty": "", "unit": "", "description": "", "comments": "", "datasource": "Medido"})
+                    items.append({"tipo": "Rate Power of the Equipment (W)", "qty": "", "unit": "", "description": "", "comments": "", "datasource": "Medido"})
+                    items.append({"tipo": "Operating Time (h)", "qty": "", "unit": "", "description": "", "comments": "", "datasource": "Medido"})
+                    st.rerun()
+            with col2:
+                if items and st.button(f"🗑️ Remover último processo (3 linhas) - {proc}", key=f"{prefix}rem_lca_proc_{proc}"):
+                    for _ in range(3):
+                        if items:
+                            items.pop()
+                    st.rerun()
+
+def render_lca_outputs(data_key, prefix=""):
+    st.subheader("Outputs")
+    for proc in PROCESSOS:
+        with st.expander(f"Outputs - {proc}", expanded=False):
+            items = st.session_state[data_key]["lca"]["outputs"][proc]
+            for i, item in enumerate(items):
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    item["etapa"] = st.text_input("Etapa (ex: Demagnetisation)", item.get("etapa",""), key=f"{prefix}lca_out_{proc}_etapa_{i}")
+                    item["tipo"] = st.selectbox("Tipo", ["Subproduct", "Emissions", "Waste"],
+                                                index=["Subproduct","Emissions","Waste"].index(item.get("tipo","Subproduct")) if item.get("tipo") in ["Subproduct","Emissions","Waste"] else 0,
+                                                key=f"{prefix}lca_out_{proc}_tipo_{i}")
+                    item["sub_tipo"] = st.text_input("Sub-tipo (ex: Name 1, Liquid 1, Solid 1, etc.)", item.get("sub_tipo",""), key=f"{prefix}lca_out_{proc}_sub_{i}")
+                with col2:
+                    item["qty"] = st.text_input("QTY", item.get("qty",""), key=f"{prefix}lca_out_{proc}_qty_{i}")
+                    item["unit"] = st.text_input("Unit", item.get("unit",""), key=f"{prefix}lca_out_{proc}_unit_{i}")
+                    item["description"] = st.text_area("Material description", item.get("description",""), key=f"{prefix}lca_out_{proc}_desc_{i}")
+                with col3:
+                    item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lca_out_{proc}_comments_{i}")
+                    item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
+                                                      index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                                                      key=f"{prefix}lca_out_{proc}_ds_{i}")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button(f"➕ Adicionar output - {proc}", key=f"{prefix}add_lca_out_{proc}"):
+                    items.append({})
+                    st.rerun()
+            with col2:
+                if items and st.button(f"🗑️ Remover último output - {proc}", key=f"{prefix}rem_lca_out_{proc}"):
+                    items.pop()
+                    st.rerun()
+
+# ---------- Funções de renderização das tabelas LCC (mantidas iguais) ----------
+def render_lcc_materials(data_key, prefix=""):
+    st.subheader("Cost Breakdown Material")
+    for proc in PROCESSOS:
+        with st.expander(f"Materials - {proc}", expanded=False):
+            items = st.session_state[data_key]["lcc"]["materials"][proc]
+            for i, item in enumerate(items):
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    item["material"] = st.text_input("Material", item.get("material",""), key=f"{prefix}lcc_mat_{proc}_mat_{i}")
+                    item["price"] = st.text_input("Price €", item.get("price",""), key=f"{prefix}lcc_mat_{proc}_price_{i}")
+                with col2:
+                    item["qty"] = st.text_input("Qty", item.get("qty",""), key=f"{prefix}lcc_mat_{proc}_qty_{i}")
+                    item["unit"] = st.text_input("Unit", item.get("unit",""), key=f"{prefix}lcc_mat_{proc}_unit_{i}")
+                    item["description"] = st.text_area("Material Description", item.get("description",""), key=f"{prefix}lcc_mat_{proc}_desc_{i}")
+                with col3:
+                    item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lcc_mat_{proc}_comments_{i}")
+                    item["distance"] = st.text_input("Distance (km)", item.get("distance",""), key=f"{prefix}lcc_mat_{proc}_dist_{i}")
+                    item["country"] = st.text_input("Country", item.get("country",""), key=f"{prefix}lcc_mat_{proc}_country_{i}")
+                    item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
+                                                      index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                                                      key=f"{prefix}lcc_mat_{proc}_ds_{i}")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button(f"➕ Adicionar material - {proc}", key=f"{prefix}add_lcc_mat_{proc}"):
+                    items.append({})
+                    st.rerun()
+            with col2:
+                if items and st.button(f"🗑️ Remover último material - {proc}", key=f"{prefix}rem_lcc_mat_{proc}"):
+                    items.pop()
+                    st.rerun()
+
+def render_lcc_equipment(data_key, prefix=""):
+    st.subheader("Equipment")
+    for proc in PROCESSOS:
+        with st.expander(f"Equipment - {proc}", expanded=False):
+            items = st.session_state[data_key]["lcc"]["equipment"][proc]
+            for i, item in enumerate(items):
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    item["equipment"] = st.text_input("Equipment", item.get("equipment",""), key=f"{prefix}lcc_eq_{proc}_eq_{i}")
+                    item["process"] = st.text_input("Process", item.get("process",""), key=f"{prefix}lcc_eq_{proc}_proc_{i}")
+                with col2:
+                    item["unit_cost"] = st.text_input("Unit Cost (€)", item.get("unit_cost",""), key=f"{prefix}lcc_eq_{proc}_cost_{i}")
+                    item["lifespan"] = st.text_input("Lifespan (Years)", item.get("lifespan",""), key=f"{prefix}lcc_eq_{proc}_life_{i}")
+                    item["maintenance"] = st.text_input("Maintenance €/Year", item.get("maintenance",""), key=f"{prefix}lcc_eq_{proc}_maint_{i}")
+                with col3:
+                    item["industrial_equiv"] = st.text_input("Industrial Equivalent", item.get("industrial_equiv",""), key=f"{prefix}lcc_eq_{proc}_ind_{i}")
+                    item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lcc_eq_{proc}_comments_{i}")
+                    item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
+                                                      index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                                                      key=f"{prefix}lcc_eq_{proc}_ds_{i}")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button(f"➕ Adicionar equipamento - {proc}", key=f"{prefix}add_lcc_eq_{proc}"):
+                    items.append({})
+                    st.rerun()
+            with col2:
+                if items and st.button(f"🗑️ Remover último equipamento - {proc}", key=f"{prefix}rem_lcc_eq_{proc}"):
+                    items.pop()
+                    st.rerun()
+
+def render_lcc_labour(data_key, prefix=""):
+    st.subheader("Labour")
+    for proc in PROCESSOS:
+        with st.expander(f"Labour - {proc}", expanded=False):
+            items = st.session_state[data_key]["lcc"]["labour"][proc]
+            for i, item in enumerate(items):
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    item["process"] = st.text_input("Name of the process", item.get("process",""), key=f"{prefix}lcc_lab_{proc}_name_{i}")
+                    item["total_number"] = st.text_input("Total Labour - Number", item.get("total_number",""), key=f"{prefix}lcc_lab_{proc}_num_{i}")
+                    item["total_cost"] = st.text_input("Total Labour - Cost €", item.get("total_cost",""), key=f"{prefix}lcc_lab_{proc}_cost_{i}")
+                with col2:
+                    item["high_skilled"] = st.text_input("Number - High Skilled", item.get("high_skilled",""), key=f"{prefix}lcc_lab_{proc}_high_{i}")
+                    item["moderate_skilled"] = st.text_input("Number - Moderated skilled", item.get("moderate_skilled",""), key=f"{prefix}lcc_lab_{proc}_mod_{i}")
+                    item["unskilled"] = st.text_input("Number - Unskilled", item.get("unskilled",""), key=f"{prefix}lcc_lab_{proc}_unsk_{i}")
+                with col3:
+                    item["high_rate"] = st.text_input("Rate - High Skilled (€/h)", item.get("high_rate",""), key=f"{prefix}lcc_lab_{proc}_highrate_{i}")
+                    item["moderate_rate"] = st.text_input("Rate - Moderated skilled (€/h)", item.get("moderate_rate",""), key=f"{prefix}lcc_lab_{proc}_modrate_{i}")
+                    item["unskilled_rate"] = st.text_input("Rate - Unskilled (€/h)", item.get("unskilled_rate",""), key=f"{prefix}lcc_lab_{proc}_unskrate_{i}")
+                    item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lcc_lab_{proc}_comments_{i}")
+                    item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
+                                                      index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                                                      key=f"{prefix}lcc_lab_{proc}_ds_{i}")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button(f"➕ Adicionar linha de trabalho - {proc}", key=f"{prefix}add_lcc_lab_{proc}"):
+                    items.append({})
+                    st.rerun()
+            with col2:
+                if items and st.button(f"🗑️ Remover última linha - {proc}", key=f"{prefix}rem_lcc_lab_{proc}"):
+                    items.pop()
+                    st.rerun()
+
+def render_lcc_outputs(data_key, prefix=""):
+    st.subheader("Outputs (produto final)")
+    for proc in PROCESSOS:
+        with st.expander(f"Outputs LCC - {proc}", expanded=False):
+            items = st.session_state[data_key]["lcc"]["outputs"][proc]
+            for i, item in enumerate(items):
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    item["material"] = st.text_input("Material", item.get("material",""), key=f"{prefix}lcc_out_{proc}_mat_{i}")
+                    item["market_price"] = st.text_input("Market Price €", item.get("market_price",""), key=f"{prefix}lcc_out_{proc}_price_{i}")
+                with col2:
+                    item["quantity"] = st.text_input("Quantity", item.get("quantity",""), key=f"{prefix}lcc_out_{proc}_qty_{i}")
+                    item["unit"] = st.text_input("Unit", item.get("unit",""), key=f"{prefix}lcc_out_{proc}_unit_{i}")
+                with col3:
+                    item["amount_produced"] = st.text_input("Amount of product produced", item.get("amount_produced",""), key=f"{prefix}lcc_out_{proc}_prod_{i}")
+                    item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lcc_out_{proc}_comments_{i}")
+                    item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
+                                                      index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                                                      key=f"{prefix}lcc_out_{proc}_ds_{i}")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button(f"➕ Adicionar output LCC - {proc}", key=f"{prefix}add_lcc_out_{proc}"):
+                    items.append({})
+                    st.rerun()
+            with col2:
+                if items and st.button(f"🗑️ Remover último output LCC - {proc}", key=f"{prefix}rem_lcc_out_{proc}"):
+                    items.pop()
+                    st.rerun()
+
+# ---------- Função principal de formulário ----------
+def render_full_form(data_key, prefix=""):
     if st.session_state[data_key] is None:
         st.session_state[data_key] = {
-            "inputs": [],
-            "processes": [],
-            "outputs": [],
-            "lcc_materials": [],
-            "lcc_equipment": [],
-            "lcc_labour": [],
-            "lcc_outputs": []
+            "lca": {
+                "inputs": {p: [] for p in PROCESSOS},
+                "processes": {p: [] for p in PROCESSOS},
+                "outputs": {p: [] for p in PROCESSOS}
+            },
+            "lcc": {
+                "materials": {p: [] for p in PROCESSOS},
+                "equipment": {p: [] for p in PROCESSOS},
+                "labour": {p: [] for p in PROCESSOS},
+                "outputs": {p: [] for p in PROCESSOS}
+            }
         }
-    dados = st.session_state[data_key]
+    st.subheader("LCA - Análise do Ciclo de Vida")
+    render_lca_inputs(data_key, prefix)
+    render_lca_processes(data_key, prefix)
+    render_lca_outputs(data_key, prefix)
 
-    # ---------- INPUTS ----------
-    st.subheader("📥 Inputs (Materiais)")
-    inputs = dados["inputs"]
-    for i, item in enumerate(inputs):
-        with st.expander(f"Input #{i+1}", expanded=False):
-            col1, col2 = st.columns(2)
-            with col1:
-                item["material"] = st.text_input("Material", item.get("material", ""), key=f"{key_prefix}in_mat_{i}")
-                item["qty"] = st.text_input("Quantidade", item.get("qty", ""), key=f"{key_prefix}in_qty_{i}")
-                item["unit"] = st.text_input("Unidade", item.get("unit", ""), key=f"{key_prefix}in_unit_{i}")
-                item["description"] = st.text_area("Descrição", item.get("description", ""), key=f"{key_prefix}in_desc_{i}")
-            with col2:
-                item["cas"] = st.text_input("CAS / Comentários", item.get("cas", ""), key=f"{key_prefix}in_cas_{i}")
-                item["distance"] = st.text_input("Distância (km)", item.get("distance", ""), key=f"{key_prefix}in_dist_{i}")
-                item["country"] = st.text_input("País", item.get("country", ""), key=f"{key_prefix}in_country_{i}")
-                item["datasource"] = st.selectbox("Fonte", ["Medido", "Calculado", "Estimado", "Literatura"],
-                                                  index=["Medido", "Calculado", "Estimado", "Literatura"].index(item.get("datasource", "Medido")),
-                                                  key=f"{key_prefix}in_ds_{i}")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("➕ Adicionar input", key=f"{key_prefix}add_input"):
-            inputs.append({})
-            st.rerun()
-    with col2:
-        if inputs and st.button("🗑️ Remover último input", key=f"{key_prefix}rem_input"):
-            inputs.pop()
-            st.rerun()
-
-    # ---------- PROCESSES ----------
-    st.subheader("⚙️ Processos")
-    processes = dados["processes"]
-    for i, item in enumerate(processes):
-        with st.expander(f"Processo #{i+1}", expanded=False):
-            col1, col2 = st.columns(2)
-            with col1:
-                item["process"] = st.text_input("Nome do processo", item.get("process", ""), key=f"{key_prefix}proc_name_{i}")
-                item["qty"] = st.text_input("Quantidade", item.get("qty", ""), key=f"{key_prefix}proc_qty_{i}")
-                item["unit"] = st.text_input("Unidade", item.get("unit", ""), key=f"{key_prefix}proc_unit_{i}")
-            with col2:
-                item["description"] = st.text_area("Descrição (máquina/energia)", item.get("description", ""), key=f"{key_prefix}proc_desc_{i}")
-                item["comments"] = st.text_area("Comentários", item.get("comments", ""), key=f"{key_prefix}proc_comments_{i}")
-                item["datasource"] = st.selectbox("Fonte", ["Medido", "Calculado", "Estimado", "Literatura"],
-                                                  index=["Medido", "Calculado", "Estimado", "Literatura"].index(item.get("datasource", "Medido")),
-                                                  key=f"{key_prefix}proc_ds_{i}")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("➕ Adicionar processo", key=f"{key_prefix}add_process"):
-            processes.append({})
-            st.rerun()
-    with col2:
-        if processes and st.button("🗑️ Remover último processo", key=f"{key_prefix}rem_process"):
-            processes.pop()
-            st.rerun()
-
-    # ---------- OUTPUTS ----------
-    st.subheader("📤 Outputs (subprodutos, emissões, resíduos)")
-    outputs = dados["outputs"]
-    for i, item in enumerate(outputs):
-        with st.expander(f"Output #{i+1}", expanded=False):
-            col1, col2 = st.columns(2)
-            with col1:
-                item["etapa"] = st.text_input("Etapa (ex: Demagnetização)", item.get("etapa", ""), key=f"{key_prefix}out_etapa_{i}")
-                item["tipo"] = st.selectbox("Tipo", ["Subproduto", "Emissão", "Resíduo"],
-                                            index=["Subproduto", "Emissão", "Resíduo"].index(item.get("tipo", "Subproduto")),
-                                            key=f"{key_prefix}out_tipo_{i}")
-                item["nome"] = st.text_input("Nome", item.get("nome", ""), key=f"{key_prefix}out_nome_{i}")
-                item["qty"] = st.text_input("Quantidade", item.get("qty", ""), key=f"{key_prefix}out_qty_{i}")
-            with col2:
-                item["unit"] = st.text_input("Unidade", item.get("unit", ""), key=f"{key_prefix}out_unit_{i}")
-                item["description"] = st.text_area("Descrição", item.get("description", ""), key=f"{key_prefix}out_desc_{i}")
-                item["comments"] = st.text_area("Comentários", item.get("comments", ""), key=f"{key_prefix}out_comments_{i}")
-                item["datasource"] = st.selectbox("Fonte", ["Medido", "Calculado", "Estimado", "Literatura"],
-                                                  index=["Medido", "Calculado", "Estimado", "Literatura"].index(item.get("datasource", "Medido")),
-                                                  key=f"{key_prefix}out_ds_{i}")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("➕ Adicionar output", key=f"{key_prefix}add_output"):
-            outputs.append({})
-            st.rerun()
-    with col2:
-        if outputs and st.button("🗑️ Remover último output", key=f"{key_prefix}rem_output"):
-            outputs.pop()
-            st.rerun()
-
-    # ---------- LCC MATERIAIS ----------
-    st.subheader("💰 LCC - Materiais")
-    lcc_materials = dados["lcc_materials"]
-    for i, item in enumerate(lcc_materials):
-        with st.expander(f"Material LCC #{i+1}", expanded=False):
-            col1, col2 = st.columns(2)
-            with col1:
-                item["material"] = st.text_input("Material", item.get("material", ""), key=f"{key_prefix}lccmat_mat_{i}")
-                item["price"] = st.text_input("Preço (€)", item.get("price", ""), key=f"{key_prefix}lccmat_price_{i}")
-                item["qty"] = st.text_input("Quantidade", item.get("qty", ""), key=f"{key_prefix}lccmat_qty_{i}")
-                item["unit"] = st.text_input("Unidade", item.get("unit", ""), key=f"{key_prefix}lccmat_unit_{i}")
-            with col2:
-                item["brand"] = st.text_input("Marca/identificador", item.get("brand", ""), key=f"{key_prefix}lccmat_brand_{i}")
-                item["amount_used"] = st.text_input("Quantidade usada por FU", item.get("amount_used", ""), key=f"{key_prefix}lccmat_used_{i}")
-                item["distance"] = st.text_input("Distância (km)", item.get("distance", ""), key=f"{key_prefix}lccmat_dist_{i}")
-                item["country"] = st.text_input("País", item.get("country", ""), key=f"{key_prefix}lccmat_country_{i}")
-                item["datasource"] = st.selectbox("Fonte", ["Medido", "Calculado", "Estimado", "Literatura"],
-                                                  index=["Medido", "Calculado", "Estimado", "Literatura"].index(item.get("datasource", "Medido")),
-                                                  key=f"{key_prefix}lccmat_ds_{i}")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("➕ Adicionar material LCC", key=f"{key_prefix}add_lccmat"):
-            lcc_materials.append({})
-            st.rerun()
-    with col2:
-        if lcc_materials and st.button("🗑️ Remover último material LCC", key=f"{key_prefix}rem_lccmat"):
-            lcc_materials.pop()
-            st.rerun()
-
-    # ---------- LCC EQUIPAMENTOS ----------
-    st.subheader("🛠️ LCC - Equipamentos")
-    lcc_equipment = dados["lcc_equipment"]
-    for i, item in enumerate(lcc_equipment):
-        with st.expander(f"Equipamento LCC #{i+1}", expanded=False):
-            col1, col2 = st.columns(2)
-            with col1:
-                item["equipment"] = st.text_input("Equipamento", item.get("equipment", ""), key=f"{key_prefix}lcc_eq_name_{i}")
-                item["process"] = st.text_input("Processo associado", item.get("process", ""), key=f"{key_prefix}lcc_eq_proc_{i}")
-                item["unit_cost"] = st.text_input("Custo unitário (€)", item.get("unit_cost", ""), key=f"{key_prefix}lcc_eq_cost_{i}")
-                item["lifespan"] = st.text_input("Vida útil (anos)", item.get("lifespan", ""), key=f"{key_prefix}lcc_eq_life_{i}")
-            with col2:
-                item["maintenance"] = st.text_input("Manutenção (€/ano)", item.get("maintenance", ""), key=f"{key_prefix}lcc_eq_maint_{i}")
-                item["industrial_equiv"] = st.text_input("Equivalente industrial", item.get("industrial_equiv", ""), key=f"{key_prefix}lcc_eq_ind_{i}")
-                item["comments"] = st.text_area("Comentários", item.get("comments", ""), key=f"{key_prefix}lcc_eq_comments_{i}")
-                item["datasource"] = st.selectbox("Fonte", ["Medido", "Calculado", "Estimado", "Literatura"],
-                                                  index=["Medido", "Calculado", "Estimado", "Literatura"].index(item.get("datasource", "Medido")),
-                                                  key=f"{key_prefix}lcc_eq_ds_{i}")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("➕ Adicionar equipamento LCC", key=f"{key_prefix}add_lcceq"):
-            lcc_equipment.append({})
-            st.rerun()
-    with col2:
-        if lcc_equipment and st.button("🗑️ Remover último equipamento LCC", key=f"{key_prefix}rem_lcceq"):
-            lcc_equipment.pop()
-            st.rerun()
-
-    # ---------- LCC MÃO-DE-OBRA ----------
-    st.subheader("👷 LCC - Mão-de-obra")
-    lcc_labour = dados["lcc_labour"]
-    for i, item in enumerate(lcc_labour):
-        with st.expander(f"Mão-de-obra LCC #{i+1}", expanded=False):
-            col1, col2 = st.columns(2)
-            with col1:
-                item["process"] = st.text_input("Processo", item.get("process", ""), key=f"{key_prefix}lcc_lab_proc_{i}")
-                item["total_labour"] = st.text_input("Nº total de trabalhadores", item.get("total_labour", ""), key=f"{key_prefix}lcc_lab_total_{i}")
-                item["cost"] = st.text_input("Custo total (€)", item.get("cost", ""), key=f"{key_prefix}lcc_lab_cost_{i}")
-                item["high_skilled"] = st.text_input("Nº alta qualificação", item.get("high_skilled", ""), key=f"{key_prefix}lcc_lab_high_{i}")
-                item["moderate"] = st.text_input("Nº qualificação média", item.get("moderate", ""), key=f"{key_prefix}lcc_lab_mod_{i}")
-                item["unskilled"] = st.text_input("Nº não qualificados", item.get("unskilled", ""), key=f"{key_prefix}lcc_lab_unsk_{i}")
-            with col2:
-                item["high_rate"] = st.text_input("Taxa alta (€/h)", item.get("high_rate", ""), key=f"{key_prefix}lcc_lab_highrate_{i}")
-                item["moderate_rate"] = st.text_input("Taxa média (€/h)", item.get("moderate_rate", ""), key=f"{key_prefix}lcc_lab_modrate_{i}")
-                item["unskilled_rate"] = st.text_input("Taxa não qualificada (€/h)", item.get("unskilled_rate", ""), key=f"{key_prefix}lcc_lab_unskrate_{i}")
-                item["comments"] = st.text_area("Comentários", item.get("comments", ""), key=f"{key_prefix}lcc_lab_comments_{i}")
-                item["datasource"] = st.selectbox("Fonte", ["Medido", "Calculado", "Estimado", "Literatura"],
-                                                  index=["Medido", "Calculado", "Estimado", "Literatura"].index(item.get("datasource", "Medido")),
-                                                  key=f"{key_prefix}lcc_lab_ds_{i}")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("➕ Adicionar mão-de-obra LCC", key=f"{key_prefix}add_lcclab"):
-            lcc_labour.append({})
-            st.rerun()
-    with col2:
-        if lcc_labour and st.button("🗑️ Remover último mão-de-obra LCC", key=f"{key_prefix}rem_lcclab"):
-            lcc_labour.pop()
-            st.rerun()
-
-    # ---------- LCC OUTPUTS (produto final) ----------
-    st.subheader("📦 LCC - Outputs (produto final)")
-    lcc_outputs = dados["lcc_outputs"]
-    for i, item in enumerate(lcc_outputs):
-        with st.expander(f"Output LCC #{i+1}", expanded=False):
-            col1, col2 = st.columns(2)
-            with col1:
-                item["material"] = st.text_input("Material", item.get("material", ""), key=f"{key_prefix}lccout_mat_{i}")
-                item["market_price"] = st.text_input("Preço de mercado (€)", item.get("market_price", ""), key=f"{key_prefix}lccout_price_{i}")
-                item["quantity"] = st.text_input("Quantidade", item.get("quantity", ""), key=f"{key_prefix}lccout_qty_{i}")
-            with col2:
-                item["unit"] = st.text_input("Unidade", item.get("unit", ""), key=f"{key_prefix}lccout_unit_{i}")
-                item["amount_produced"] = st.text_input("Quantidade produzida (por FU)", item.get("amount_produced", ""), key=f"{key_prefix}lccout_prod_{i}")
-                item["comments"] = st.text_area("Comentários", item.get("comments", ""), key=f"{key_prefix}lccout_comments_{i}")
-                item["datasource"] = st.selectbox("Fonte", ["Medido", "Calculado", "Estimado", "Literatura"],
-                                                  index=["Medido", "Calculado", "Estimado", "Literatura"].index(item.get("datasource", "Medido")),
-                                                  key=f"{key_prefix}lccout_ds_{i}")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("➕ Adicionar output LCC", key=f"{key_prefix}add_lccout"):
-            lcc_outputs.append({})
-            st.rerun()
-    with col2:
-        if lcc_outputs and st.button("🗑️ Remover último output LCC", key=f"{key_prefix}rem_lccout"):
-            lcc_outputs.pop()
-            st.rerun()
-
-    return dados
+    st.subheader("LCC - Custo do Ciclo de Vida")
+    render_lcc_materials(data_key, prefix)
+    render_lcc_equipment(data_key, prefix)
+    render_lcc_labour(data_key, prefix)
+    render_lcc_outputs(data_key, prefix)
 
 # ---------- Interface principal ----------
 if st.session_state.token is None:
@@ -372,12 +489,10 @@ if st.session_state.token is None:
                 st.error("Credenciais inválidas")
     st.stop()
 
-# Usuário logado – mostrar mensagem de sucesso se existir
 if st.session_state.success_message:
     st.success(st.session_state.success_message)
     st.session_state.success_message = None
 
-# Se houve redireccionamento pendente, atualiza o menu ANTES de criar a widget
 if st.session_state.redirect_to_docs:
     st.session_state.menu_parceiro_widget = "Meus Documentos"
     st.session_state.redirect_to_docs = False
@@ -392,30 +507,27 @@ st.title("📄 Plataforma de Gestão de Documentos")
 # ---------- Área do Parceiro ----------
 if st.session_state.perfil == "parceiro":
     st.header("Área do Parceiro")
-    menu = st.sidebar.radio(
-        "Menu",
-        ["Meus Documentos", "Criar Documento"],
-        key="menu_parceiro_widget"
-    )
+    menu = st.sidebar.radio("Menu", ["Meus Documentos", "Criar Documento"], key="menu_parceiro_widget")
 
     if menu == "Criar Documento":
         st.subheader("Novo Documento LCA/LCC")
         titulo = st.text_input("Título do documento (ex: LCA/LCC NEO-CYCLE)")
-        st.info("Preencha os dados do documento. Pode adicionar quantas linhas quiser em cada secção.")
-
+        st.info("Preencha os dados nas tabelas abaixo. Cada processo tem a sua própria secção.")
         if st.session_state.new_data is None:
             st.session_state.new_data = {
-                "inputs": [],
-                "processes": [],
-                "outputs": [],
-                "lcc_materials": [],
-                "lcc_equipment": [],
-                "lcc_labour": [],
-                "lcc_outputs": []
+                "lca": {
+                    "inputs": {p: [] for p in PROCESSOS},
+                    "processes": {p: [] for p in PROCESSOS},
+                    "outputs": {p: [] for p in PROCESSOS}
+                },
+                "lcc": {
+                    "materials": {p: [] for p in PROCESSOS},
+                    "equipment": {p: [] for p in PROCESSOS},
+                    "labour": {p: [] for p in PROCESSOS},
+                    "outputs": {p: [] for p in PROCESSOS}
+                }
             }
-
-        render_lca_lcc_form("new_data", key_prefix="new_")
-
+        render_full_form("new_data", prefix="new_")
         if st.button("📄 Criar documento", key="create_doc_btn"):
             if not titulo.strip():
                 st.error("O título é obrigatório.")
@@ -452,38 +564,49 @@ if st.session_state.perfil == "parceiro":
                 st.write(f"Estado: **{doc['estado']}** | Versão: {doc['versao_atual']}")
 
                 dados = doc['dados']
-                st.subheader("📋 Dados do documento")
                 with st.expander("Ver dados em tabelas", expanded=True):
-                    if dados.get("inputs"):
-                        st.write("**Inputs**")
-                        st.dataframe(pd.DataFrame(dados["inputs"]), use_container_width=True)
-                    if dados.get("processes"):
-                        st.write("**Processos**")
-                        st.dataframe(pd.DataFrame(dados["processes"]), use_container_width=True)
-                    if dados.get("outputs"):
-                        st.write("**Outputs**")
-                        st.dataframe(pd.DataFrame(dados["outputs"]), use_container_width=True)
-                    if dados.get("lcc_materials"):
-                        st.write("**LCC - Materiais**")
-                        st.dataframe(pd.DataFrame(dados["lcc_materials"]), use_container_width=True)
-                    if dados.get("lcc_equipment"):
-                        st.write("**LCC - Equipamentos**")
-                        st.dataframe(pd.DataFrame(dados["lcc_equipment"]), use_container_width=True)
-                    if dados.get("lcc_labour"):
-                        st.write("**LCC - Mão-de-obra**")
-                        st.dataframe(pd.DataFrame(dados["lcc_labour"]), use_container_width=True)
-                    if dados.get("lcc_outputs"):
-                        st.write("**LCC - Outputs**")
-                        st.dataframe(pd.DataFrame(dados["lcc_outputs"]), use_container_width=True)
+                    # Converter se necessário para visualização
+                    dados_conv = convert_to_new_structure(dados)
+                    st.subheader("LCA")
+                    lca = dados_conv.get("lca", {})
+                    for proc in PROCESSOS:
+                        st.write(f"**{proc}**")
+                        if lca.get("inputs", {}).get(proc):
+                            st.write("Inputs")
+                            st.dataframe(pd.DataFrame(lca["inputs"][proc]), use_container_width=True)
+                        if lca.get("processes", {}).get(proc):
+                            st.write("Processes")
+                            st.dataframe(pd.DataFrame(lca["processes"][proc]), use_container_width=True)
+                        if lca.get("outputs", {}).get(proc):
+                            st.write("Outputs")
+                            st.dataframe(pd.DataFrame(lca["outputs"][proc]), use_container_width=True)
+                    st.subheader("LCC")
+                    lcc = dados_conv.get("lcc", {})
+                    for proc in PROCESSOS:
+                        st.write(f"**{proc}**")
+                        if lcc.get("materials", {}).get(proc):
+                            st.write("Cost Breakdown Material")
+                            st.dataframe(pd.DataFrame(lcc["materials"][proc]), use_container_width=True)
+                        if lcc.get("equipment", {}).get(proc):
+                            st.write("Equipment")
+                            st.dataframe(pd.DataFrame(lcc["equipment"][proc]), use_container_width=True)
+                        if lcc.get("labour", {}).get(proc):
+                            st.write("Labour")
+                            st.dataframe(pd.DataFrame(lcc["labour"][proc]), use_container_width=True)
+                        if lcc.get("outputs", {}).get(proc):
+                            st.write("Outputs")
+                            st.dataframe(pd.DataFrame(lcc["outputs"][proc]), use_container_width=True)
+
                 with st.expander("Ver JSON bruto"):
                     st.json(dados)
 
+                # Ações conforme estado
                 if doc['estado'] == 'rascunho':
                     st.subheader("✏️ Editar documento")
                     if st.session_state.edit_data is None:
-                        st.session_state.edit_data = dados.copy()
-                    render_lca_lcc_form("edit_data", key_prefix="edit_")
-
+                        # Converter para nova estrutura antes de editar
+                        st.session_state.edit_data = convert_to_new_structure(dados.copy())
+                    render_full_form("edit_data", prefix="edit_")
                     col1, col2 = st.columns(2)
                     with col1:
                         if st.button("💾 Guardar alterações", key="save_edit_btn"):
@@ -500,7 +623,6 @@ if st.session_state.perfil == "parceiro":
                             submeter(doc['id'])
                             st.success("Documento submetido!")
                             st.rerun()
-
                 elif doc['estado'] == 'alteracoes':
                     st.warning("A empresa pediu alterações. Vê os comentários abaixo.")
                     versoes = listar_versoes(doc['id'])
@@ -530,7 +652,7 @@ if st.session_state.perfil == "parceiro":
                     st.session_state.edit_data = None
                     st.rerun()
 
-# ---------- Área da Empresa / Admin ----------
+# ---------- Área da Empresa ----------
 elif st.session_state.perfil in ["empresa", "admin"]:
     st.header("Área da Empresa (Validação)")
     st.subheader("Documentos disponíveis")
@@ -557,28 +679,39 @@ elif st.session_state.perfil in ["empresa", "admin"]:
             st.write(f"Estado: **{doc['estado']}** | Versão: {doc['versao_atual']}")
 
             dados = doc['dados']
+            # Converter para visualização
+            dados_conv = convert_to_new_structure(dados)
             with st.expander("Ver dados do documento", expanded=True):
-                if dados.get("inputs"):
-                    st.write("**Inputs**")
-                    st.dataframe(pd.DataFrame(dados["inputs"]), use_container_width=True)
-                if dados.get("processes"):
-                    st.write("**Processos**")
-                    st.dataframe(pd.DataFrame(dados["processes"]), use_container_width=True)
-                if dados.get("outputs"):
-                    st.write("**Outputs**")
-                    st.dataframe(pd.DataFrame(dados["outputs"]), use_container_width=True)
-                if dados.get("lcc_materials"):
-                    st.write("**LCC - Materiais**")
-                    st.dataframe(pd.DataFrame(dados["lcc_materials"]), use_container_width=True)
-                if dados.get("lcc_equipment"):
-                    st.write("**LCC - Equipamentos**")
-                    st.dataframe(pd.DataFrame(dados["lcc_equipment"]), use_container_width=True)
-                if dados.get("lcc_labour"):
-                    st.write("**LCC - Mão-de-obra**")
-                    st.dataframe(pd.DataFrame(dados["lcc_labour"]), use_container_width=True)
-                if dados.get("lcc_outputs"):
-                    st.write("**LCC - Outputs**")
-                    st.dataframe(pd.DataFrame(dados["lcc_outputs"]), use_container_width=True)
+                st.subheader("LCA")
+                lca = dados_conv.get("lca", {})
+                for proc in PROCESSOS:
+                    st.write(f"**{proc}**")
+                    if lca.get("inputs", {}).get(proc):
+                        st.write("Inputs")
+                        st.dataframe(pd.DataFrame(lca["inputs"][proc]), use_container_width=True)
+                    if lca.get("processes", {}).get(proc):
+                        st.write("Processes")
+                        st.dataframe(pd.DataFrame(lca["processes"][proc]), use_container_width=True)
+                    if lca.get("outputs", {}).get(proc):
+                        st.write("Outputs")
+                        st.dataframe(pd.DataFrame(lca["outputs"][proc]), use_container_width=True)
+                st.subheader("LCC")
+                lcc = dados_conv.get("lcc", {})
+                for proc in PROCESSOS:
+                    st.write(f"**{proc}**")
+                    if lcc.get("materials", {}).get(proc):
+                        st.write("Cost Breakdown Material")
+                        st.dataframe(pd.DataFrame(lcc["materials"][proc]), use_container_width=True)
+                    if lcc.get("equipment", {}).get(proc):
+                        st.write("Equipment")
+                        st.dataframe(pd.DataFrame(lcc["equipment"][proc]), use_container_width=True)
+                    if lcc.get("labour", {}).get(proc):
+                        st.write("Labour")
+                        st.dataframe(pd.DataFrame(lcc["labour"][proc]), use_container_width=True)
+                    if lcc.get("outputs", {}).get(proc):
+                        st.write("Outputs")
+                        st.dataframe(pd.DataFrame(lcc["outputs"][proc]), use_container_width=True)
+
             with st.expander("Ver JSON bruto"):
                 st.json(dados)
 
