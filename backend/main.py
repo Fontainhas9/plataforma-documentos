@@ -1,8 +1,12 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import timedelta
+import openpyxl
+from io import BytesIO
+import json
 
 from database import SessionLocal, engine
 from models import Base, Documento, VersaoDocumento, EstadoDocumento, Utilizador, PerfilUtilizador
@@ -92,15 +96,17 @@ def listar_documentos(
     current_user: Utilizador = Depends(get_current_user)
 ):
     query = db.query(Documento)
-    if current_user.perfil == PerfilUtilizador.PARCEIRO:
-        query = query.filter(Documento.parceiro_id == current_user.username)
-    # Empresa e admin veem todos os documentos (sem filtro de parceiro)
     if estado:
         query = query.filter(Documento.estado == estado)
+    else:
+        query = query.filter(Documento.estado != EstadoDocumento.ARQUIVADO)
+
+    if current_user.perfil == PerfilUtilizador.PARCEIRO:
+        query = query.filter(Documento.parceiro_id == current_user.username)
     documentos = query.order_by(Documento.id.desc()).all()
     return documentos
 
-# -------------------- Documentos individuais (protegidos) --------------------
+# -------------------- Documentos individuais --------------------
 @app.post("/documentos/", response_model=DocumentoOut)
 def criar_documento(
     doc: DocumentoCreate,
@@ -272,6 +278,25 @@ def reabrir_documento(
     db.refresh(doc)
     return doc
 
+@app.post("/documentos/{doc_id}/arquivar", response_model=DocumentoOut)
+def arquivar_documento(
+    doc_id: int,
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    doc = db.query(Documento).filter(Documento.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404)
+    if current_user.perfil not in [PerfilUtilizador.EMPRESA, PerfilUtilizador.ADMIN]:
+        raise HTTPException(status_code=403, detail="Apenas a empresa pode arquivar documentos")
+    if doc.estado not in [EstadoDocumento.RASCUNHO, EstadoDocumento.APROVADO]:
+        raise HTTPException(400, detail="Só é possível arquivar documentos em rascunho ou aprovados")
+    doc.estado = EstadoDocumento.ARQUIVADO
+    criar_versao(db, doc, EstadoDocumento.ARQUIVADO, criado_por=current_user.username, comentario="Documento arquivado")
+    db.commit()
+    db.refresh(doc)
+    return doc
+
 @app.get("/documentos/{doc_id}/versoes", response_model=List[VersaoOut])
 def listar_versoes(
     doc_id: int,
@@ -285,3 +310,79 @@ def listar_versoes(
         raise HTTPException(status_code=403)
     versoes = db.query(VersaoDocumento).filter(VersaoDocumento.documento_id == doc_id).order_by(VersaoDocumento.numero_versao).all()
     return versoes
+
+# -------------------- Exportar versões para Excel --------------------
+@app.get("/documentos/{doc_id}/exportar-excel")
+def exportar_versoes_excel(
+    doc_id: int,
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    doc = db.query(Documento).filter(Documento.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+    if current_user.perfil == PerfilUtilizador.PARCEIRO and doc.parceiro_id != current_user.username:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    versoes = db.query(VersaoDocumento).filter(VersaoDocumento.documento_id == doc_id).order_by(VersaoDocumento.numero_versao).all()
+
+    # Criar workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"Doc {doc_id} - {doc.titulo[:30]}"
+
+    # Obter todas as chaves de dados ao longo das versões
+    chaves = set()
+    for v in versoes:
+        if v.dados:
+            chaves.update(v.dados.keys())
+    chaves = sorted(list(chaves))
+
+    # Cabeçalho
+    cabecalho = ["Nº Versão", "Estado", "Criado por", "Data", "Comentário"] + chaves
+    ws.append(cabecalho)
+
+    # Estilo para o cabeçalho
+    from openpyxl.styles import Font
+    for col in range(1, len(cabecalho)+1):
+        ws.cell(row=1, column=col).font = Font(bold=True)
+
+    # Dados
+    for v in versoes:
+        linha = [
+            v.numero_versao,
+            v.estado.value if v.estado else "",
+            v.criado_por or "",
+            v.created_at.strftime("%Y-%m-%d %H:%M:%S") if v.created_at else "",
+            v.comentario or ""
+        ]
+        for chave in chaves:
+            linha.append(v.dados.get(chave, "") if v.dados else "")
+        ws.append(linha)
+
+    # Ajustar largura das colunas
+    for col in ws.columns:
+        max_length = 0
+        column_letter = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = min(max_length + 2, 50)
+        ws.column_dimensions[column_letter].width = adjusted_width
+
+    # Guardar em memória e devolver como resposta
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    headers = {
+        "Content-Disposition": f"attachment; filename=documento_{doc_id}_versoes.xlsx"
+    }
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers
+    )

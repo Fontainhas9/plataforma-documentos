@@ -15,6 +15,12 @@ if "username" not in st.session_state:
     st.session_state.username = None
 if "doc_selecionado" not in st.session_state:
     st.session_state.doc_selecionado = None
+if "success_message" not in st.session_state:
+    st.session_state.success_message = None
+if "menu_parceiro_widget" not in st.session_state:
+    st.session_state.menu_parceiro_widget = "Meus Documentos"
+if "redirect_to_docs" not in st.session_state:
+    st.session_state.redirect_to_docs = False
 
 def login(username, password):
     resp = requests.post(f"{API_URL}/login", data={"username": username, "password": password})
@@ -35,6 +41,9 @@ def logout():
     st.session_state.perfil = None
     st.session_state.username = None
     st.session_state.doc_selecionado = None
+    st.session_state.success_message = None
+    st.session_state.menu_parceiro_widget = "Meus Documentos"
+    st.session_state.redirect_to_docs = False
 
 def headers_auth():
     return {"Authorization": f"Bearer {st.session_state.token}"}
@@ -98,11 +107,23 @@ def reabrir(doc_id):
     resp = requests.post(f"{API_URL}/documentos/{doc_id}/reabrir", headers=headers_auth())
     return resp.json()
 
+def arquivar(doc_id):
+    resp = requests.post(f"{API_URL}/documentos/{doc_id}/arquivar", headers=headers_auth())
+    return resp.json()
+
 def listar_versoes(doc_id):
     resp = requests.get(f"{API_URL}/documentos/{doc_id}/versoes", headers=headers_auth())
     if resp.status_code == 200:
         return resp.json()
     return []
+
+def exportar_excel(doc_id):
+    """Retorna o conteúdo do ficheiro Excel ou None em caso de erro."""
+    resp = requests.get(f"{API_URL}/documentos/{doc_id}/exportar-excel", headers=headers_auth())
+    if resp.status_code == 200:
+        return resp.content
+    else:
+        return None
 
 # ---------- Interface ----------
 if st.session_state.token is None:
@@ -113,13 +134,22 @@ if st.session_state.token is None:
         submitted = st.form_submit_button("Entrar")
         if submitted:
             if login(username, password):
-                st.success("Login efetuado com sucesso!")
+                st.session_state.success_message = "Login efetuado com sucesso!"
                 st.rerun()
             else:
                 st.error("Credenciais inválidas")
     st.stop()
 
-# Usuário logado
+# Usuário logado – mostrar mensagem de sucesso se existir
+if st.session_state.success_message:
+    st.success(st.session_state.success_message)
+    st.session_state.success_message = None
+
+# Se houve redireccionamento pendente, atualiza o menu ANTES de criar a widget
+if st.session_state.redirect_to_docs:
+    st.session_state.menu_parceiro_widget = "Meus Documentos"
+    st.session_state.redirect_to_docs = False
+
 st.sidebar.write(f"Logado como: **{st.session_state.username}** ({st.session_state.perfil})")
 if st.sidebar.button("Logout"):
     logout()
@@ -130,7 +160,12 @@ st.title("📄 Plataforma de Gestão de Documentos")
 # ---------- Área do Parceiro ----------
 if st.session_state.perfil == "parceiro":
     st.header("Área do Parceiro")
-    menu = st.sidebar.radio("Menu", ["Meus Documentos", "Criar Documento"])
+    # Menu controlado pelo estado atualizado (já corrigido se necessário)
+    menu = st.sidebar.radio(
+        "Menu",
+        ["Meus Documentos", "Criar Documento"],
+        key="menu_parceiro_widget"
+    )
 
     if menu == "Criar Documento":
         with st.form("novo_doc"):
@@ -141,7 +176,9 @@ if st.session_state.perfil == "parceiro":
             if submitted:
                 dados = {"campo1": campo1, "campo2": campo2}
                 novo = criar_documento(titulo, dados)
-                st.success(f"Documento criado! ID: {novo['id']}")
+                st.session_state.success_message = f"Documento criado com sucesso! ID: {novo['id']}"
+                # Definir redireccionamento para a próxima execução
+                st.session_state.redirect_to_docs = True
                 st.rerun()
 
     elif menu == "Meus Documentos":
@@ -150,20 +187,17 @@ if st.session_state.perfil == "parceiro":
         if not documentos:
             st.info("Nenhum documento encontrado.")
         else:
-            # Tabela com os documentos
             df = pd.DataFrame(documentos)
             df = df[["id", "titulo", "estado", "versao_atual", "updated_at"]]
             df.columns = ["ID", "Título", "Estado", "Versão", "Última atualização"]
-            st.dataframe(df, use_container_width=True, hide_index=True)
+            st.dataframe(df, width='stretch', hide_index=True)
 
-            # Selecionar documento para ver detalhes
             ids = [doc["id"] for doc in documentos]
             id_selecionado = st.selectbox("Seleciona um documento para ver detalhes:", ids, format_func=lambda x: f"ID {x}")
             if st.button("Carregar documento"):
                 st.session_state.doc_selecionado = id_selecionado
                 st.rerun()
 
-        # Se um documento estiver selecionado, mostrar detalhes e ações
         if st.session_state.doc_selecionado:
             doc = obter_documento(st.session_state.doc_selecionado)
             if doc:
@@ -203,6 +237,8 @@ if st.session_state.perfil == "parceiro":
                     st.success("Documento aprovado. Não pode ser editado.")
                 elif doc['estado'] in ['submetido', 'em_revisao']:
                     st.info("Documento em análise pela empresa.")
+                elif doc['estado'] == 'arquivado':
+                    st.warning("Documento arquivado (apenas consulta).")
 
                 with st.expander("Histórico de versões"):
                     versoes = listar_versoes(doc['id'])
@@ -226,7 +262,7 @@ elif st.session_state.perfil in ["empresa", "admin"]:
         df = pd.DataFrame(documentos)
         df = df[["id", "titulo", "parceiro_id", "estado", "versao_atual", "updated_at"]]
         df.columns = ["ID", "Título", "Parceiro", "Estado", "Versão", "Última atualização"]
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, width='stretch', hide_index=True)
 
         ids = [doc["id"] for doc in documentos]
         id_selecionado = st.selectbox("Seleciona um documento para agir:", ids, format_func=lambda x: f"ID {x}")
@@ -262,13 +298,40 @@ elif st.session_state.perfil in ["empresa", "admin"]:
                             st.rerun()
             elif doc['estado'] == 'aprovado':
                 st.success("Documento aprovado.")
-                if st.button("Reabrir para nova edição"):
-                    reabrir(doc['id'])
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("Reabrir para nova edição"):
+                        reabrir(doc['id'])
+                        st.rerun()
+                with col2:
+                    if st.button("📁 Arquivar documento"):
+                        arquivar(doc['id'])
+                        st.success("Documento arquivado.")
+                        st.rerun()
+            elif doc['estado'] == 'rascunho':
+                st.info("O parceiro ainda está a editar.")
+                if st.button("📁 Arquivar documento (rascunho)"):
+                    arquivar(doc['id'])
+                    st.success("Documento arquivado.")
                     st.rerun()
             elif doc['estado'] == 'alteracoes':
                 st.warning("Aguardando o parceiro iniciar a edição.")
-            elif doc['estado'] == 'rascunho':
-                st.info("O parceiro ainda está a editar.")
+            elif doc['estado'] == 'arquivado':
+                st.warning("Documento arquivado (apenas consulta).")
+
+            # Exportação exclusiva para empresa
+            with st.expander("📥 Exportar histórico"):
+                if st.button("Exportar versões para Excel"):
+                    conteudo = exportar_excel(doc['id'])
+                    if conteudo:
+                        st.download_button(
+                            label="Clique para descarregar o ficheiro",
+                            data=conteudo,
+                            file_name=f"documento_{doc['id']}_versoes.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
+                    else:
+                        st.error("Erro ao exportar.")
 
             with st.expander("Histórico de versões"):
                 versoes = listar_versoes(doc['id'])

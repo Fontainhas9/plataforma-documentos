@@ -1,0 +1,34 @@
+docker --version
+python --version
+git --version
+
+
+docker-compose up -d
+python -m venv venv
+
+pip install -r requirements.txt
+
+
+cd backend
+uvicorn main:app --reload
+
+
+cd frontend
+streamlit run app.py
+
+
+{
+  "username": "empresa1",
+  "password": "123",
+  "perfil": "empresa",
+  "nome_completo": "Empresa Teste"
+}
+
+
+{
+  "username": "parceiro1",
+  "password": "123",
+  "perfil": "parceiro",
+  "nome_completo": "Parceiro Teste"
+}
+
