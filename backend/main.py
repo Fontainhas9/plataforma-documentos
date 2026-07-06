@@ -1,12 +1,16 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import timedelta
 import openpyxl
+from openpyxl.styles import Font
+from openpyxl.utils import get_column_letter
 from io import BytesIO
 import json
+import traceback
 
 from database import SessionLocal, engine
 from models import Base, Documento, VersaoDocumento, EstadoDocumento, Utilizador, PerfilUtilizador
@@ -25,6 +29,15 @@ from auth import (
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+# ---------- CORS ----------
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8501", "http://127.0.0.1:8501"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 def get_db():
     db = SessionLocal()
@@ -311,78 +324,230 @@ def listar_versoes(
     versoes = db.query(VersaoDocumento).filter(VersaoDocumento.documento_id == doc_id).order_by(VersaoDocumento.numero_versao).all()
     return versoes
 
-# -------------------- Exportar versões para Excel --------------------
+# -------------------- Exportar versões para Excel (com correção) --------------------
 @app.get("/documentos/{doc_id}/exportar-excel")
 def exportar_versoes_excel(
     doc_id: int,
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
-    doc = db.query(Documento).filter(Documento.id == doc_id).first()
-    if not doc:
-        raise HTTPException(status_code=404, detail="Documento não encontrado")
-    if current_user.perfil == PerfilUtilizador.PARCEIRO and doc.parceiro_id != current_user.username:
-        raise HTTPException(status_code=403, detail="Acesso negado")
+    try:
+        doc = db.query(Documento).filter(Documento.id == doc_id).first()
+        if not doc:
+            raise HTTPException(status_code=404, detail="Documento não encontrado")
+        if current_user.perfil == PerfilUtilizador.PARCEIRO and doc.parceiro_id != current_user.username:
+            raise HTTPException(status_code=403, detail="Acesso negado")
 
-    versoes = db.query(VersaoDocumento).filter(VersaoDocumento.documento_id == doc_id).order_by(VersaoDocumento.numero_versao).all()
+        dados = doc.dados
 
-    # Criar workbook
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = f"Doc {doc_id} - {doc.titulo[:30]}"
+        wb = openpyxl.Workbook()
 
-    # Obter todas as chaves de dados ao longo das versões
-    chaves = set()
-    for v in versoes:
-        if v.dados:
-            chaves.update(v.dados.keys())
-    chaves = sorted(list(chaves))
+        # ---------- Folha: LCA ----------
+        ws_lca = wb.active
+        ws_lca.title = "LCA"
 
-    # Cabeçalho
-    cabecalho = ["Nº Versão", "Estado", "Criado por", "Data", "Comentário"] + chaves
-    ws.append(cabecalho)
+        ws_lca["A1"] = "LCA - Inputs, Processes e Outputs"
+        ws_lca["A1"].font = Font(bold=True, size=14)
+        ws_lca.merge_cells("A1:H1")
 
-    # Estilo para o cabeçalho
-    from openpyxl.styles import Font
-    for col in range(1, len(cabecalho)+1):
-        ws.cell(row=1, column=col).font = Font(bold=True)
+        row = 3
 
-    # Dados
-    for v in versoes:
-        linha = [
-            v.numero_versao,
-            v.estado.value if v.estado else "",
-            v.criado_por or "",
-            v.created_at.strftime("%Y-%m-%d %H:%M:%S") if v.created_at else "",
-            v.comentario or ""
-        ]
-        for chave in chaves:
-            linha.append(v.dados.get(chave, "") if v.dados else "")
-        ws.append(linha)
+        # Inputs
+        ws_lca.cell(row=row, column=1, value="INPUTS").font = Font(bold=True)
+        row += 1
+        cab_inputs = ["Material", "Qty", "Unit", "Description", "CAS", "Distance", "Country", "Data source"]
+        for col, header in enumerate(cab_inputs, start=1):
+            ws_lca.cell(row=row, column=col, value=header).font = Font(bold=True)
+        row += 1
+        for item in dados.get("inputs", []):
+            ws_lca.cell(row=row, column=1, value=item.get("material", ""))
+            ws_lca.cell(row=row, column=2, value=item.get("qty", ""))
+            ws_lca.cell(row=row, column=3, value=item.get("unit", ""))
+            ws_lca.cell(row=row, column=4, value=item.get("description", ""))
+            ws_lca.cell(row=row, column=5, value=item.get("cas", ""))
+            ws_lca.cell(row=row, column=6, value=item.get("distance", ""))
+            ws_lca.cell(row=row, column=7, value=item.get("country", ""))
+            ws_lca.cell(row=row, column=8, value=item.get("datasource", ""))
+            row += 1
+        row += 1
 
-    # Ajustar largura das colunas
-    for col in ws.columns:
-        max_length = 0
-        column_letter = col[0].column_letter
-        for cell in col:
-            try:
-                if len(str(cell.value)) > max_length:
+        # Processes
+        ws_lca.cell(row=row, column=1, value="PROCESSOS").font = Font(bold=True)
+        row += 1
+        cab_proc = ["Process", "Qty", "Unit", "Description", "Comments", "Data source"]
+        for col, header in enumerate(cab_proc, start=1):
+            ws_lca.cell(row=row, column=col, value=header).font = Font(bold=True)
+        row += 1
+        for item in dados.get("processes", []):
+            ws_lca.cell(row=row, column=1, value=item.get("process", ""))
+            ws_lca.cell(row=row, column=2, value=item.get("qty", ""))
+            ws_lca.cell(row=row, column=3, value=item.get("unit", ""))
+            ws_lca.cell(row=row, column=4, value=item.get("description", ""))
+            ws_lca.cell(row=row, column=5, value=item.get("comments", ""))
+            ws_lca.cell(row=row, column=6, value=item.get("datasource", ""))
+            row += 1
+        row += 1
+
+        # Outputs
+        ws_lca.cell(row=row, column=1, value="OUTPUTS").font = Font(bold=True)
+        row += 1
+        cab_out = ["Etapa", "Tipo", "Nome", "Qty", "Unit", "Description", "Comments", "Data source"]
+        for col, header in enumerate(cab_out, start=1):
+            ws_lca.cell(row=row, column=col, value=header).font = Font(bold=True)
+        row += 1
+        for item in dados.get("outputs", []):
+            ws_lca.cell(row=row, column=1, value=item.get("etapa", ""))
+            ws_lca.cell(row=row, column=2, value=item.get("tipo", ""))
+            ws_lca.cell(row=row, column=3, value=item.get("nome", ""))
+            ws_lca.cell(row=row, column=4, value=item.get("qty", ""))
+            ws_lca.cell(row=row, column=5, value=item.get("unit", ""))
+            ws_lca.cell(row=row, column=6, value=item.get("description", ""))
+            ws_lca.cell(row=row, column=7, value=item.get("comments", ""))
+            ws_lca.cell(row=row, column=8, value=item.get("datasource", ""))
+            row += 1
+
+        # Ajustar largura (corrigido para MergedCell)
+        for col in ws_lca.columns:
+            max_length = 0
+            for cell in col:
+                if cell.value and len(str(cell.value)) > max_length:
                     max_length = len(str(cell.value))
-            except:
-                pass
-        adjusted_width = min(max_length + 2, 50)
-        ws.column_dimensions[column_letter].width = adjusted_width
+            # Obtém a letra da coluna usando a primeira célula (mesmo que seja MergedCell, tem .column)
+            cell = col[0]
+            column_letter = get_column_letter(cell.column)
+            ws_lca.column_dimensions[column_letter].width = min(max_length + 2, 40)
 
-    # Guardar em memória e devolver como resposta
-    output = BytesIO()
-    wb.save(output)
-    output.seek(0)
+        # ---------- Folha: LCC ----------
+        ws_lcc = wb.create_sheet("LCC")
+        ws_lcc["A1"] = "LCC - Materiais, Equipamentos, Mão-de-obra e Outputs"
+        ws_lcc["A1"].font = Font(bold=True, size=14)
+        ws_lcc.merge_cells("A1:M1")
+        row = 3
 
-    headers = {
-        "Content-Disposition": f"attachment; filename=documento_{doc_id}_versoes.xlsx"
-    }
-    return StreamingResponse(
-        output,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers=headers
-    )
+        # Materiais
+        ws_lcc.cell(row=row, column=1, value="MATERIAIS").font = Font(bold=True)
+        row += 1
+        cab_mat = ["Material", "Price (€)", "Qty", "Unit", "Brand", "Amount used", "Distance", "Country", "Data source"]
+        for col, header in enumerate(cab_mat, start=1):
+            ws_lcc.cell(row=row, column=col, value=header).font = Font(bold=True)
+        row += 1
+        for item in dados.get("lcc_materials", []):
+            ws_lcc.cell(row=row, column=1, value=item.get("material", ""))
+            ws_lcc.cell(row=row, column=2, value=item.get("price", ""))
+            ws_lcc.cell(row=row, column=3, value=item.get("qty", ""))
+            ws_lcc.cell(row=row, column=4, value=item.get("unit", ""))
+            ws_lcc.cell(row=row, column=5, value=item.get("brand", ""))
+            ws_lcc.cell(row=row, column=6, value=item.get("amount_used", ""))
+            ws_lcc.cell(row=row, column=7, value=item.get("distance", ""))
+            ws_lcc.cell(row=row, column=8, value=item.get("country", ""))
+            ws_lcc.cell(row=row, column=9, value=item.get("datasource", ""))
+            row += 1
+        row += 1
+
+        # Equipamentos
+        ws_lcc.cell(row=row, column=1, value="EQUIPAMENTOS").font = Font(bold=True)
+        row += 1
+        cab_eq = ["Equipment", "Process", "Unit cost (€)", "Lifespan (years)", "Maintenance (€/year)", "Industrial equivalent", "Comments", "Data source"]
+        for col, header in enumerate(cab_eq, start=1):
+            ws_lcc.cell(row=row, column=col, value=header).font = Font(bold=True)
+        row += 1
+        for item in dados.get("lcc_equipment", []):
+            ws_lcc.cell(row=row, column=1, value=item.get("equipment", ""))
+            ws_lcc.cell(row=row, column=2, value=item.get("process", ""))
+            ws_lcc.cell(row=row, column=3, value=item.get("unit_cost", ""))
+            ws_lcc.cell(row=row, column=4, value=item.get("lifespan", ""))
+            ws_lcc.cell(row=row, column=5, value=item.get("maintenance", ""))
+            ws_lcc.cell(row=row, column=6, value=item.get("industrial_equiv", ""))
+            ws_lcc.cell(row=row, column=7, value=item.get("comments", ""))
+            ws_lcc.cell(row=row, column=8, value=item.get("datasource", ""))
+            row += 1
+        row += 1
+
+        # Mão-de-obra
+        ws_lcc.cell(row=row, column=1, value="MÃO-DE-OBRA").font = Font(bold=True)
+        row += 1
+        cab_lab = ["Process", "Total labour", "Cost (€)", "High skilled", "Moderate", "Unskilled", "High rate (€/h)", "Moderate rate", "Unskilled rate", "Comments", "Data source"]
+        for col, header in enumerate(cab_lab, start=1):
+            ws_lcc.cell(row=row, column=col, value=header).font = Font(bold=True)
+        row += 1
+        for item in dados.get("lcc_labour", []):
+            ws_lcc.cell(row=row, column=1, value=item.get("process", ""))
+            ws_lcc.cell(row=row, column=2, value=item.get("total_labour", ""))
+            ws_lcc.cell(row=row, column=3, value=item.get("cost", ""))
+            ws_lcc.cell(row=row, column=4, value=item.get("high_skilled", ""))
+            ws_lcc.cell(row=row, column=5, value=item.get("moderate", ""))
+            ws_lcc.cell(row=row, column=6, value=item.get("unskilled", ""))
+            ws_lcc.cell(row=row, column=7, value=item.get("high_rate", ""))
+            ws_lcc.cell(row=row, column=8, value=item.get("moderate_rate", ""))
+            ws_lcc.cell(row=row, column=9, value=item.get("unskilled_rate", ""))
+            ws_lcc.cell(row=row, column=10, value=item.get("comments", ""))
+            ws_lcc.cell(row=row, column=11, value=item.get("datasource", ""))
+            row += 1
+        row += 1
+
+        # Outputs LCC
+        ws_lcc.cell(row=row, column=1, value="OUTPUTS (produto final)").font = Font(bold=True)
+        row += 1
+        cab_outlcc = ["Material", "Market price (€)", "Quantity", "Unit", "Amount produced", "Comments", "Data source"]
+        for col, header in enumerate(cab_outlcc, start=1):
+            ws_lcc.cell(row=row, column=col, value=header).font = Font(bold=True)
+        row += 1
+        for item in dados.get("lcc_outputs", []):
+            ws_lcc.cell(row=row, column=1, value=item.get("material", ""))
+            ws_lcc.cell(row=row, column=2, value=item.get("market_price", ""))
+            ws_lcc.cell(row=row, column=3, value=item.get("quantity", ""))
+            ws_lcc.cell(row=row, column=4, value=item.get("unit", ""))
+            ws_lcc.cell(row=row, column=5, value=item.get("amount_produced", ""))
+            ws_lcc.cell(row=row, column=6, value=item.get("comments", ""))
+            ws_lcc.cell(row=row, column=7, value=item.get("datasource", ""))
+            row += 1
+
+        # Ajustar largura (corrigido)
+        for col in ws_lcc.columns:
+            max_length = 0
+            for cell in col:
+                if cell.value and len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            cell = col[0]
+            column_letter = get_column_letter(cell.column)
+            ws_lcc.column_dimensions[column_letter].width = min(max_length + 2, 40)
+
+        # ---------- Histórico ----------
+        ws_hist = wb.create_sheet("Historico")
+        versoes = db.query(VersaoDocumento).filter(VersaoDocumento.documento_id == doc_id).order_by(VersaoDocumento.numero_versao).all()
+        cab_hist = ["Nº Versão", "Estado", "Criado por", "Data", "Comentário"]
+        for col, header in enumerate(cab_hist, start=1):
+            ws_hist.cell(row=1, column=col, value=header).font = Font(bold=True)
+        for idx, v in enumerate(versoes, start=2):
+            ws_hist.cell(row=idx, column=1, value=v.numero_versao)
+            ws_hist.cell(row=idx, column=2, value=v.estado.value if v.estado else "")
+            ws_hist.cell(row=idx, column=3, value=v.criado_por or "")
+            ws_hist.cell(row=idx, column=4, value=v.created_at.strftime("%Y-%m-%d %H:%M:%S") if v.created_at else "")
+            ws_hist.cell(row=idx, column=5, value=v.comentario or "")
+        for col in ws_hist.columns:
+            max_length = 0
+            for cell in col:
+                if cell.value and len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            cell = col[0]
+            column_letter = get_column_letter(cell.column)
+            ws_hist.column_dimensions[column_letter].width = min(max_length + 2, 40)
+
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        headers = {
+            "Content-Disposition": f"attachment; filename=documento_{doc_id}_completo.xlsx"
+        }
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers=headers
+        )
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Erro ao gerar Excel: {str(e)}"}
+        )
