@@ -12,12 +12,12 @@ class PerfilUtilizador(str, enum.Enum):
     ADMIN = "admin"
 
 class EstadoDocumento(str, enum.Enum):
-    RASCUNHO = "rascunho"
-    SUBMETIDO = "submetido"
-    EM_REVISAO = "em_revisao"
-    ALTERACOES = "alteracoes"
-    APROVADO = "aprovado"
-    ARQUIVADO = "arquivado"
+    RASCUNHO = "Rascunho"
+    SUBMETIDO = "Submetido"
+    EM_REVISAO = "Em Revisão"
+    ALTERACOES = "Alterações"
+    APROVADO = "Aprovado"
+    ARQUIVADO = "Arquivado"
 
 class Utilizador(Base):
     __tablename__ = "utilizadores"

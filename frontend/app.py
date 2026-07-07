@@ -191,6 +191,13 @@ def exportar_excel(doc_id):
         st.error(f"Falha na exportação: {erro}")
         return None
 
+# ---------- Função auxiliar para capitalizar colunas de DataFrame ----------
+def capitalize_dataframe_columns(df):
+    """Renomeia as colunas do DataFrame com a primeira letra de cada palavra em maiúscula."""
+    if df is not None and not df.empty:
+        df.columns = [col.title() for col in df.columns]
+    return df
+
 # ---------- Funções de renderização das tabelas LCA ----------
 def render_lca_inputs(data_key, prefix=""):
     st.subheader("Inputs")
@@ -205,7 +212,7 @@ def render_lca_inputs(data_key, prefix=""):
                     item["qty"] = st.text_input("QTY", item.get("qty",""), key=f"{prefix}lca_in_{proc}_qty_{i}")
                     item["unit"] = st.text_input("Unit", item.get("unit",""), key=f"{prefix}lca_in_{proc}_unit_{i}")
                 with col3:
-                    item["description"] = st.text_area("Material Description", item.get("description",""), key=f"{prefix}lca_in_{proc}_desc_{i}")
+                    item["description"] = st.text_area("Material Description", item.get("description",""), key=f"{prefix}lca_in_{proc}_desc_{i}")  # Capitalized Description
                     item["cas"] = st.text_input("CAS/Comments", item.get("cas",""), key=f"{prefix}lca_in_{proc}_cas_{i}")
                 with col4:
                     item["distance"] = st.text_input("Distance (km)", item.get("distance",""), key=f"{prefix}lca_in_{proc}_dist_{i}")
@@ -280,7 +287,7 @@ def render_lca_outputs(data_key, prefix=""):
                 with col2:
                     item["qty"] = st.text_input("QTY", item.get("qty",""), key=f"{prefix}lca_out_{proc}_qty_{i}")
                     item["unit"] = st.text_input("Unit", item.get("unit",""), key=f"{prefix}lca_out_{proc}_unit_{i}")
-                    item["description"] = st.text_area("Material description", item.get("description",""), key=f"{prefix}lca_out_{proc}_desc_{i}")
+                    item["description"] = st.text_area("Material Description", item.get("description",""), key=f"{prefix}lca_out_{proc}_desc_{i}")  # Capitalized Description
                 with col3:
                     item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lca_out_{proc}_comments_{i}")
                     item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
@@ -366,16 +373,16 @@ def render_lcc_labour(data_key, prefix=""):
             for i, item in enumerate(items):
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    item["process"] = st.text_input("Name of the process", item.get("process",""), key=f"{prefix}lcc_lab_{proc}_name_{i}")
+                    item["process"] = st.text_input("Name Of The Process", item.get("process",""), key=f"{prefix}lcc_lab_{proc}_name_{i}")  # Capitalized all words
                     item["total_number"] = st.text_input("Total Labour - Number", item.get("total_number",""), key=f"{prefix}lcc_lab_{proc}_num_{i}")
                     item["total_cost"] = st.text_input("Total Labour - Cost €", item.get("total_cost",""), key=f"{prefix}lcc_lab_{proc}_cost_{i}")
                 with col2:
                     item["high_skilled"] = st.text_input("Number - High Skilled", item.get("high_skilled",""), key=f"{prefix}lcc_lab_{proc}_high_{i}")
-                    item["moderate_skilled"] = st.text_input("Number - Moderated skilled", item.get("moderate_skilled",""), key=f"{prefix}lcc_lab_{proc}_mod_{i}")
+                    item["moderate_skilled"] = st.text_input("Number - Moderated Skilled", item.get("moderate_skilled",""), key=f"{prefix}lcc_lab_{proc}_mod_{i}")  # Capitalized Skilled
                     item["unskilled"] = st.text_input("Number - Unskilled", item.get("unskilled",""), key=f"{prefix}lcc_lab_{proc}_unsk_{i}")
                 with col3:
                     item["high_rate"] = st.text_input("Rate - High Skilled (€/h)", item.get("high_rate",""), key=f"{prefix}lcc_lab_{proc}_highrate_{i}")
-                    item["moderate_rate"] = st.text_input("Rate - Moderated skilled (€/h)", item.get("moderate_rate",""), key=f"{prefix}lcc_lab_{proc}_modrate_{i}")
+                    item["moderate_rate"] = st.text_input("Rate - Moderated Skilled (€/h)", item.get("moderate_rate",""), key=f"{prefix}lcc_lab_{proc}_modrate_{i}")  # Capitalized Skilled
                     item["unskilled_rate"] = st.text_input("Rate - Unskilled (€/h)", item.get("unskilled_rate",""), key=f"{prefix}lcc_lab_{proc}_unskrate_{i}")
                     item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lcc_lab_{proc}_comments_{i}")
                     item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
@@ -405,7 +412,7 @@ def render_lcc_outputs(data_key, prefix=""):
                     item["quantity"] = st.text_input("Quantity", item.get("quantity",""), key=f"{prefix}lcc_out_{proc}_qty_{i}")
                     item["unit"] = st.text_input("Unit", item.get("unit",""), key=f"{prefix}lcc_out_{proc}_unit_{i}")
                 with col3:
-                    item["amount_produced"] = st.text_input("Amount of product produced", item.get("amount_produced",""), key=f"{prefix}lcc_out_{proc}_prod_{i}")
+                    item["amount_produced"] = st.text_input("Amount Of Product Produced", item.get("amount_produced",""), key=f"{prefix}lcc_out_{proc}_prod_{i}")  # Capitalized all words
                     item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lcc_out_{proc}_comments_{i}")
                     item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
                                                       index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
@@ -525,7 +532,8 @@ if st.session_state.perfil == "parceiro":
         else:
             df = pd.DataFrame(documentos)
             df = df[["id", "titulo", "estado", "versao_atual", "updated_at"]]
-            df.columns = ["ID", "Título", "Estado", "Versão", "Última atualização"]
+            # Capitalizar cabeçalhos da tabela geral
+            df.columns = ["ID", "Título", "Estado", "Versão", "Última Atualização"]
             st.dataframe(df, width='stretch', hide_index=True)
 
             ids = [doc["id"] for doc in documentos]
@@ -549,29 +557,43 @@ if st.session_state.perfil == "parceiro":
                         st.write(f"**{proc}**")
                         if lca.get("inputs", {}).get(proc):
                             st.write("Inputs")
-                            st.dataframe(pd.DataFrame(lca["inputs"][proc]), width='stretch')
+                            df = pd.DataFrame(lca["inputs"][proc])
+                            df = capitalize_dataframe_columns(df)
+                            st.dataframe(df, width='stretch')
                         if lca.get("processes", {}).get(proc):
                             st.write("Processes")
-                            st.dataframe(pd.DataFrame(lca["processes"][proc]), width='stretch')
+                            df = pd.DataFrame(lca["processes"][proc])
+                            df = capitalize_dataframe_columns(df)
+                            st.dataframe(df, width='stretch')
                         if lca.get("outputs", {}).get(proc):
                             st.write("Outputs")
-                            st.dataframe(pd.DataFrame(lca["outputs"][proc]), width='stretch')
+                            df = pd.DataFrame(lca["outputs"][proc])
+                            df = capitalize_dataframe_columns(df)
+                            st.dataframe(df, width='stretch')
                     st.subheader("LCC")
                     lcc = dados.get("lcc", {})
                     for proc in PROCESSOS:
                         st.write(f"**{proc}**")
                         if lcc.get("materials", {}).get(proc):
                             st.write("Cost Breakdown Material")
-                            st.dataframe(pd.DataFrame(lcc["materials"][proc]), width='stretch')
+                            df = pd.DataFrame(lcc["materials"][proc])
+                            df = capitalize_dataframe_columns(df)
+                            st.dataframe(df, width='stretch')
                         if lcc.get("equipment", {}).get(proc):
                             st.write("Equipment")
-                            st.dataframe(pd.DataFrame(lcc["equipment"][proc]), width='stretch')
+                            df = pd.DataFrame(lcc["equipment"][proc])
+                            df = capitalize_dataframe_columns(df)
+                            st.dataframe(df, width='stretch')
                         if lcc.get("labour", {}).get(proc):
                             st.write("Labour")
-                            st.dataframe(pd.DataFrame(lcc["labour"][proc]), width='stretch')
+                            df = pd.DataFrame(lcc["labour"][proc])
+                            df = capitalize_dataframe_columns(df)
+                            st.dataframe(df, width='stretch')
                         if lcc.get("outputs", {}).get(proc):
                             st.write("Outputs")
-                            st.dataframe(pd.DataFrame(lcc["outputs"][proc]), width='stretch')
+                            df = pd.DataFrame(lcc["outputs"][proc])
+                            df = capitalize_dataframe_columns(df)
+                            st.dataframe(df, width='stretch')
 
                 with st.expander("Ver JSON bruto"):
                     st.json(dados)
@@ -637,7 +659,8 @@ elif st.session_state.perfil in ["empresa", "admin"]:
     else:
         df = pd.DataFrame(documentos)
         df = df[["id", "titulo", "parceiro_id", "estado", "versao_atual", "updated_at"]]
-        df.columns = ["ID", "Título", "Parceiro", "Estado", "Versão", "Última atualização"]
+        # Capitalizar cabeçalhos da tabela geral
+        df.columns = ["ID", "Título", "Parceiro", "Estado", "Versão", "Última Atualização"]
         st.dataframe(df, width='stretch', hide_index=True)
 
         ids = [doc["id"] for doc in documentos]
@@ -661,29 +684,43 @@ elif st.session_state.perfil in ["empresa", "admin"]:
                     st.write(f"**{proc}**")
                     if lca.get("inputs", {}).get(proc):
                         st.write("Inputs")
-                        st.dataframe(pd.DataFrame(lca["inputs"][proc]), width='stretch')
+                        df = pd.DataFrame(lca["inputs"][proc])
+                        df = capitalize_dataframe_columns(df)
+                        st.dataframe(df, width='stretch')
                     if lca.get("processes", {}).get(proc):
                         st.write("Processes")
-                        st.dataframe(pd.DataFrame(lca["processes"][proc]), width='stretch')
+                        df = pd.DataFrame(lca["processes"][proc])
+                        df = capitalize_dataframe_columns(df)
+                        st.dataframe(df, width='stretch')
                     if lca.get("outputs", {}).get(proc):
                         st.write("Outputs")
-                        st.dataframe(pd.DataFrame(lca["outputs"][proc]), width='stretch')
+                        df = pd.DataFrame(lca["outputs"][proc])
+                        df = capitalize_dataframe_columns(df)
+                        st.dataframe(df, width='stretch')
                 st.subheader("LCC")
                 lcc = dados.get("lcc", {})
                 for proc in PROCESSOS:
                     st.write(f"**{proc}**")
                     if lcc.get("materials", {}).get(proc):
                         st.write("Cost Breakdown Material")
-                        st.dataframe(pd.DataFrame(lcc["materials"][proc]), width='stretch')
+                        df = pd.DataFrame(lcc["materials"][proc])
+                        df = capitalize_dataframe_columns(df)
+                        st.dataframe(df, width='stretch')
                     if lcc.get("equipment", {}).get(proc):
                         st.write("Equipment")
-                        st.dataframe(pd.DataFrame(lcc["equipment"][proc]), width='stretch')
+                        df = pd.DataFrame(lcc["equipment"][proc])
+                        df = capitalize_dataframe_columns(df)
+                        st.dataframe(df, width='stretch')
                     if lcc.get("labour", {}).get(proc):
                         st.write("Labour")
-                        st.dataframe(pd.DataFrame(lcc["labour"][proc]), width='stretch')
+                        df = pd.DataFrame(lcc["labour"][proc])
+                        df = capitalize_dataframe_columns(df)
+                        st.dataframe(df, width='stretch')
                     if lcc.get("outputs", {}).get(proc):
                         st.write("Outputs")
-                        st.dataframe(pd.DataFrame(lcc["outputs"][proc]), width='stretch')
+                        df = pd.DataFrame(lcc["outputs"][proc])
+                        df = capitalize_dataframe_columns(df)
+                        st.dataframe(df, width='stretch')
 
             with st.expander("Ver JSON bruto"):
                 st.json(dados)
