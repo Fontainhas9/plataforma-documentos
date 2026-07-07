@@ -161,17 +161,20 @@ def editar_documento(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
-    doc = db.query(Documento).filter(Documento.id == doc_id).first()
-    if not doc:
-        raise HTTPException(status_code=404)
-    if current_user.perfil != PerfilUtilizador.PARCEIRO or doc.parceiro_id != current_user.username:
-        raise HTTPException(status_code=403)
-    if doc.estado != EstadoDocumento.RASCUNHO:
-        raise HTTPException(400, detail="Documento não está em edição")
-    doc.dados = update.dados
-    db.commit()
-    db.refresh(doc)
-    return doc
+    try:
+        doc = db.query(Documento).filter(Documento.id == doc_id).first()
+        if not doc:
+            raise HTTPException(status_code=404, detail="Documento não encontrado")
+        if current_user.perfil != PerfilUtilizador.PARCEIRO or doc.parceiro_id != current_user.username:
+            raise HTTPException(status_code=403, detail="Apenas o parceiro pode editar")
+        if doc.estado != EstadoDocumento.RASCUNHO:
+            raise HTTPException(400, detail=f"Documento está em estado '{doc.estado}'. Só é possível editar em Rascunho.")
+        doc.dados = update.dados
+        db.commit()
+        db.refresh(doc)
+        return doc
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
 
 @app.post("/documentos/{doc_id}/submeter", response_model=DocumentoOut)
 def submeter_documento(

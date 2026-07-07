@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import pandas as pd
+import copy
 
 API_URL = "http://127.0.0.1:8000"
 PROCESSOS = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
@@ -28,22 +29,44 @@ if "edit_data" not in st.session_state:
 if "new_data" not in st.session_state:
     st.session_state.new_data = None
 
-# ---------- Funções auxiliares de migração ----------
+# ---------- Funções auxiliares ----------
+def safe_copy(data):
+    """Cópia profunda para evitar mutações acidentais."""
+    return copy.deepcopy(data)
+
 def ensure_new_structure(data):
     """
-    Converte dados antigos (listas planas) para a nova estrutura com chaves por processo.
-    Se já for nova estrutura, retorna sem alterações.
+    Garante que os dados tenham a estrutura completa com chaves para todos os processos.
+    Preserva os dados existentes e preenche chaves em falta com listas vazias.
     """
     if not data:
-        return None
-    # Se já tiver 'lca' e 'lcc' com a estrutura esperada, retorna como está
+        return {
+            "lca": {
+                "inputs": {p: [] for p in PROCESSOS},
+                "processes": {p: [] for p in PROCESSOS},
+                "outputs": {p: [] for p in PROCESSOS}
+            },
+            "lcc": {
+                "materials": {p: [] for p in PROCESSOS},
+                "equipment": {p: [] for p in PROCESSOS},
+                "labour": {p: [] for p in PROCESSOS},
+                "outputs": {p: [] for p in PROCESSOS}
+            }
+        }
+
+    # Se já tem a estrutura esperada, apenas garantimos que todas as chaves existem
     if "lca" in data and "lcc" in data:
-        # Verifica se já tem as chaves dos processos
+        # Verifica se todos os processos estão presentes em lca.inputs (usado como referência)
         if all(p in data["lca"].get("inputs", {}) for p in PROCESSOS):
+            # Garantir que todas as outras chaves também existem
+            for secao in ["lca", "lcc"]:
+                for categoria in data[secao].keys():
+                    for p in PROCESSOS:
+                        if p not in data[secao][categoria]:
+                            data[secao][categoria][p] = []
             return data
 
-    # Estrutura antiga: provavelmente tem listas planas em "lca.inputs", etc.
-    # Vamos criar nova estrutura vazia
+    # Estrutura antiga (listas planas) – migrar para a nova
     new_data = {
         "lca": {
             "inputs": {p: [] for p in PROCESSOS},
@@ -58,8 +81,7 @@ def ensure_new_structure(data):
         }
     }
 
-    # Se houver dados antigos, tentamos colocar tudo em "Demagnetisation" por defeito
-    # (ou distribuir se tiver campo "processo", mas como não temos, colocamos tudo em Demagnetisation)
+    # Tentar colocar dados existentes em "Demagnetisation" (por padrão)
     if "lca" in data:
         old_lca = data["lca"]
         if "inputs" in old_lca and isinstance(old_lca["inputs"], list):
@@ -81,7 +103,23 @@ def ensure_new_structure(data):
 
     return new_data
 
-# ---------- Funções da API ----------
+# ---------- Funções da API (com tratamento de erros) ----------
+def api_request(method, url, **kwargs):
+    """Função genérica para chamadas à API com tratamento de erros."""
+    try:
+        resp = requests.request(method, url, **kwargs)
+        if resp.status_code >= 400:
+            try:
+                detail = resp.json().get("detail", resp.text)
+            except:
+                detail = resp.text
+            st.error(f"Erro {resp.status_code}: {detail}")
+            return None
+        return resp.json()
+    except Exception as e:
+        st.error(f"Erro de rede: {str(e)}")
+        return None
+
 def login(username, password):
     resp = requests.post(f"{API_URL}/login", data={"username": username, "password": password})
     if resp.status_code == 200:
@@ -94,7 +132,9 @@ def login(username, password):
             st.session_state.perfil = user_info["perfil"]
             st.session_state.username = user_info["username"]
         return True
-    return False
+    else:
+        st.error("Credenciais inválidas")
+        return False
 
 def logout():
     st.session_state.token = None
@@ -125,13 +165,19 @@ def criar_documento(titulo, dados):
         json={"titulo": titulo, "parceiro_id": st.session_state.username, "dados": dados},
         headers=headers_auth()
     )
-    return resp.json()
+    if resp.status_code == 200:
+        return resp.json()
+    else:
+        st.error(f"Erro ao criar documento: {resp.text}")
+        return None
 
 def obter_documento(doc_id):
     resp = requests.get(f"{API_URL}/documentos/{doc_id}", headers=headers_auth())
     if resp.status_code == 200:
         return resp.json()
-    return None
+    else:
+        st.error(f"Erro ao obter documento: {resp.text}")
+        return None
 
 def editar_documento(doc_id, dados):
     resp = requests.put(
@@ -139,14 +185,24 @@ def editar_documento(doc_id, dados):
         json={"dados": dados},
         headers=headers_auth()
     )
-    return resp.json()
+    if resp.status_code == 200:
+        return resp.json()
+    else:
+        st.error(f"Erro ao editar: {resp.text}")
+        return None
 
 def submeter(doc_id):
     resp = requests.post(f"{API_URL}/documentos/{doc_id}/submeter", headers=headers_auth())
+    if resp.status_code != 200:
+        st.error(f"Erro ao submeter: {resp.text}")
+        return None
     return resp.json()
 
 def iniciar_revisao(doc_id):
     resp = requests.post(f"{API_URL}/documentos/{doc_id}/iniciar-revisao", headers=headers_auth())
+    if resp.status_code != 200:
+        st.error(f"Erro ao iniciar revisão: {resp.text}")
+        return None
     return resp.json()
 
 def pedir_alteracoes(doc_id, comentario):
@@ -155,22 +211,37 @@ def pedir_alteracoes(doc_id, comentario):
         json={"comentario": comentario},
         headers=headers_auth()
     )
+    if resp.status_code != 200:
+        st.error(f"Erro ao pedir alterações: {resp.text}")
+        return None
     return resp.json()
 
 def editar_novamente(doc_id):
     resp = requests.post(f"{API_URL}/documentos/{doc_id}/editar-novamente", headers=headers_auth())
+    if resp.status_code != 200:
+        st.error(f"Erro ao editar novamente: {resp.text}")
+        return None
     return resp.json()
 
 def aprovar(doc_id):
     resp = requests.post(f"{API_URL}/documentos/{doc_id}/aprovar", headers=headers_auth())
+    if resp.status_code != 200:
+        st.error(f"Erro ao aprovar: {resp.text}")
+        return None
     return resp.json()
 
 def reabrir(doc_id):
     resp = requests.post(f"{API_URL}/documentos/{doc_id}/reabrir", headers=headers_auth())
+    if resp.status_code != 200:
+        st.error(f"Erro ao reabrir: {resp.text}")
+        return None
     return resp.json()
 
 def arquivar(doc_id):
     resp = requests.post(f"{API_URL}/documentos/{doc_id}/arquivar", headers=headers_auth())
+    if resp.status_code != 200:
+        st.error(f"Erro ao arquivar: {resp.text}")
+        return None
     return resp.json()
 
 def listar_versoes(doc_id):
@@ -212,7 +283,7 @@ def render_lca_inputs(data_key, prefix=""):
                     item["qty"] = st.text_input("QTY", item.get("qty",""), key=f"{prefix}lca_in_{proc}_qty_{i}")
                     item["unit"] = st.text_input("Unit", item.get("unit",""), key=f"{prefix}lca_in_{proc}_unit_{i}")
                 with col3:
-                    item["description"] = st.text_area("Material Description", item.get("description",""), key=f"{prefix}lca_in_{proc}_desc_{i}")  # Capitalized Description
+                    item["description"] = st.text_area("Material Description", item.get("description",""), key=f"{prefix}lca_in_{proc}_desc_{i}")
                     item["cas"] = st.text_input("CAS/Comments", item.get("cas",""), key=f"{prefix}lca_in_{proc}_cas_{i}")
                 with col4:
                     item["distance"] = st.text_input("Distance (km)", item.get("distance",""), key=f"{prefix}lca_in_{proc}_dist_{i}")
@@ -287,7 +358,7 @@ def render_lca_outputs(data_key, prefix=""):
                 with col2:
                     item["qty"] = st.text_input("QTY", item.get("qty",""), key=f"{prefix}lca_out_{proc}_qty_{i}")
                     item["unit"] = st.text_input("Unit", item.get("unit",""), key=f"{prefix}lca_out_{proc}_unit_{i}")
-                    item["description"] = st.text_area("Material Description", item.get("description",""), key=f"{prefix}lca_out_{proc}_desc_{i}")  # Capitalized Description
+                    item["description"] = st.text_area("Material Description", item.get("description",""), key=f"{prefix}lca_out_{proc}_desc_{i}")
                 with col3:
                     item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lca_out_{proc}_comments_{i}")
                     item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
@@ -373,16 +444,16 @@ def render_lcc_labour(data_key, prefix=""):
             for i, item in enumerate(items):
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    item["process"] = st.text_input("Name Of The Process", item.get("process",""), key=f"{prefix}lcc_lab_{proc}_name_{i}")  # Capitalized all words
+                    item["process"] = st.text_input("Name Of The Process", item.get("process",""), key=f"{prefix}lcc_lab_{proc}_name_{i}")
                     item["total_number"] = st.text_input("Total Labour - Number", item.get("total_number",""), key=f"{prefix}lcc_lab_{proc}_num_{i}")
                     item["total_cost"] = st.text_input("Total Labour - Cost €", item.get("total_cost",""), key=f"{prefix}lcc_lab_{proc}_cost_{i}")
                 with col2:
                     item["high_skilled"] = st.text_input("Number - High Skilled", item.get("high_skilled",""), key=f"{prefix}lcc_lab_{proc}_high_{i}")
-                    item["moderate_skilled"] = st.text_input("Number - Moderated Skilled", item.get("moderate_skilled",""), key=f"{prefix}lcc_lab_{proc}_mod_{i}")  # Capitalized Skilled
+                    item["moderate_skilled"] = st.text_input("Number - Moderated Skilled", item.get("moderate_skilled",""), key=f"{prefix}lcc_lab_{proc}_mod_{i}")
                     item["unskilled"] = st.text_input("Number - Unskilled", item.get("unskilled",""), key=f"{prefix}lcc_lab_{proc}_unsk_{i}")
                 with col3:
                     item["high_rate"] = st.text_input("Rate - High Skilled (€/h)", item.get("high_rate",""), key=f"{prefix}lcc_lab_{proc}_highrate_{i}")
-                    item["moderate_rate"] = st.text_input("Rate - Moderated Skilled (€/h)", item.get("moderate_rate",""), key=f"{prefix}lcc_lab_{proc}_modrate_{i}")  # Capitalized Skilled
+                    item["moderate_rate"] = st.text_input("Rate - Moderated Skilled (€/h)", item.get("moderate_rate",""), key=f"{prefix}lcc_lab_{proc}_modrate_{i}")
                     item["unskilled_rate"] = st.text_input("Rate - Unskilled (€/h)", item.get("unskilled_rate",""), key=f"{prefix}lcc_lab_{proc}_unskrate_{i}")
                     item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lcc_lab_{proc}_comments_{i}")
                     item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
@@ -412,7 +483,7 @@ def render_lcc_outputs(data_key, prefix=""):
                     item["quantity"] = st.text_input("Quantity", item.get("quantity",""), key=f"{prefix}lcc_out_{proc}_qty_{i}")
                     item["unit"] = st.text_input("Unit", item.get("unit",""), key=f"{prefix}lcc_out_{proc}_unit_{i}")
                 with col3:
-                    item["amount_produced"] = st.text_input("Amount Of Product Produced", item.get("amount_produced",""), key=f"{prefix}lcc_out_{proc}_prod_{i}")  # Capitalized all words
+                    item["amount_produced"] = st.text_input("Amount Of Product Produced", item.get("amount_produced",""), key=f"{prefix}lcc_out_{proc}_prod_{i}")
                     item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lcc_out_{proc}_comments_{i}")
                     item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
                                                       index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
@@ -470,8 +541,6 @@ if st.session_state.token is None:
             if login(username, password):
                 st.session_state.success_message = "Login efetuado com sucesso!"
                 st.rerun()
-            else:
-                st.error("Credenciais inválidas")
     st.stop()
 
 if st.session_state.success_message:
@@ -499,19 +568,7 @@ if st.session_state.perfil == "parceiro":
         titulo = st.text_input("Título do documento (ex: LCA/LCC NEO-CYCLE)")
         st.info("Preencha os dados nas tabelas abaixo. Cada processo tem a sua própria secção.")
         if st.session_state.new_data is None:
-            st.session_state.new_data = {
-                "lca": {
-                    "inputs": {p: [] for p in PROCESSOS},
-                    "processes": {p: [] for p in PROCESSOS},
-                    "outputs": {p: [] for p in PROCESSOS}
-                },
-                "lcc": {
-                    "materials": {p: [] for p in PROCESSOS},
-                    "equipment": {p: [] for p in PROCESSOS},
-                    "labour": {p: [] for p in PROCESSOS},
-                    "outputs": {p: [] for p in PROCESSOS}
-                }
-            }
+            st.session_state.new_data = ensure_new_structure({})
         render_full_form("new_data", prefix="new_")
         if st.button("📄 Criar documento", key="create_doc_btn"):
             if not titulo.strip():
@@ -519,10 +576,11 @@ if st.session_state.perfil == "parceiro":
             else:
                 dados = st.session_state.new_data
                 novo = criar_documento(titulo, dados)
-                st.session_state.success_message = f"Documento criado com sucesso! ID: {novo['id']}"
-                st.session_state.new_data = None
-                st.session_state.redirect_to_docs = True
-                st.rerun()
+                if novo:
+                    st.session_state.success_message = f"Documento criado com sucesso! ID: {novo['id']}"
+                    st.session_state.new_data = None
+                    st.session_state.redirect_to_docs = True
+                    st.rerun()
 
     elif menu == "Meus Documentos":
         st.subheader("Os meus documentos")
@@ -532,7 +590,6 @@ if st.session_state.perfil == "parceiro":
         else:
             df = pd.DataFrame(documentos)
             df = df[["id", "titulo", "estado", "versao_atual", "updated_at"]]
-            # Capitalizar cabeçalhos da tabela geral
             df.columns = ["ID", "Título", "Estado", "Versão", "Última Atualização"]
             st.dataframe(df, width='stretch', hide_index=True)
 
@@ -598,29 +655,32 @@ if st.session_state.perfil == "parceiro":
                 with st.expander("Ver JSON bruto"):
                     st.json(dados)
 
-                if doc['estado'] == 'rascunho':
+                # CORREÇÃO: Usar os valores exactos do enum (com maiúsculas e acentos)
+                if doc['estado'] == "Rascunho":
                     st.subheader("✏️ Editar documento")
-                    # Garantir que edit_data tem a estrutura nova
                     if st.session_state.edit_data is None:
-                        st.session_state.edit_data = ensure_new_structure(dados.copy())
+                        st.session_state.edit_data = ensure_new_structure(safe_copy(dados))
                     render_full_form("edit_data", prefix="edit_")
                     col1, col2 = st.columns(2)
                     with col1:
                         if st.button("💾 Guardar alterações", key="save_edit_btn"):
                             novos_dados = st.session_state.edit_data
-                            editar_documento(doc['id'], novos_dados)
-                            st.session_state.edit_data = None
-                            st.success("Documento atualizado")
-                            st.rerun()
+                            resultado = editar_documento(doc['id'], novos_dados)
+                            if resultado:
+                                st.session_state.edit_data = None
+                                st.success("Documento atualizado com sucesso!")
+                                st.rerun()
                     with col2:
                         if st.button("📤 Submeter para validação", key="submit_doc_btn"):
                             novos_dados = st.session_state.edit_data
-                            editar_documento(doc['id'], novos_dados)
-                            st.session_state.edit_data = None
-                            submeter(doc['id'])
-                            st.success("Documento submetido!")
-                            st.rerun()
-                elif doc['estado'] == 'alteracoes':
+                            resultado_edicao = editar_documento(doc['id'], novos_dados)
+                            if resultado_edicao:
+                                resultado_sub = submeter(doc['id'])
+                                if resultado_sub:
+                                    st.session_state.edit_data = None
+                                    st.success("Documento submetido!")
+                                    st.rerun()
+                elif doc['estado'] == "Alterações":
                     st.warning("A empresa pediu alterações. Vê os comentários abaixo.")
                     versoes = listar_versoes(doc['id'])
                     if versoes:
@@ -628,13 +688,14 @@ if st.session_state.perfil == "parceiro":
                         if ultima['comentario']:
                             st.info(f"Motivo: {ultima['comentario']}")
                     if st.button("✏️ Editar novamente", key="edit_again_btn"):
-                        editar_novamente(doc['id'])
-                        st.rerun()
-                elif doc['estado'] == 'aprovado':
+                        if editar_novamente(doc['id']):
+                            st.success("Documento reaberto para edição.")
+                            st.rerun()
+                elif doc['estado'] == "Aprovado":
                     st.success("Documento aprovado. Não pode ser editado.")
-                elif doc['estado'] in ['submetido', 'em_revisao']:
+                elif doc['estado'] in ["Submetido", "Em Revisão"]:
                     st.info("Documento em análise pela empresa.")
-                elif doc['estado'] == 'arquivado':
+                elif doc['estado'] == "Arquivado":
                     st.warning("Documento arquivado (apenas consulta).")
 
                 with st.expander("Histórico de versões"):
@@ -659,7 +720,6 @@ elif st.session_state.perfil in ["empresa", "admin"]:
     else:
         df = pd.DataFrame(documentos)
         df = df[["id", "titulo", "parceiro_id", "estado", "versao_atual", "updated_at"]]
-        # Capitalizar cabeçalhos da tabela geral
         df.columns = ["ID", "Título", "Parceiro", "Estado", "Versão", "Última Atualização"]
         st.dataframe(df, width='stretch', hide_index=True)
 
@@ -725,45 +785,50 @@ elif st.session_state.perfil in ["empresa", "admin"]:
             with st.expander("Ver JSON bruto"):
                 st.json(dados)
 
-            if doc['estado'] == 'submetido':
+            # CORREÇÃO: Comparar com os valores exactos do enum
+            if doc['estado'] == "Submetido":
                 if st.button("Iniciar revisão"):
-                    iniciar_revisao(doc['id'])
-                    st.rerun()
-            elif doc['estado'] == 'em_revisao':
+                    if iniciar_revisao(doc['id']):
+                        st.success("Revisão iniciada.")
+                        st.rerun()
+            elif doc['estado'] == "Em Revisão":
                 comentario = st.text_area("Comentário (obrigatório se pedir alterações)")
                 col1, col2 = st.columns(2)
                 with col1:
                     if st.button("✅ Aprovar"):
-                        aprovar(doc['id'])
-                        st.rerun()
+                        if aprovar(doc['id']):
+                            st.success("Documento aprovado.")
+                            st.rerun()
                 with col2:
                     if st.button("🔄 Pedir alterações"):
                         if not comentario.strip():
                             st.error("É necessário um comentário para pedir alterações")
                         else:
-                            pedir_alteracoes(doc['id'], comentario)
-                            st.rerun()
-            elif doc['estado'] == 'aprovado':
+                            if pedir_alteracoes(doc['id'], comentario):
+                                st.success("Pedido de alterações registado.")
+                                st.rerun()
+            elif doc['estado'] == "Aprovado":
                 st.success("Documento aprovado.")
                 col1, col2 = st.columns(2)
                 with col1:
                     if st.button("Reabrir para nova edição"):
-                        reabrir(doc['id'])
-                        st.rerun()
+                        if reabrir(doc['id']):
+                            st.success("Documento reaberto.")
+                            st.rerun()
                 with col2:
                     if st.button("📁 Arquivar documento"):
-                        arquivar(doc['id'])
-                        st.success("Documento arquivado.")
-                        st.rerun()
-            elif doc['estado'] == 'rascunho':
+                        if arquivar(doc['id']):
+                            st.success("Documento arquivado.")
+                            st.rerun()
+            elif doc['estado'] == "Rascunho":
                 st.info("O parceiro ainda está a editar.")
                 if st.button("📁 Arquivar documento (rascunho)"):
-                    arquivar(doc['id'])
-                    st.success("Documento arquivado.")
-                    st.rerun()
-            elif doc['estado'] == 'alteracoes':
+                    if arquivar(doc['id']):
+                        st.success("Documento arquivado.")
+                        st.rerun()
+            elif doc['estado'] == "Alterações":
                 st.warning("Aguardando o parceiro iniciar a edição.")
-            elif doc['estado'] == 'arquivado':
+            elif doc['estado'] == "Arquivado":
                 st.warning("Documento arquivado (apenas consulta).")
 
             with st.expander("📥 Exportar histórico"):
