@@ -28,21 +28,23 @@ if "edit_data" not in st.session_state:
 if "new_data" not in st.session_state:
     st.session_state.new_data = None
 
-# ---------- Função para converter documentos antigos para nova estrutura ----------
-def convert_to_new_structure(dados):
+# ---------- Funções auxiliares de migração ----------
+def ensure_new_structure(data):
     """
-    Converte um documento da estrutura antiga (listas planas com campo 'processo')
-    para a nova estrutura (dicionário com chaves por processo).
-    Se já tiver a nova estrutura (contém 'lca'), retorna os dados originais.
+    Converte dados antigos (listas planas) para a nova estrutura com chaves por processo.
+    Se já for nova estrutura, retorna sem alterações.
     """
-    if not dados:
-        return dados
-    # Se já tem a nova estrutura, retorna
-    if "lca" in dados and "lcc" in dados:
-        return dados
+    if not data:
+        return None
+    # Se já tiver 'lca' e 'lcc' com a estrutura esperada, retorna como está
+    if "lca" in data and "lcc" in data:
+        # Verifica se já tem as chaves dos processos
+        if all(p in data["lca"].get("inputs", {}) for p in PROCESSOS):
+            return data
 
-    # Inicializar nova estrutura
-    new_dados = {
+    # Estrutura antiga: provavelmente tem listas planas em "lca.inputs", etc.
+    # Vamos criar nova estrutura vazia
+    new_data = {
         "lca": {
             "inputs": {p: [] for p in PROCESSOS},
             "processes": {p: [] for p in PROCESSOS},
@@ -56,59 +58,30 @@ def convert_to_new_structure(dados):
         }
     }
 
-    # Função auxiliar para adicionar item ao dicionário de processo
-    def add_item(proc, target_dict, item):
-        if proc in target_dict:
-            # Remove o campo 'processo' do item (já não é necessário)
-            item_copy = item.copy()
-            item_copy.pop("processo", None)
-            target_dict[proc].append(item_copy)
+    # Se houver dados antigos, tentamos colocar tudo em "Demagnetisation" por defeito
+    # (ou distribuir se tiver campo "processo", mas como não temos, colocamos tudo em Demagnetisation)
+    if "lca" in data:
+        old_lca = data["lca"]
+        if "inputs" in old_lca and isinstance(old_lca["inputs"], list):
+            new_data["lca"]["inputs"]["Demagnetisation"] = old_lca["inputs"]
+        if "processes" in old_lca and isinstance(old_lca["processes"], list):
+            new_data["lca"]["processes"]["Demagnetisation"] = old_lca["processes"]
+        if "outputs" in old_lca and isinstance(old_lca["outputs"], list):
+            new_data["lca"]["outputs"]["Demagnetisation"] = old_lca["outputs"]
+    if "lcc" in data:
+        old_lcc = data["lcc"]
+        if "materials" in old_lcc and isinstance(old_lcc["materials"], list):
+            new_data["lcc"]["materials"]["Demagnetisation"] = old_lcc["materials"]
+        if "equipment" in old_lcc and isinstance(old_lcc["equipment"], list):
+            new_data["lcc"]["equipment"]["Demagnetisation"] = old_lcc["equipment"]
+        if "labour" in old_lcc and isinstance(old_lcc["labour"], list):
+            new_data["lcc"]["labour"]["Demagnetisation"] = old_lcc["labour"]
+        if "outputs" in old_lcc and isinstance(old_lcc["outputs"], list):
+            new_data["lcc"]["outputs"]["Demagnetisation"] = old_lcc["outputs"]
 
-    # Converter LCA Inputs
-    if "inputs" in dados:
-        for item in dados["inputs"]:
-            proc = item.get("processo", "Demagnetisation")
-            add_item(proc, new_dados["lca"]["inputs"], item)
+    return new_data
 
-    # Converter LCA Processes
-    if "processes" in dados:
-        for item in dados["processes"]:
-            proc = item.get("processo", "Demagnetisation")
-            add_item(proc, new_dados["lca"]["processes"], item)
-
-    # Converter LCA Outputs
-    if "outputs" in dados:
-        for item in dados["outputs"]:
-            proc = item.get("processo", "Demagnetisation")
-            add_item(proc, new_dados["lca"]["outputs"], item)
-
-    # Converter LCC Materials
-    if "lcc_materials" in dados:
-        for item in dados["lcc_materials"]:
-            proc = item.get("processo", "Demagnetisation")
-            add_item(proc, new_dados["lcc"]["materials"], item)
-
-    # Converter LCC Equipment
-    if "lcc_equipment" in dados:
-        for item in dados["lcc_equipment"]:
-            proc = item.get("processo", "Demagnetisation")
-            add_item(proc, new_dados["lcc"]["equipment"], item)
-
-    # Converter LCC Labour
-    if "lcc_labour" in dados:
-        for item in dados["lcc_labour"]:
-            proc = item.get("processo", "Demagnetisation")
-            add_item(proc, new_dados["lcc"]["labour"], item)
-
-    # Converter LCC Outputs
-    if "lcc_outputs" in dados:
-        for item in dados["lcc_outputs"]:
-            proc = item.get("processo", "Demagnetisation")
-            add_item(proc, new_dados["lcc"]["outputs"], item)
-
-    return new_dados
-
-# ---------- Funções da API (mantidas iguais) ----------
+# ---------- Funções da API ----------
 def login(username, password):
     resp = requests.post(f"{API_URL}/login", data={"username": username, "password": password})
     if resp.status_code == 200:
@@ -218,7 +191,7 @@ def exportar_excel(doc_id):
         st.error(f"Falha na exportação: {erro}")
         return None
 
-# ---------- Funções de renderização das tabelas LCA (mantidas iguais) ----------
+# ---------- Funções de renderização das tabelas LCA ----------
 def render_lca_inputs(data_key, prefix=""):
     st.subheader("Inputs")
     for proc in PROCESSOS:
@@ -323,7 +296,7 @@ def render_lca_outputs(data_key, prefix=""):
                     items.pop()
                     st.rerun()
 
-# ---------- Funções de renderização das tabelas LCC (mantidas iguais) ----------
+# ---------- Funções de renderização das tabelas LCC ----------
 def render_lcc_materials(data_key, prefix=""):
     st.subheader("Cost Breakdown Material")
     for proc in PROCESSOS:
@@ -447,8 +420,9 @@ def render_lcc_outputs(data_key, prefix=""):
                     items.pop()
                     st.rerun()
 
-# ---------- Função principal de formulário ----------
+# ---------- Função principal de formulário (com verificação de estrutura) ----------
 def render_full_form(data_key, prefix=""):
+    # Garantir que os dados têm a estrutura nova
     if st.session_state[data_key] is None:
         st.session_state[data_key] = {
             "lca": {
@@ -463,6 +437,10 @@ def render_full_form(data_key, prefix=""):
                 "outputs": {p: [] for p in PROCESSOS}
             }
         }
+    else:
+        # Se já existir, mas não tiver a estrutura esperada, converte
+        st.session_state[data_key] = ensure_new_structure(st.session_state[data_key])
+
     st.subheader("LCA - Análise do Ciclo de Vida")
     render_lca_inputs(data_key, prefix)
     render_lca_processes(data_key, prefix)
@@ -565,47 +543,44 @@ if st.session_state.perfil == "parceiro":
 
                 dados = doc['dados']
                 with st.expander("Ver dados em tabelas", expanded=True):
-                    # Converter se necessário para visualização
-                    dados_conv = convert_to_new_structure(dados)
                     st.subheader("LCA")
-                    lca = dados_conv.get("lca", {})
+                    lca = dados.get("lca", {})
                     for proc in PROCESSOS:
                         st.write(f"**{proc}**")
                         if lca.get("inputs", {}).get(proc):
                             st.write("Inputs")
-                            st.dataframe(pd.DataFrame(lca["inputs"][proc]), use_container_width=True)
+                            st.dataframe(pd.DataFrame(lca["inputs"][proc]), width='stretch')
                         if lca.get("processes", {}).get(proc):
                             st.write("Processes")
-                            st.dataframe(pd.DataFrame(lca["processes"][proc]), use_container_width=True)
+                            st.dataframe(pd.DataFrame(lca["processes"][proc]), width='stretch')
                         if lca.get("outputs", {}).get(proc):
                             st.write("Outputs")
-                            st.dataframe(pd.DataFrame(lca["outputs"][proc]), use_container_width=True)
+                            st.dataframe(pd.DataFrame(lca["outputs"][proc]), width='stretch')
                     st.subheader("LCC")
-                    lcc = dados_conv.get("lcc", {})
+                    lcc = dados.get("lcc", {})
                     for proc in PROCESSOS:
                         st.write(f"**{proc}**")
                         if lcc.get("materials", {}).get(proc):
                             st.write("Cost Breakdown Material")
-                            st.dataframe(pd.DataFrame(lcc["materials"][proc]), use_container_width=True)
+                            st.dataframe(pd.DataFrame(lcc["materials"][proc]), width='stretch')
                         if lcc.get("equipment", {}).get(proc):
                             st.write("Equipment")
-                            st.dataframe(pd.DataFrame(lcc["equipment"][proc]), use_container_width=True)
+                            st.dataframe(pd.DataFrame(lcc["equipment"][proc]), width='stretch')
                         if lcc.get("labour", {}).get(proc):
                             st.write("Labour")
-                            st.dataframe(pd.DataFrame(lcc["labour"][proc]), use_container_width=True)
+                            st.dataframe(pd.DataFrame(lcc["labour"][proc]), width='stretch')
                         if lcc.get("outputs", {}).get(proc):
                             st.write("Outputs")
-                            st.dataframe(pd.DataFrame(lcc["outputs"][proc]), use_container_width=True)
+                            st.dataframe(pd.DataFrame(lcc["outputs"][proc]), width='stretch')
 
                 with st.expander("Ver JSON bruto"):
                     st.json(dados)
 
-                # Ações conforme estado
                 if doc['estado'] == 'rascunho':
                     st.subheader("✏️ Editar documento")
+                    # Garantir que edit_data tem a estrutura nova
                     if st.session_state.edit_data is None:
-                        # Converter para nova estrutura antes de editar
-                        st.session_state.edit_data = convert_to_new_structure(dados.copy())
+                        st.session_state.edit_data = ensure_new_structure(dados.copy())
                     render_full_form("edit_data", prefix="edit_")
                     col1, col2 = st.columns(2)
                     with col1:
@@ -679,38 +654,36 @@ elif st.session_state.perfil in ["empresa", "admin"]:
             st.write(f"Estado: **{doc['estado']}** | Versão: {doc['versao_atual']}")
 
             dados = doc['dados']
-            # Converter para visualização
-            dados_conv = convert_to_new_structure(dados)
             with st.expander("Ver dados do documento", expanded=True):
                 st.subheader("LCA")
-                lca = dados_conv.get("lca", {})
+                lca = dados.get("lca", {})
                 for proc in PROCESSOS:
                     st.write(f"**{proc}**")
                     if lca.get("inputs", {}).get(proc):
                         st.write("Inputs")
-                        st.dataframe(pd.DataFrame(lca["inputs"][proc]), use_container_width=True)
+                        st.dataframe(pd.DataFrame(lca["inputs"][proc]), width='stretch')
                     if lca.get("processes", {}).get(proc):
                         st.write("Processes")
-                        st.dataframe(pd.DataFrame(lca["processes"][proc]), use_container_width=True)
+                        st.dataframe(pd.DataFrame(lca["processes"][proc]), width='stretch')
                     if lca.get("outputs", {}).get(proc):
                         st.write("Outputs")
-                        st.dataframe(pd.DataFrame(lca["outputs"][proc]), use_container_width=True)
+                        st.dataframe(pd.DataFrame(lca["outputs"][proc]), width='stretch')
                 st.subheader("LCC")
-                lcc = dados_conv.get("lcc", {})
+                lcc = dados.get("lcc", {})
                 for proc in PROCESSOS:
                     st.write(f"**{proc}**")
                     if lcc.get("materials", {}).get(proc):
                         st.write("Cost Breakdown Material")
-                        st.dataframe(pd.DataFrame(lcc["materials"][proc]), use_container_width=True)
+                        st.dataframe(pd.DataFrame(lcc["materials"][proc]), width='stretch')
                     if lcc.get("equipment", {}).get(proc):
                         st.write("Equipment")
-                        st.dataframe(pd.DataFrame(lcc["equipment"][proc]), use_container_width=True)
+                        st.dataframe(pd.DataFrame(lcc["equipment"][proc]), width='stretch')
                     if lcc.get("labour", {}).get(proc):
                         st.write("Labour")
-                        st.dataframe(pd.DataFrame(lcc["labour"][proc]), use_container_width=True)
+                        st.dataframe(pd.DataFrame(lcc["labour"][proc]), width='stretch')
                     if lcc.get("outputs", {}).get(proc):
                         st.write("Outputs")
-                        st.dataframe(pd.DataFrame(lcc["outputs"][proc]), use_container_width=True)
+                        st.dataframe(pd.DataFrame(lcc["outputs"][proc]), width='stretch')
 
             with st.expander("Ver JSON bruto"):
                 st.json(dados)
