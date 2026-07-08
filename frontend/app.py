@@ -28,17 +28,14 @@ if "edit_data" not in st.session_state:
     st.session_state.edit_data = None
 if "new_data" not in st.session_state:
     st.session_state.new_data = None
+if "refresh_counter" not in st.session_state:
+    st.session_state.refresh_counter = 0
 
 # ---------- Funções auxiliares ----------
 def safe_copy(data):
-    """Cópia profunda para evitar mutações acidentais."""
     return copy.deepcopy(data)
 
 def ensure_new_structure(data):
-    """
-    Garante que os dados tenham a estrutura completa com chaves para todos os processos.
-    Preserva os dados existentes e preenche chaves em falta com listas vazias.
-    """
     if not data:
         return {
             "lca": {
@@ -54,7 +51,6 @@ def ensure_new_structure(data):
             }
         }
 
-    # Se já tem a estrutura esperada, apenas garantimos que todas as chaves existem
     if "lca" in data and "lcc" in data:
         if all(p in data["lca"].get("inputs", {}) for p in PROCESSOS):
             for secao in ["lca", "lcc"]:
@@ -64,7 +60,6 @@ def ensure_new_structure(data):
                             data[secao][categoria][p] = []
             return data
 
-    # Estrutura antiga (listas planas) – migrar para a nova
     new_data = {
         "lca": {
             "inputs": {p: [] for p in PROCESSOS},
@@ -127,6 +122,7 @@ def logout():
     st.session_state.redirect_to_docs = False
     st.session_state.edit_data = None
     st.session_state.new_data = None
+    st.session_state.refresh_counter = 0
 
 def headers_auth():
     return {"Authorization": f"Bearer {st.session_state.token}"}
@@ -243,19 +239,35 @@ def exportar_excel(doc_id):
         st.error(f"Falha na exportação: {erro}")
         return None
 
-# ---------- Função auxiliar para capitalizar colunas de DataFrame e remover índice ----------
+# ---------- Função para resumo ----------
+def show_document_summary(documentos):
+    if not documentos:
+        st.info("Nenhum documento encontrado.")
+        return
+
+    estados = ["Rascunho", "Submetido", "Em Revisão", "Alterações", "Aprovado", "Arquivado"]
+    contagens = {estado: 0 for estado in estados}
+    for doc in documentos:
+        estado = doc.get("estado")
+        if estado in contagens:
+            contagens[estado] += 1
+
+    cols = st.columns(len(estados))
+    for i, estado in enumerate(estados):
+        with cols[i]:
+            st.metric(label=estado, value=contagens[estado])
+
+# ---------- Função para exibir dataframes sem índice ----------
 def display_dataframe(df):
-    """Capitaliza colunas e exibe o DataFrame sem índice."""
     if df is not None and not df.empty:
         df = df.copy()
         df.columns = [col.title() for col in df.columns]
-        # Reset index para remover a numeração (o hide_index=True já oculta, mas garantimos)
         df = df.reset_index(drop=True)
         st.dataframe(df, width='stretch', hide_index=True)
     else:
         st.write("(sem dados)")
 
-# ---------- Funções de renderização das tabelas LCA ----------
+# ---------- Funções de renderização das tabelas ----------
 def render_lca_inputs(data_key, prefix=""):
     st.subheader("Inputs")
     for proc in PROCESSOS:
@@ -360,7 +372,6 @@ def render_lca_outputs(data_key, prefix=""):
                     items.pop()
                     st.rerun()
 
-# ---------- Funções de renderização das tabelas LCC ----------
 def render_lcc_materials(data_key, prefix=""):
     st.subheader("Cost Breakdown Material")
     for proc in PROCESSOS:
@@ -484,7 +495,6 @@ def render_lcc_outputs(data_key, prefix=""):
                     items.pop()
                     st.rerun()
 
-# ---------- Função principal de formulário ----------
 def render_full_form(data_key, prefix=""):
     if st.session_state[data_key] is None:
         st.session_state[data_key] = {
@@ -542,6 +552,16 @@ if st.sidebar.button("Logout"):
 
 st.title("📄 Plataforma de Gestão de Documentos")
 
+# ---------- Resumo de documentos ----------
+documentos = listar_documentos()
+
+if documentos:
+    st.subheader("📊 Resumo de documentos")
+    show_document_summary(documentos)
+    st.divider()
+else:
+    st.info("Nenhum documento encontrado. Comece por criar um novo documento.")
+
 # ---------- Área do Parceiro ----------
 if st.session_state.perfil == "parceiro":
     st.header("Área do Parceiro")
@@ -568,6 +588,12 @@ if st.session_state.perfil == "parceiro":
 
     elif menu == "Meus Documentos":
         st.subheader("Os meus documentos")
+        # Botão abaixo do título (alinhado à esquerda)
+        if st.button("🔄 Atualizar lista", key="refresh_list"):
+            st.session_state.refresh_counter += 1
+            st.rerun()
+        st.write("")  # pequeno espaçamento
+        
         documentos = listar_documentos()
         if not documentos:
             st.info("Nenhum documento encontrado.")
@@ -682,7 +708,14 @@ if st.session_state.perfil == "parceiro":
 # ---------- Área da Empresa ----------
 elif st.session_state.perfil in ["empresa", "admin"]:
     st.header("Área da Empresa (Validação)")
+    
     st.subheader("Documentos disponíveis")
+    # Botão abaixo do título (alinhado à esquerda)
+    if st.button("🔄 Atualizar lista", key="refresh_list_empresa"):
+        st.session_state.refresh_counter += 1
+        st.rerun()
+    st.write("")
+    
     documentos = listar_documentos()
     if not documentos:
         st.info("Nenhum documento encontrado.")
