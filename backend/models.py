@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, JSON, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-import uuid
 import enum
 
 from database import Base
@@ -34,7 +33,7 @@ class Documento(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     titulo = Column(String, nullable=False)
-    parceiro_id = Column(String, nullable=False)  # username do parceiro
+    parceiro_id = Column(String, nullable=False)
     estado = Column(Enum(EstadoDocumento), default=EstadoDocumento.RASCUNHO)
     versao_atual = Column(Integer, default=1)
     dados = Column(JSON, default={})

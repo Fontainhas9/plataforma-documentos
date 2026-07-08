@@ -16,7 +16,8 @@ from database import SessionLocal, engine
 from models import Base, Documento, VersaoDocumento, EstadoDocumento, Utilizador, PerfilUtilizador
 from schemas import (
     DocumentoCreate, DocumentoUpdate, DocumentoOut,
-    VersaoOut, MudancaEstado, UtilizadorCreate, Token
+    VersaoOut, MudancaEstado, UtilizadorCreate, Token,
+    PasswordUpdate
 )
 from auth import (
     hash_password,
@@ -25,12 +26,14 @@ from auth import (
     get_current_user,
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
+from email_utils import enviar_email, DESTINATARIO_PADRAO
 
+# Criar tabelas (se não existirem)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# ---------- CORS ----------
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:8501", "http://127.0.0.1:8501"],
@@ -101,7 +104,7 @@ def quem_sou_eu(current_user: Utilizador = Depends(get_current_user)):
         "nome_completo": current_user.nome_completo
     }
 
-# -------------------- Listagem de documentos --------------------
+# -------------------- Documentos --------------------
 @app.get("/documentos", response_model=List[DocumentoOut])
 def listar_documentos(
     estado: Optional[EstadoDocumento] = Query(None, description="Filtrar por estado"),
@@ -111,15 +114,13 @@ def listar_documentos(
     query = db.query(Documento)
     if estado:
         query = query.filter(Documento.estado == estado)
-    else:
-        query = query.filter(Documento.estado != EstadoDocumento.ARQUIVADO)
+    # REMOVIDO: filtro que excluía ARQUIVADO
 
     if current_user.perfil == PerfilUtilizador.PARCEIRO:
         query = query.filter(Documento.parceiro_id == current_user.username)
     documentos = query.order_by(Documento.id.desc()).all()
     return documentos
 
-# -------------------- Documentos individuais --------------------
 @app.post("/documentos/", response_model=DocumentoOut)
 def criar_documento(
     doc: DocumentoCreate,
@@ -272,6 +273,19 @@ def aprovar_documento(
     criar_versao(db, doc, EstadoDocumento.APROVADO, criado_por=current_user.username, comentario="Documento aprovado")
     db.commit()
     db.refresh(doc)
+
+    # ---------- Envio de email (para o destinatário fixo) ----------
+    assunto = f"Documento '{doc.titulo}' aprovado (ID {doc.id})"
+    corpo = (
+        f"O documento '{doc.titulo}' (ID {doc.id}) foi aprovado.\n\n"
+        f"Parceiro: {doc.parceiro_id}\n"
+        f"Última versão: {doc.versao_atual}\n"
+        f"Aprovado por: {current_user.username}\n"
+        f"Data: {doc.updated_at or doc.created_at}\n\n"
+        "Aceda à plataforma para consultar os detalhes."
+    )
+    enviar_email(DESTINATARIO_PADRAO, assunto, corpo)
+
     return doc
 
 @app.post("/documentos/{doc_id}/reabrir", response_model=DocumentoOut)
@@ -327,7 +341,59 @@ def listar_versoes(
     versoes = db.query(VersaoDocumento).filter(VersaoDocumento.documento_id == doc_id).order_by(VersaoDocumento.numero_versao).all()
     return versoes
 
-# -------------------- Exportar versões para Excel (corrigido) --------------------
+# -------------------- Admin: gestão de utilizadores --------------------
+@app.get("/admin/usuarios", response_model=List[dict])
+def listar_utilizadores(
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    if current_user.perfil != PerfilUtilizador.ADMIN:
+        raise HTTPException(status_code=403, detail="Apenas admin")
+    users = db.query(Utilizador).all()
+    return [
+        {
+            "username": u.username,
+            "perfil": u.perfil.value,
+            "nome_completo": u.nome_completo,
+            "created_at": u.created_at
+        }
+        for u in users
+    ]
+
+@app.delete("/admin/usuarios/{username}")
+def eliminar_utilizador(
+    username: str,
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    if current_user.perfil != PerfilUtilizador.ADMIN:
+        raise HTTPException(status_code=403, detail="Apenas admin")
+    if username == current_user.username:
+        raise HTTPException(status_code=400, detail="Não pode eliminar a si próprio")
+    user = db.query(Utilizador).filter(Utilizador.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilizador não encontrado")
+    db.delete(user)
+    db.commit()
+    return {"ok": True}
+
+@app.put("/admin/usuarios/{username}/password")
+def alterar_password(
+    username: str,
+    dados: PasswordUpdate,
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    if current_user.perfil != PerfilUtilizador.ADMIN:
+        raise HTTPException(status_code=403, detail="Apenas admin")
+    user = db.query(Utilizador).filter(Utilizador.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilizador não encontrado")
+    user.password_hash = hash_password(dados.nova_password)
+    db.commit()
+    return {"ok": True}
+
+# -------------------- Exportar Excel (mantido) --------------------
 @app.get("/documentos/{doc_id}/exportar-excel")
 def exportar_versoes_excel(
     doc_id: int,

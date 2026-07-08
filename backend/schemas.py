@@ -10,6 +10,9 @@ class UtilizadorCreate(BaseModel):
     perfil: PerfilUtilizador
     nome_completo: Optional[str] = ""
 
+class PasswordUpdate(BaseModel):
+    nova_password: str
+
 class Token(BaseModel):
     access_token: str
     token_type: str

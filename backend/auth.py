@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
-import bcrypt                     # <-- usa bcrypt diretamente
+import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -15,7 +15,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 def hash_password(password: str) -> str:
-    # Gera um salt automático e retorna a hash em string
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 def verificar_password(plain_password: str, hashed_password: str) -> bool:

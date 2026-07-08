@@ -30,6 +30,8 @@ if "new_data" not in st.session_state:
     st.session_state.new_data = None
 if "refresh_counter" not in st.session_state:
     st.session_state.refresh_counter = 0
+if "pw_input_counter" not in st.session_state:
+    st.session_state.pw_input_counter = 0
 
 # ---------- Funções auxiliares ----------
 def safe_copy(data):
@@ -537,8 +539,9 @@ if st.session_state.token is None:
                 st.rerun()
     st.stop()
 
+# Mostrar mensagem de sucesso com toast
 if st.session_state.success_message:
-    st.success(st.session_state.success_message)
+    st.toast(st.session_state.success_message, icon="✅")
     st.session_state.success_message = None
 
 if st.session_state.redirect_to_docs:
@@ -552,15 +555,15 @@ if st.sidebar.button("Logout"):
 
 st.title("📄 Plataforma de Gestão de Documentos")
 
-# ---------- Resumo de documentos ----------
-documentos = listar_documentos()
-
-if documentos:
-    st.subheader("📊 Resumo de documentos")
-    show_document_summary(documentos)
-    st.divider()
-else:
-    st.info("Nenhum documento encontrado. Comece por criar um novo documento.")
+# ---------- Resumo de documentos (apenas para parceiro e empresa) ----------
+if st.session_state.perfil != "admin":
+    documentos = listar_documentos()
+    if documentos:
+        st.subheader("📊 Resumo de documentos")
+        show_document_summary(documentos)
+        st.divider()
+    else:
+        st.info("Nenhum documento encontrado. Comece por criar um novo documento.")
 
 # ---------- Área do Parceiro ----------
 if st.session_state.perfil == "parceiro":
@@ -583,22 +586,25 @@ if st.session_state.perfil == "parceiro":
                 if novo:
                     st.session_state.success_message = f"Documento criado com sucesso! ID: {novo['id']}"
                     st.session_state.new_data = None
+                    st.session_state.doc_selecionado = None
                     st.session_state.redirect_to_docs = True
                     st.rerun()
 
     elif menu == "Meus Documentos":
         st.subheader("Os meus documentos")
-        # Botão abaixo do título (alinhado à esquerda)
         if st.button("🔄 Atualizar lista", key="refresh_list"):
             st.session_state.refresh_counter += 1
             st.rerun()
-        st.write("")  # pequeno espaçamento
-        
+        st.write("")
+
         documentos = listar_documentos()
         if not documentos:
             st.info("Nenhum documento encontrado.")
         else:
             df = pd.DataFrame(documentos)
+            # Formatar a data
+            if "updated_at" in df.columns:
+                df["updated_at"] = pd.to_datetime(df["updated_at"]).dt.strftime("%d/%m/%Y %H:%M")
             df = df[["id", "titulo", "estado", "versao_atual", "updated_at"]]
             df.columns = ["ID", "Título", "Estado", "Versão", "Última Atualização"]
             st.dataframe(df, width='stretch', hide_index=True)
@@ -663,6 +669,7 @@ if st.session_state.perfil == "parceiro":
                             resultado = editar_documento(doc['id'], novos_dados)
                             if resultado:
                                 st.session_state.edit_data = None
+                                st.session_state.doc_selecionado = None
                                 st.success("Documento atualizado com sucesso!")
                                 st.rerun()
                     with col2:
@@ -673,6 +680,7 @@ if st.session_state.perfil == "parceiro":
                                 resultado_sub = submeter(doc['id'])
                                 if resultado_sub:
                                     st.session_state.edit_data = None
+                                    st.session_state.doc_selecionado = None
                                     st.success("Documento submetido!")
                                     st.rerun()
                 elif doc['estado'] == "Alterações":
@@ -684,6 +692,7 @@ if st.session_state.perfil == "parceiro":
                             st.info(f"Motivo: {ultima['comentario']}")
                     if st.button("✏️ Editar novamente", key="edit_again_btn"):
                         if editar_novamente(doc['id']):
+                            st.session_state.doc_selecionado = None
                             st.success("Documento reaberto para edição.")
                             st.rerun()
                 elif doc['estado'] == "Aprovado":
@@ -706,21 +715,23 @@ if st.session_state.perfil == "parceiro":
                     st.rerun()
 
 # ---------- Área da Empresa ----------
-elif st.session_state.perfil in ["empresa", "admin"]:
+elif st.session_state.perfil == "empresa":
     st.header("Área da Empresa (Validação)")
-    
+
     st.subheader("Documentos disponíveis")
-    # Botão abaixo do título (alinhado à esquerda)
     if st.button("🔄 Atualizar lista", key="refresh_list_empresa"):
         st.session_state.refresh_counter += 1
         st.rerun()
     st.write("")
-    
+
     documentos = listar_documentos()
     if not documentos:
         st.info("Nenhum documento encontrado.")
     else:
         df = pd.DataFrame(documentos)
+        # Formatar a data
+        if "updated_at" in df.columns:
+            df["updated_at"] = pd.to_datetime(df["updated_at"]).dt.strftime("%d/%m/%Y %H:%M")
         df = df[["id", "titulo", "parceiro_id", "estado", "versao_atual", "updated_at"]]
         df.columns = ["ID", "Título", "Parceiro", "Estado", "Versão", "Última Atualização"]
         st.dataframe(df, width='stretch', hide_index=True)
@@ -776,6 +787,7 @@ elif st.session_state.perfil in ["empresa", "admin"]:
             if doc['estado'] == "Submetido":
                 if st.button("Iniciar revisão"):
                     if iniciar_revisao(doc['id']):
+                        st.session_state.doc_selecionado = None
                         st.success("Revisão iniciada.")
                         st.rerun()
             elif doc['estado'] == "Em Revisão":
@@ -784,6 +796,7 @@ elif st.session_state.perfil in ["empresa", "admin"]:
                 with col1:
                     if st.button("✅ Aprovar"):
                         if aprovar(doc['id']):
+                            st.session_state.doc_selecionado = None
                             st.success("Documento aprovado.")
                             st.rerun()
                 with col2:
@@ -792,6 +805,7 @@ elif st.session_state.perfil in ["empresa", "admin"]:
                             st.error("É necessário um comentário para pedir alterações")
                         else:
                             if pedir_alteracoes(doc['id'], comentario):
+                                st.session_state.doc_selecionado = None
                                 st.success("Pedido de alterações registado.")
                                 st.rerun()
             elif doc['estado'] == "Aprovado":
@@ -800,17 +814,20 @@ elif st.session_state.perfil in ["empresa", "admin"]:
                 with col1:
                     if st.button("Reabrir para nova edição"):
                         if reabrir(doc['id']):
+                            st.session_state.doc_selecionado = None
                             st.success("Documento reaberto.")
                             st.rerun()
                 with col2:
                     if st.button("📁 Arquivar documento"):
                         if arquivar(doc['id']):
+                            st.session_state.doc_selecionado = None
                             st.success("Documento arquivado.")
                             st.rerun()
             elif doc['estado'] == "Rascunho":
                 st.info("O parceiro ainda está a editar.")
                 if st.button("📁 Arquivar documento (rascunho)"):
                     if arquivar(doc['id']):
+                        st.session_state.doc_selecionado = None
                         st.success("Documento arquivado.")
                         st.rerun()
             elif doc['estado'] == "Alterações":
@@ -839,3 +856,215 @@ elif st.session_state.perfil in ["empresa", "admin"]:
             if st.button("Fechar detalhes"):
                 st.session_state.doc_selecionado = None
                 st.rerun()
+
+# ---------- Área do Admin ----------
+elif st.session_state.perfil == "admin":
+    st.header("Painel Administrativo")
+    menu_admin = st.sidebar.radio("Admin", ["Utilizadores", "Documentos (empresa)"])
+
+    if menu_admin == "Utilizadores":
+        st.subheader("Gestão de Utilizadores")
+        if st.button("🔄 Carregar utilizadores"):
+            st.session_state.refresh_counter += 1
+            st.rerun()
+        st.write("")
+
+        resp = requests.get(f"{API_URL}/admin/usuarios", headers=headers_auth())
+        if resp.status_code == 200:
+            users = resp.json()
+            if users:
+                df = pd.DataFrame(users)
+                # Formatar a data
+                if "created_at" in df.columns:
+                    df["created_at"] = pd.to_datetime(df["created_at"]).dt.strftime("%d/%m/%Y %H:%M")
+                cols_disponiveis = df.columns.tolist()
+                colunas_desejadas = ["username", "perfil", "nome_completo", "created_at"]
+                colunas_existentes = [col for col in colunas_desejadas if col in cols_disponiveis]
+                df = df[colunas_existentes]
+                df.columns = ["Username", "Perfil", "Nome", "Criado em"]
+                st.dataframe(df, hide_index=True)
+
+                usernames = [u["username"] for u in users]
+                sel_user = st.selectbox("Selecionar utilizador para gerir", usernames)
+
+                # Campo de password com key dinâmica para limpeza
+                pw_key = f"admin_pw_input_{st.session_state.pw_input_counter}"
+                nova_pw = st.text_input("Nova password (deixar vazio para não alterar)", 
+                                        type="password", 
+                                        key=pw_key)
+                
+                # Botão Alterar password
+                if st.button("🔑 Alterar password", key="btn_alterar_pw"):
+                    if nova_pw.strip():
+                        resp_pw = requests.put(
+                            f"{API_URL}/admin/usuarios/{sel_user}/password",
+                            json={"nova_password": nova_pw},
+                            headers=headers_auth()
+                        )
+                        if resp_pw.status_code == 200:
+                            st.toast("Password alterada com sucesso!", icon="✅")
+                            st.session_state.pw_input_counter += 1
+                            st.rerun()
+                        else:
+                            st.error(f"Erro ao alterar password: {resp_pw.text}")
+                    else:
+                        st.warning("Insira uma nova password")
+                
+                # Botão Eliminar utilizador
+                if st.button("🗑️ Eliminar utilizador", key="btn_eliminar_user"):
+                    if sel_user == st.session_state.username:
+                        st.error("Não pode eliminar a si próprio")
+                    else:
+                        resp_del = requests.delete(f"{API_URL}/admin/usuarios/{sel_user}", headers=headers_auth())
+                        if resp_del.status_code == 200:
+                            st.toast("Utilizador eliminado com sucesso!", icon="🗑️")
+                            st.session_state.pw_input_counter += 1
+                            st.rerun()
+                        else:
+                            st.error(f"Erro ao eliminar: {resp_del.text}")
+            else:
+                st.info("Nenhum utilizador encontrado")
+        else:
+            st.error("Falha ao carregar utilizadores")
+
+    else:  # Documentos (empresa)
+        st.header("Área da Empresa (Validação) – Admin")
+
+        st.subheader("Documentos disponíveis")
+        if st.button("🔄 Atualizar lista", key="refresh_list_admin"):
+            st.session_state.refresh_counter += 1
+            st.rerun()
+        st.write("")
+
+        documentos = listar_documentos()
+        if not documentos:
+            st.info("Nenhum documento encontrado.")
+        else:
+            df = pd.DataFrame(documentos)
+            # Formatar a data
+            if "updated_at" in df.columns:
+                df["updated_at"] = pd.to_datetime(df["updated_at"]).dt.strftime("%d/%m/%Y %H:%M")
+            df = df[["id", "titulo", "parceiro_id", "estado", "versao_atual", "updated_at"]]
+            df.columns = ["ID", "Título", "Parceiro", "Estado", "Versão", "Última Atualização"]
+            st.dataframe(df, width='stretch', hide_index=True)
+
+            ids = [doc["id"] for doc in documentos]
+            id_selecionado = st.selectbox("Seleciona um documento para agir:", ids, format_func=lambda x: f"ID {x}")
+            if st.button("Carregar documento", key="load_doc_admin"):
+                st.session_state.doc_selecionado = id_selecionado
+                st.rerun()
+
+        if st.session_state.doc_selecionado:
+            doc = obter_documento(st.session_state.doc_selecionado)
+            if doc:
+                st.divider()
+                st.subheader(f"Documento ID {doc['id']}: {doc['titulo']} (Parceiro: {doc['parceiro_id']})")
+                st.write(f"Estado: **{doc['estado']}** | Versão: {doc['versao_atual']}")
+
+                dados = doc['dados']
+                with st.expander("Ver dados do documento", expanded=True):
+                    st.subheader("LCA")
+                    lca = dados.get("lca", {})
+                    for proc in PROCESSOS:
+                        st.write(f"**{proc}**")
+                        if lca.get("inputs", {}).get(proc):
+                            st.write("Inputs")
+                            display_dataframe(pd.DataFrame(lca["inputs"][proc]))
+                        if lca.get("processes", {}).get(proc):
+                            st.write("Processes")
+                            display_dataframe(pd.DataFrame(lca["processes"][proc]))
+                        if lca.get("outputs", {}).get(proc):
+                            st.write("Outputs")
+                            display_dataframe(pd.DataFrame(lca["outputs"][proc]))
+                    st.subheader("LCC")
+                    lcc = dados.get("lcc", {})
+                    for proc in PROCESSOS:
+                        st.write(f"**{proc}**")
+                        if lcc.get("materials", {}).get(proc):
+                            st.write("Cost Breakdown Material")
+                            display_dataframe(pd.DataFrame(lcc["materials"][proc]))
+                        if lcc.get("equipment", {}).get(proc):
+                            st.write("Equipment")
+                            display_dataframe(pd.DataFrame(lcc["equipment"][proc]))
+                        if lcc.get("labour", {}).get(proc):
+                            st.write("Labour")
+                            display_dataframe(pd.DataFrame(lcc["labour"][proc]))
+                        if lcc.get("outputs", {}).get(proc):
+                            st.write("Outputs")
+                            display_dataframe(pd.DataFrame(lcc["outputs"][proc]))
+
+                with st.expander("Ver JSON bruto"):
+                    st.json(dados)
+
+                if doc['estado'] == "Submetido":
+                    if st.button("Iniciar revisão", key="admin_iniciar_revisao"):
+                        if iniciar_revisao(doc['id']):
+                            st.session_state.doc_selecionado = None
+                            st.success("Revisão iniciada.")
+                            st.rerun()
+                elif doc['estado'] == "Em Revisão":
+                    comentario = st.text_area("Comentário (obrigatório se pedir alterações)", key="admin_comentario")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("✅ Aprovar", key="admin_aprovar"):
+                            if aprovar(doc['id']):
+                                st.session_state.doc_selecionado = None
+                                st.success("Documento aprovado.")
+                                st.rerun()
+                    with col2:
+                        if st.button("🔄 Pedir alterações", key="admin_pedir_alt"):
+                            if not comentario.strip():
+                                st.error("É necessário um comentário para pedir alterações")
+                            else:
+                                if pedir_alteracoes(doc['id'], comentario):
+                                    st.session_state.doc_selecionado = None
+                                    st.success("Pedido de alterações registado.")
+                                    st.rerun()
+                elif doc['estado'] == "Aprovado":
+                    st.success("Documento aprovado.")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("Reabrir para nova edição", key="admin_reabrir"):
+                            if reabrir(doc['id']):
+                                st.session_state.doc_selecionado = None
+                                st.success("Documento reaberto.")
+                                st.rerun()
+                    with col2:
+                        if st.button("📁 Arquivar documento", key="admin_arquivar"):
+                            if arquivar(doc['id']):
+                                st.session_state.doc_selecionado = None
+                                st.success("Documento arquivado.")
+                                st.rerun()
+                elif doc['estado'] == "Rascunho":
+                    st.info("O parceiro ainda está a editar.")
+                    if st.button("📁 Arquivar documento (rascunho)", key="admin_arquivar_rasc"):
+                        if arquivar(doc['id']):
+                            st.session_state.doc_selecionado = None
+                            st.success("Documento arquivado.")
+                            st.rerun()
+                elif doc['estado'] == "Alterações":
+                    st.warning("Aguardando o parceiro iniciar a edição.")
+                elif doc['estado'] == "Arquivado":
+                    st.warning("Documento arquivado (apenas consulta).")
+
+                with st.expander("📥 Exportar histórico"):
+                    if st.button("Exportar versões para Excel (completo)", key="admin_exportar"):
+                        conteudo = exportar_excel(doc['id'])
+                        if conteudo:
+                            st.download_button(
+                                label="Clique para descarregar o ficheiro",
+                                data=conteudo,
+                                file_name=f"documento_{doc['id']}_completo.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            )
+
+                with st.expander("Histórico de versões"):
+                    versoes = listar_versoes(doc['id'])
+                    for v in versoes:
+                        st.write(f"v{v['numero_versao']} - {v['estado']} ({v['criado_por']})")
+                        if v['comentario']:
+                            st.caption(f"  Comentário: {v['comentario']}")
+
+                if st.button("Fechar detalhes", key="admin_fechar"):
+                    st.session_state.doc_selecionado = None
+                    st.rerun()
