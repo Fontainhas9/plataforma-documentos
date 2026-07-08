@@ -3,14 +3,14 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
 
-# Configuração – SUBSTITUIR PELAS TUAS CREDENCIAIS
-SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
-SMTP_USER = os.getenv("SMTP_USER", "teuemail@gmail.com")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "tuapassword")
+# Configuração para Gmail
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+SMTP_USER = "ccgcenas@gmail.com"  # O teu email
+SMTP_PASSWORD = "badz gxcs ubcb zefa"  # <-- App Password do Gmail
 
-# Endereço fixo para receber notificações (podes mudar)
-DESTINATARIO_PADRAO = "andre.fontainhas@holoss.pt"
+# Endereço fixo para receber notificações
+DESTINATARIO_PADRAO = "ccgcenas@gmail.com"  # O teu email
 
 def enviar_email(destinatario: str, assunto: str, corpo: str) -> bool:
     """Envia email usando as credenciais configuradas."""
@@ -29,7 +29,8 @@ def enviar_email(destinatario: str, assunto: str, corpo: str) -> bool:
         server.login(SMTP_USER, SMTP_PASSWORD)
         server.sendmail(SMTP_USER, destinatario, msg.as_string())
         server.quit()
+        print(f"✅ Email enviado para {destinatario}")
         return True
     except Exception as e:
-        print(f"Erro ao enviar email: {e}")
+        print(f"❌ Erro ao enviar email: {e}")
         return False

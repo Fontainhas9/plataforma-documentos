@@ -114,7 +114,7 @@ def listar_documentos(
     query = db.query(Documento)
     if estado:
         query = query.filter(Documento.estado == estado)
-    # REMOVIDO: filtro que excluía ARQUIVADO
+    # REMOVIDO: filtro que excluía ARQUIVADO - agora todos aparecem
 
     if current_user.perfil == PerfilUtilizador.PARCEIRO:
         query = query.filter(Documento.parceiro_id == current_user.username)
@@ -274,7 +274,7 @@ def aprovar_documento(
     db.commit()
     db.refresh(doc)
 
-    # ---------- Envio de email (para o destinatário fixo) ----------
+    # Envio de email
     assunto = f"Documento '{doc.titulo}' aprovado (ID {doc.id})"
     corpo = (
         f"O documento '{doc.titulo}' (ID {doc.id}) foi aprovado.\n\n"
@@ -325,6 +325,19 @@ def arquivar_documento(
     criar_versao(db, doc, EstadoDocumento.ARQUIVADO, criado_por=current_user.username, comentario="Documento arquivado")
     db.commit()
     db.refresh(doc)
+
+    # ---------- Envio de email ----------
+    assunto = f"Documento '{doc.titulo}' arquivado (ID {doc.id})"
+    corpo = (
+        f"O documento '{doc.titulo}' (ID {doc.id}) foi arquivado.\n\n"
+        f"Parceiro: {doc.parceiro_id}\n"
+        f"Última versão: {doc.versao_atual}\n"
+        f"Arquivado por: {current_user.username}\n"
+        f"Data: {doc.updated_at or doc.created_at}\n\n"
+        "O documento está disponível apenas para consulta na plataforma."
+    )
+    enviar_email(DESTINATARIO_PADRAO, assunto, corpo)
+
     return doc
 
 @app.get("/documentos/{doc_id}/versoes", response_model=List[VersaoOut])
@@ -393,7 +406,7 @@ def alterar_password(
     db.commit()
     return {"ok": True}
 
-# -------------------- Exportar Excel (mantido) --------------------
+# -------------------- Exportar Excel --------------------
 @app.get("/documentos/{doc_id}/exportar-excel")
 def exportar_versoes_excel(
     doc_id: int,

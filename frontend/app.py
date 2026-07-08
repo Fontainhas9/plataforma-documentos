@@ -602,7 +602,6 @@ if st.session_state.perfil == "parceiro":
             st.info("Nenhum documento encontrado.")
         else:
             df = pd.DataFrame(documentos)
-            # Formatar a data
             if "updated_at" in df.columns:
                 df["updated_at"] = pd.to_datetime(df["updated_at"]).dt.strftime("%d/%m/%Y %H:%M")
             df = df[["id", "titulo", "estado", "versao_atual", "updated_at"]]
@@ -729,7 +728,6 @@ elif st.session_state.perfil == "empresa":
         st.info("Nenhum documento encontrado.")
     else:
         df = pd.DataFrame(documentos)
-        # Formatar a data
         if "updated_at" in df.columns:
             df["updated_at"] = pd.to_datetime(df["updated_at"]).dt.strftime("%d/%m/%Y %H:%M")
         df = df[["id", "titulo", "parceiro_id", "estado", "versao_atual", "updated_at"]]
@@ -874,7 +872,6 @@ elif st.session_state.perfil == "admin":
             users = resp.json()
             if users:
                 df = pd.DataFrame(users)
-                # Formatar a data
                 if "created_at" in df.columns:
                     df["created_at"] = pd.to_datetime(df["created_at"]).dt.strftime("%d/%m/%Y %H:%M")
                 cols_disponiveis = df.columns.tolist()
@@ -887,13 +884,11 @@ elif st.session_state.perfil == "admin":
                 usernames = [u["username"] for u in users]
                 sel_user = st.selectbox("Selecionar utilizador para gerir", usernames)
 
-                # Campo de password com key dinâmica para limpeza
                 pw_key = f"admin_pw_input_{st.session_state.pw_input_counter}"
                 nova_pw = st.text_input("Nova password (deixar vazio para não alterar)", 
                                         type="password", 
                                         key=pw_key)
                 
-                # Botão Alterar password
                 if st.button("🔑 Alterar password", key="btn_alterar_pw"):
                     if nova_pw.strip():
                         resp_pw = requests.put(
@@ -910,7 +905,6 @@ elif st.session_state.perfil == "admin":
                     else:
                         st.warning("Insira uma nova password")
                 
-                # Botão Eliminar utilizador
                 if st.button("🗑️ Eliminar utilizador", key="btn_eliminar_user"):
                     if sel_user == st.session_state.username:
                         st.error("Não pode eliminar a si próprio")
@@ -941,7 +935,6 @@ elif st.session_state.perfil == "admin":
             st.info("Nenhum documento encontrado.")
         else:
             df = pd.DataFrame(documentos)
-            # Formatar a data
             if "updated_at" in df.columns:
                 df["updated_at"] = pd.to_datetime(df["updated_at"]).dt.strftime("%d/%m/%Y %H:%M")
             df = df[["id", "titulo", "parceiro_id", "estado", "versao_atual", "updated_at"]]
