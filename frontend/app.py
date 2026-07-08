@@ -56,9 +56,7 @@ def ensure_new_structure(data):
 
     # Se já tem a estrutura esperada, apenas garantimos que todas as chaves existem
     if "lca" in data and "lcc" in data:
-        # Verifica se todos os processos estão presentes em lca.inputs (usado como referência)
         if all(p in data["lca"].get("inputs", {}) for p in PROCESSOS):
-            # Garantir que todas as outras chaves também existem
             for secao in ["lca", "lcc"]:
                 for categoria in data[secao].keys():
                     for p in PROCESSOS:
@@ -81,7 +79,6 @@ def ensure_new_structure(data):
         }
     }
 
-    # Tentar colocar dados existentes em "Demagnetisation" (por padrão)
     if "lca" in data:
         old_lca = data["lca"]
         if "inputs" in old_lca and isinstance(old_lca["inputs"], list):
@@ -103,23 +100,7 @@ def ensure_new_structure(data):
 
     return new_data
 
-# ---------- Funções da API (com tratamento de erros) ----------
-def api_request(method, url, **kwargs):
-    """Função genérica para chamadas à API com tratamento de erros."""
-    try:
-        resp = requests.request(method, url, **kwargs)
-        if resp.status_code >= 400:
-            try:
-                detail = resp.json().get("detail", resp.text)
-            except:
-                detail = resp.text
-            st.error(f"Erro {resp.status_code}: {detail}")
-            return None
-        return resp.json()
-    except Exception as e:
-        st.error(f"Erro de rede: {str(e)}")
-        return None
-
+# ---------- Funções da API ----------
 def login(username, password):
     resp = requests.post(f"{API_URL}/login", data={"username": username, "password": password})
     if resp.status_code == 200:
@@ -262,12 +243,17 @@ def exportar_excel(doc_id):
         st.error(f"Falha na exportação: {erro}")
         return None
 
-# ---------- Função auxiliar para capitalizar colunas de DataFrame ----------
-def capitalize_dataframe_columns(df):
-    """Renomeia as colunas do DataFrame com a primeira letra de cada palavra em maiúscula."""
+# ---------- Função auxiliar para capitalizar colunas de DataFrame e remover índice ----------
+def display_dataframe(df):
+    """Capitaliza colunas e exibe o DataFrame sem índice."""
     if df is not None and not df.empty:
+        df = df.copy()
         df.columns = [col.title() for col in df.columns]
-    return df
+        # Reset index para remover a numeração (o hide_index=True já oculta, mas garantimos)
+        df = df.reset_index(drop=True)
+        st.dataframe(df, width='stretch', hide_index=True)
+    else:
+        st.write("(sem dados)")
 
 # ---------- Funções de renderização das tabelas LCA ----------
 def render_lca_inputs(data_key, prefix=""):
@@ -498,9 +484,8 @@ def render_lcc_outputs(data_key, prefix=""):
                     items.pop()
                     st.rerun()
 
-# ---------- Função principal de formulário (com verificação de estrutura) ----------
+# ---------- Função principal de formulário ----------
 def render_full_form(data_key, prefix=""):
-    # Garantir que os dados têm a estrutura nova
     if st.session_state[data_key] is None:
         st.session_state[data_key] = {
             "lca": {
@@ -516,7 +501,6 @@ def render_full_form(data_key, prefix=""):
             }
         }
     else:
-        # Se já existir, mas não tiver a estrutura esperada, converte
         st.session_state[data_key] = ensure_new_structure(st.session_state[data_key])
 
     st.subheader("LCA - Análise do Ciclo de Vida")
@@ -614,48 +598,33 @@ if st.session_state.perfil == "parceiro":
                         st.write(f"**{proc}**")
                         if lca.get("inputs", {}).get(proc):
                             st.write("Inputs")
-                            df = pd.DataFrame(lca["inputs"][proc])
-                            df = capitalize_dataframe_columns(df)
-                            st.dataframe(df, width='stretch')
+                            display_dataframe(pd.DataFrame(lca["inputs"][proc]))
                         if lca.get("processes", {}).get(proc):
                             st.write("Processes")
-                            df = pd.DataFrame(lca["processes"][proc])
-                            df = capitalize_dataframe_columns(df)
-                            st.dataframe(df, width='stretch')
+                            display_dataframe(pd.DataFrame(lca["processes"][proc]))
                         if lca.get("outputs", {}).get(proc):
                             st.write("Outputs")
-                            df = pd.DataFrame(lca["outputs"][proc])
-                            df = capitalize_dataframe_columns(df)
-                            st.dataframe(df, width='stretch')
+                            display_dataframe(pd.DataFrame(lca["outputs"][proc]))
                     st.subheader("LCC")
                     lcc = dados.get("lcc", {})
                     for proc in PROCESSOS:
                         st.write(f"**{proc}**")
                         if lcc.get("materials", {}).get(proc):
                             st.write("Cost Breakdown Material")
-                            df = pd.DataFrame(lcc["materials"][proc])
-                            df = capitalize_dataframe_columns(df)
-                            st.dataframe(df, width='stretch')
+                            display_dataframe(pd.DataFrame(lcc["materials"][proc]))
                         if lcc.get("equipment", {}).get(proc):
                             st.write("Equipment")
-                            df = pd.DataFrame(lcc["equipment"][proc])
-                            df = capitalize_dataframe_columns(df)
-                            st.dataframe(df, width='stretch')
+                            display_dataframe(pd.DataFrame(lcc["equipment"][proc]))
                         if lcc.get("labour", {}).get(proc):
                             st.write("Labour")
-                            df = pd.DataFrame(lcc["labour"][proc])
-                            df = capitalize_dataframe_columns(df)
-                            st.dataframe(df, width='stretch')
+                            display_dataframe(pd.DataFrame(lcc["labour"][proc]))
                         if lcc.get("outputs", {}).get(proc):
                             st.write("Outputs")
-                            df = pd.DataFrame(lcc["outputs"][proc])
-                            df = capitalize_dataframe_columns(df)
-                            st.dataframe(df, width='stretch')
+                            display_dataframe(pd.DataFrame(lcc["outputs"][proc]))
 
                 with st.expander("Ver JSON bruto"):
                     st.json(dados)
 
-                # CORREÇÃO: Usar os valores exactos do enum (com maiúsculas e acentos)
                 if doc['estado'] == "Rascunho":
                     st.subheader("✏️ Editar documento")
                     if st.session_state.edit_data is None:
@@ -744,48 +713,33 @@ elif st.session_state.perfil in ["empresa", "admin"]:
                     st.write(f"**{proc}**")
                     if lca.get("inputs", {}).get(proc):
                         st.write("Inputs")
-                        df = pd.DataFrame(lca["inputs"][proc])
-                        df = capitalize_dataframe_columns(df)
-                        st.dataframe(df, width='stretch')
+                        display_dataframe(pd.DataFrame(lca["inputs"][proc]))
                     if lca.get("processes", {}).get(proc):
                         st.write("Processes")
-                        df = pd.DataFrame(lca["processes"][proc])
-                        df = capitalize_dataframe_columns(df)
-                        st.dataframe(df, width='stretch')
+                        display_dataframe(pd.DataFrame(lca["processes"][proc]))
                     if lca.get("outputs", {}).get(proc):
                         st.write("Outputs")
-                        df = pd.DataFrame(lca["outputs"][proc])
-                        df = capitalize_dataframe_columns(df)
-                        st.dataframe(df, width='stretch')
+                        display_dataframe(pd.DataFrame(lca["outputs"][proc]))
                 st.subheader("LCC")
                 lcc = dados.get("lcc", {})
                 for proc in PROCESSOS:
                     st.write(f"**{proc}**")
                     if lcc.get("materials", {}).get(proc):
                         st.write("Cost Breakdown Material")
-                        df = pd.DataFrame(lcc["materials"][proc])
-                        df = capitalize_dataframe_columns(df)
-                        st.dataframe(df, width='stretch')
+                        display_dataframe(pd.DataFrame(lcc["materials"][proc]))
                     if lcc.get("equipment", {}).get(proc):
                         st.write("Equipment")
-                        df = pd.DataFrame(lcc["equipment"][proc])
-                        df = capitalize_dataframe_columns(df)
-                        st.dataframe(df, width='stretch')
+                        display_dataframe(pd.DataFrame(lcc["equipment"][proc]))
                     if lcc.get("labour", {}).get(proc):
                         st.write("Labour")
-                        df = pd.DataFrame(lcc["labour"][proc])
-                        df = capitalize_dataframe_columns(df)
-                        st.dataframe(df, width='stretch')
+                        display_dataframe(pd.DataFrame(lcc["labour"][proc]))
                     if lcc.get("outputs", {}).get(proc):
                         st.write("Outputs")
-                        df = pd.DataFrame(lcc["outputs"][proc])
-                        df = capitalize_dataframe_columns(df)
-                        st.dataframe(df, width='stretch')
+                        display_dataframe(pd.DataFrame(lcc["outputs"][proc]))
 
             with st.expander("Ver JSON bruto"):
                 st.json(dados)
 
-            # CORREÇÃO: Comparar com os valores exactos do enum
             if doc['estado'] == "Submetido":
                 if st.button("Iniciar revisão"):
                     if iniciar_revisao(doc['id']):
