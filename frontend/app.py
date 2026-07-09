@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import pandas as pd
 import copy
+from datetime import datetime
 
 API_URL = "http://127.0.0.1:8000"
 PROCESSOS = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
@@ -32,6 +33,40 @@ if "refresh_counter" not in st.session_state:
     st.session_state.refresh_counter = 0
 if "pw_input_counter" not in st.session_state:
     st.session_state.pw_input_counter = 0
+if "parceiro_dropdown_key" not in st.session_state:
+    st.session_state.parceiro_dropdown_key = 0
+if "empresa_dropdown_key" not in st.session_state:
+    st.session_state.empresa_dropdown_key = 0
+if "admin_dropdown_key" not in st.session_state:
+    st.session_state.admin_dropdown_key = 0
+if "admin_user_dropdown_key" not in st.session_state:
+    st.session_state.admin_user_dropdown_key = 0
+
+# Chave para forçar recriação dos widgets de filtro
+if "filtros_widget_key" not in st.session_state:
+    st.session_state.filtros_widget_key = 0
+
+# Estado dos filtros - valores atuais aplicados
+if "filtros_aplicados" not in st.session_state:
+    st.session_state.filtros_aplicados = {
+        "q": "",
+        "estados": [],
+        "data_inicio": None,
+        "data_fim": None,
+        "order_by": "id",
+        "order_dir": "desc"
+    }
+
+# Estado temporário dos filtros (enquanto o utilizador mexe)
+if "filtros_temporarios" not in st.session_state:
+    st.session_state.filtros_temporarios = {
+        "q": "",
+        "estados": [],
+        "data_inicio": None,
+        "data_fim": None,
+        "order_by": "id",
+        "order_dir": "desc"
+    }
 
 # ---------- Funções auxiliares ----------
 def safe_copy(data):
@@ -134,6 +169,35 @@ def listar_documentos(estado=None):
     if estado:
         params["estado"] = estado
     resp = requests.get(f"{API_URL}/documentos", headers=headers_auth(), params=params)
+    if resp.status_code == 200:
+        return resp.json()
+    return []
+
+def listar_documentos_com_filtros(filtros):
+    """
+    Lista documentos aplicando os filtros atuais.
+    """
+    params = {}
+    
+    if filtros.get("q"):
+        params["q"] = filtros["q"]
+    
+    if filtros.get("estados"):
+        params["estados"] = ",".join(filtros["estados"])
+    
+    if filtros.get("data_inicio"):
+        params["data_inicio"] = filtros["data_inicio"]
+    
+    if filtros.get("data_fim"):
+        params["data_fim"] = filtros["data_fim"]
+    
+    if filtros.get("order_by"):
+        params["order_by"] = filtros["order_by"]
+    
+    if filtros.get("order_dir"):
+        params["order_dir"] = filtros["order_dir"]
+    
+    resp = requests.get(f"{API_URL}/documentos/pesquisar", headers=headers_auth(), params=params)
     if resp.status_code == 200:
         return resp.json()
     return []
@@ -268,6 +332,118 @@ def display_dataframe(df):
         st.dataframe(df, width='stretch', hide_index=True)
     else:
         st.write("(sem dados)")
+
+# ---------- Componente de filtros (apenas para empresa e admin) ----------
+def render_filtros():
+    """
+    Renderiza os filtros de pesquisa para empresa e admin.
+    Os filtros só são aplicados quando o botão "Aplicar Filtros" é clicado.
+    """
+    with st.expander("🔍 Filtros de Pesquisa", expanded=True):
+        col1, col2 = st.columns(2)
+        
+        # Usar a chave atual para todos os widgets
+        key_suffix = st.session_state.filtros_widget_key
+        
+        with col1:
+            # Pesquisa de texto
+            q = st.text_input(
+                "Pesquisar",
+                value=st.session_state.filtros_temporarios.get("q", ""),
+                placeholder="Título, parceiro ou ID...",
+                key=f"filtro_q_{key_suffix}"
+            )
+            st.session_state.filtros_temporarios["q"] = q
+            
+            # Estados
+            estados_disponiveis = ["Rascunho", "Submetido", "Em Revisão", "Alterações", "Aprovado", "Arquivado"]
+            estados_selecionados = st.multiselect(
+                "Estado",
+                options=estados_disponiveis,
+                default=st.session_state.filtros_temporarios.get("estados", []),
+                key=f"filtro_estados_{key_suffix}"
+            )
+            st.session_state.filtros_temporarios["estados"] = estados_selecionados
+        
+        with col2:
+            # Datas
+            data_inicio = st.date_input(
+                "Data Início",
+                value=st.session_state.filtros_temporarios.get("data_inicio"),
+                format="DD/MM/YYYY",
+                key=f"filtro_data_inicio_{key_suffix}"
+            )
+            st.session_state.filtros_temporarios["data_inicio"] = data_inicio.strftime("%Y-%m-%d") if data_inicio else None
+            
+            data_fim = st.date_input(
+                "Data Fim",
+                value=st.session_state.filtros_temporarios.get("data_fim"),
+                format="DD/MM/YYYY",
+                key=f"filtro_data_fim_{key_suffix}"
+            )
+            st.session_state.filtros_temporarios["data_fim"] = data_fim.strftime("%Y-%m-%d") if data_fim else None
+        
+        # Ordenação
+        col3, col4 = st.columns(2)
+        with col3:
+            ordem_campos = {
+                "id": "ID",
+                "titulo": "Título",
+                "parceiro_id": "Parceiro",
+                "estado": "Estado",
+                "created_at": "Data Criação",
+                "updated_at": "Data Atualização",
+                "versao_atual": "Versão"
+            }
+            order_by = st.selectbox(
+                "Ordenar por",
+                options=list(ordem_campos.keys()),
+                format_func=lambda x: ordem_campos.get(x, x),
+                index=list(ordem_campos.keys()).index(st.session_state.filtros_temporarios.get("order_by", "id")),
+                key=f"filtro_order_by_{key_suffix}"
+            )
+            st.session_state.filtros_temporarios["order_by"] = order_by
+        
+        with col4:
+            order_dir = st.selectbox(
+                "Direção",
+                options=["desc", "asc"],
+                format_func=lambda x: "Decrescente" if x == "desc" else "Crescente",
+                index=0 if st.session_state.filtros_temporarios.get("order_dir", "desc") == "desc" else 1,
+                key=f"filtro_order_dir_{key_suffix}"
+            )
+            st.session_state.filtros_temporarios["order_dir"] = order_dir
+        
+        # Botões de ação
+        col5, col6 = st.columns(2)
+        with col5:
+            if st.button("🔍 Aplicar Filtros", use_container_width=True):
+                # Copiar filtros temporários para filtros aplicados
+                st.session_state.filtros_aplicados = st.session_state.filtros_temporarios.copy()
+                st.rerun()
+        with col6:
+            if st.button("🧹 Limpar Filtros", use_container_width=True):
+                # Reset dos filtros temporários
+                st.session_state.filtros_temporarios = {
+                    "q": "",
+                    "estados": [],
+                    "data_inicio": None,
+                    "data_fim": None,
+                    "order_by": "id",
+                    "order_dir": "desc"
+                }
+                # Reset dos filtros aplicados também
+                st.session_state.filtros_aplicados = {
+                    "q": "",
+                    "estados": [],
+                    "data_inicio": None,
+                    "data_fim": None,
+                    "order_by": "id",
+                    "order_dir": "desc"
+                }
+                # Incrementar a chave para forçar recriação dos widgets
+                st.session_state.filtros_widget_key += 1
+                st.rerun()
 
 # ---------- Funções de renderização das tabelas ----------
 def render_lca_inputs(data_key, prefix=""):
@@ -565,7 +741,7 @@ if st.session_state.perfil != "admin":
     else:
         st.info("Nenhum documento encontrado. Comece por criar um novo documento.")
 
-# ---------- Área do Parceiro ----------
+# ---------- Área do Parceiro (SEM FILTROS) ----------
 if st.session_state.perfil == "parceiro":
     st.header("Área do Parceiro")
     menu = st.sidebar.radio("Menu", ["Meus Documentos", "Criar Documento"], key="menu_parceiro_widget")
@@ -592,12 +768,17 @@ if st.session_state.perfil == "parceiro":
 
     elif menu == "Meus Documentos":
         st.subheader("Os meus documentos")
+        
+        # SEM FILTROS - apenas botão atualizar
         if st.button("🔄 Atualizar lista", key="refresh_list"):
+            st.session_state.doc_selecionado = None
+            st.session_state.edit_data = None
+            st.session_state.parceiro_dropdown_key += 1
             st.session_state.refresh_counter += 1
             st.rerun()
         st.write("")
 
-        documentos = listar_documentos()
+        documentos = listar_documentos()  # <-- SEM filtros
         if not documentos:
             st.info("Nenhum documento encontrado.")
         else:
@@ -608,11 +789,21 @@ if st.session_state.perfil == "parceiro":
             df.columns = ["ID", "Título", "Estado", "Versão", "Última Atualização"]
             st.dataframe(df, width='stretch', hide_index=True)
 
-            ids = [doc["id"] for doc in documentos]
-            id_selecionado = st.selectbox("Seleciona um documento para ver detalhes:", ids, format_func=lambda x: f"ID {x}")
+            ids = [""] + [doc["id"] for doc in documentos]
+
+            id_selecionado = st.selectbox(
+                "Seleciona um documento:",
+                ids,
+                format_func=lambda x: "Selecione um documento..." if x == "" else f"ID {x}",
+                key=f"parceiro_selectbox_{st.session_state.parceiro_dropdown_key}"
+            )
+
             if st.button("Carregar documento"):
-                st.session_state.doc_selecionado = id_selecionado
-                st.rerun()
+                if not id_selecionado:
+                    st.warning("Selecione um documento.")
+                else:
+                    st.session_state.doc_selecionado = id_selecionado
+                    st.rerun()
 
         if st.session_state.doc_selecionado:
             doc = obter_documento(st.session_state.doc_selecionado)
@@ -713,32 +904,51 @@ if st.session_state.perfil == "parceiro":
                     st.session_state.edit_data = None
                     st.rerun()
 
-# ---------- Área da Empresa ----------
+# ---------- Área da Empresa (COM FILTROS) ----------
 elif st.session_state.perfil == "empresa":
     st.header("Área da Empresa (Validação)")
 
     st.subheader("Documentos disponíveis")
+    
+    # FILTROS disponíveis para a empresa
+    render_filtros()
+    
     if st.button("🔄 Atualizar lista", key="refresh_list_empresa"):
+        st.session_state.doc_selecionado = None
+        st.session_state.empresa_dropdown_key += 1
         st.session_state.refresh_counter += 1
         st.rerun()
     st.write("")
 
-    documentos = listar_documentos()
+    # Usar a função com filtros aplicados
+    documentos = listar_documentos_com_filtros(st.session_state.filtros_aplicados)
     if not documentos:
-        st.info("Nenhum documento encontrado.")
+        st.info("Nenhum documento encontrado com os filtros atuais.")
     else:
         df = pd.DataFrame(documentos)
         if "updated_at" in df.columns:
             df["updated_at"] = pd.to_datetime(df["updated_at"]).dt.strftime("%d/%m/%Y %H:%M")
+        if "created_at" in df.columns:
+            df["created_at"] = pd.to_datetime(df["created_at"]).dt.strftime("%d/%m/%Y %H:%M")
         df = df[["id", "titulo", "parceiro_id", "estado", "versao_atual", "updated_at"]]
         df.columns = ["ID", "Título", "Parceiro", "Estado", "Versão", "Última Atualização"]
         st.dataframe(df, width='stretch', hide_index=True)
 
-        ids = [doc["id"] for doc in documentos]
-        id_selecionado = st.selectbox("Seleciona um documento para agir:", ids, format_func=lambda x: f"ID {x}")
+        ids = [""] + [doc["id"] for doc in documentos]
+
+        id_selecionado = st.selectbox(
+            "Seleciona um documento:",
+            ids,
+            format_func=lambda x: "Selecione um documento..." if x == "" else f"ID {x}",
+            key=f"empresa_selectbox_{st.session_state.empresa_dropdown_key}"
+        )
+
         if st.button("Carregar documento"):
-            st.session_state.doc_selecionado = id_selecionado
-            st.rerun()
+            if not id_selecionado:
+                st.warning("Selecione um documento.")
+            else:
+                st.session_state.doc_selecionado = id_selecionado
+                st.rerun()
 
     if st.session_state.doc_selecionado:
         doc = obter_documento(st.session_state.doc_selecionado)
@@ -855,7 +1065,7 @@ elif st.session_state.perfil == "empresa":
                 st.session_state.doc_selecionado = None
                 st.rerun()
 
-# ---------- Área do Admin ----------
+# ---------- Área do Admin (COM FILTROS) ----------
 elif st.session_state.perfil == "admin":
     st.header("Painel Administrativo")
     menu_admin = st.sidebar.radio("Admin", ["Utilizadores", "Documentos (empresa)"])
@@ -863,6 +1073,8 @@ elif st.session_state.perfil == "admin":
     if menu_admin == "Utilizadores":
         st.subheader("Gestão de Utilizadores")
         if st.button("🔄 Carregar utilizadores"):
+            st.session_state.doc_selecionado = None
+            st.session_state.admin_user_dropdown_key += 1
             st.session_state.refresh_counter += 1
             st.rerun()
         st.write("")
@@ -881,8 +1093,14 @@ elif st.session_state.perfil == "admin":
                 df.columns = ["Username", "Perfil", "Nome", "Criado em"]
                 st.dataframe(df, hide_index=True)
 
-                usernames = [u["username"] for u in users]
-                sel_user = st.selectbox("Selecionar utilizador para gerir", usernames)
+                usernames = [""] + [u["username"] for u in users]
+
+                sel_user = st.selectbox(
+                    "Selecionar utilizador para gerir",
+                    usernames,
+                    format_func=lambda x: "Selecione um utilizador..." if x == "" else x,
+                    key=f"admin_user_selectbox_{st.session_state.admin_user_dropdown_key}"
+                )
 
                 pw_key = f"admin_pw_input_{st.session_state.pw_input_counter}"
                 nova_pw = st.text_input("Nova password (deixar vazio para não alterar)", 
@@ -890,7 +1108,9 @@ elif st.session_state.perfil == "admin":
                                         key=pw_key)
                 
                 if st.button("🔑 Alterar password", key="btn_alterar_pw"):
-                    if nova_pw.strip():
+                    if not sel_user:
+                        st.warning("Selecione um utilizador.")
+                    elif nova_pw.strip():
                         resp_pw = requests.put(
                             f"{API_URL}/admin/usuarios/{sel_user}/password",
                             json={"nova_password": nova_pw},
@@ -906,7 +1126,9 @@ elif st.session_state.perfil == "admin":
                         st.warning("Insira uma nova password")
                 
                 if st.button("🗑️ Eliminar utilizador", key="btn_eliminar_user"):
-                    if sel_user == st.session_state.username:
+                    if not sel_user:
+                        st.warning("Selecione um utilizador.")
+                    elif sel_user == st.session_state.username:
                         st.error("Não pode eliminar a si próprio")
                     else:
                         resp_del = requests.delete(f"{API_URL}/admin/usuarios/{sel_user}", headers=headers_auth())
@@ -921,31 +1143,50 @@ elif st.session_state.perfil == "admin":
         else:
             st.error("Falha ao carregar utilizadores")
 
-    else:  # Documentos (empresa)
+    else:  # Documentos (empresa) - COM FILTROS
         st.header("Área da Empresa (Validação) – Admin")
 
         st.subheader("Documentos disponíveis")
+        
+        # FILTROS disponíveis para o admin
+        render_filtros()
+        
         if st.button("🔄 Atualizar lista", key="refresh_list_admin"):
+            st.session_state.doc_selecionado = None
+            st.session_state.admin_dropdown_key += 1
             st.session_state.refresh_counter += 1
             st.rerun()
         st.write("")
 
-        documentos = listar_documentos()
+        # Usar a função com filtros aplicados
+        documentos = listar_documentos_com_filtros(st.session_state.filtros_aplicados)
         if not documentos:
-            st.info("Nenhum documento encontrado.")
+            st.info("Nenhum documento encontrado com os filtros atuais.")
         else:
             df = pd.DataFrame(documentos)
             if "updated_at" in df.columns:
                 df["updated_at"] = pd.to_datetime(df["updated_at"]).dt.strftime("%d/%m/%Y %H:%M")
+            if "created_at" in df.columns:
+                df["created_at"] = pd.to_datetime(df["created_at"]).dt.strftime("%d/%m/%Y %H:%M")
             df = df[["id", "titulo", "parceiro_id", "estado", "versao_atual", "updated_at"]]
             df.columns = ["ID", "Título", "Parceiro", "Estado", "Versão", "Última Atualização"]
             st.dataframe(df, width='stretch', hide_index=True)
 
-            ids = [doc["id"] for doc in documentos]
-            id_selecionado = st.selectbox("Seleciona um documento para agir:", ids, format_func=lambda x: f"ID {x}")
+            ids = [""] + [doc["id"] for doc in documentos]
+
+            id_selecionado = st.selectbox(
+                "Seleciona um documento:",
+                ids,
+                format_func=lambda x: "Selecione um documento..." if x == "" else f"ID {x}",
+                key=f"admin_selectbox_{st.session_state.admin_dropdown_key}"
+            )
+
             if st.button("Carregar documento", key="load_doc_admin"):
-                st.session_state.doc_selecionado = id_selecionado
-                st.rerun()
+                if not id_selecionado:
+                    st.warning("Selecione um documento.")
+                else:
+                    st.session_state.doc_selecionado = id_selecionado
+                    st.rerun()
 
         if st.session_state.doc_selecionado:
             doc = obter_documento(st.session_state.doc_selecionado)

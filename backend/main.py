@@ -3,8 +3,9 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, and_
 from typing import List, Optional
-from datetime import timedelta
+from datetime import datetime, timedelta
 import openpyxl
 from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
@@ -26,7 +27,8 @@ from auth import (
     get_current_user,
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
-from email_utils import enviar_email, DESTINATARIO_PADRAO
+# EMAIL DESATIVADO - manter para futuro
+# from email_utils import enviar_email, DESTINATARIO_PADRAO
 
 # Criar tabelas (se não existirem)
 Base.metadata.create_all(bind=engine)
@@ -114,11 +116,96 @@ def listar_documentos(
     query = db.query(Documento)
     if estado:
         query = query.filter(Documento.estado == estado)
-    # REMOVIDO: filtro que excluía ARQUIVADO - agora todos aparecem
 
     if current_user.perfil == PerfilUtilizador.PARCEIRO:
         query = query.filter(Documento.parceiro_id == current_user.username)
     documentos = query.order_by(Documento.id.desc()).all()
+    return documentos
+
+# -------------------- Pesquisa e Filtros --------------------
+@app.get("/documentos/pesquisar", response_model=List[DocumentoOut])
+def pesquisar_documentos(
+    q: Optional[str] = Query(None, description="Texto para pesquisar (título, parceiro, ID)"),
+    estados: Optional[str] = Query(None, description="Filtrar por estados (separados por vírgula)"),
+    data_inicio: Optional[str] = Query(None, description="Data inicial (YYYY-MM-DD)"),
+    data_fim: Optional[str] = Query(None, description="Data final (YYYY-MM-DD)"),
+    order_by: Optional[str] = Query("id", description="Campo para ordenar"),
+    order_dir: Optional[str] = Query("desc", description="Direção da ordenação (asc/desc)"),
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    """
+    Endpoint de pesquisa avançada de documentos.
+    """
+    query = db.query(Documento)
+
+    # -------------------- Filtro por pesquisa de texto --------------------
+    if q:
+        q = f"%{q}%"
+        # Tenta converter para inteiro para pesquisar por ID
+        try:
+            id_int = int(q.replace("%", ""))
+            query = query.filter(
+                or_(
+                    Documento.id == id_int,
+                    Documento.titulo.ilike(q),
+                    Documento.parceiro_id.ilike(q)
+                )
+            )
+        except ValueError:
+            query = query.filter(
+                or_(
+                    Documento.titulo.ilike(q),
+                    Documento.parceiro_id.ilike(q)
+                )
+            )
+
+    # -------------------- Filtro por estados --------------------
+    if estados:
+        estados_lista = [e.strip() for e in estados.split(",") if e.strip()]
+        if estados_lista:
+            query = query.filter(Documento.estado.in_(estados_lista))
+
+    # -------------------- Filtro por data --------------------
+    if data_inicio:
+        try:
+            data_inicio_dt = datetime.strptime(data_inicio, "%Y-%m-%d")
+            query = query.filter(Documento.created_at >= data_inicio_dt)
+        except ValueError:
+            pass  # Ignora data inválida
+
+    if data_fim:
+        try:
+            data_fim_dt = datetime.strptime(data_fim, "%Y-%m-%d")
+            # Adicionar um dia para incluir todo o dia
+            data_fim_dt = data_fim_dt.replace(hour=23, minute=59, second=59)
+            query = query.filter(Documento.created_at <= data_fim_dt)
+        except ValueError:
+            pass  # Ignora data inválida
+
+    # -------------------- Filtro por perfil --------------------
+    if current_user.perfil == PerfilUtilizador.PARCEIRO:
+        query = query.filter(Documento.parceiro_id == current_user.username)
+
+    # -------------------- Ordenação --------------------
+    # Mapeamento de campos para ordenação segura
+    order_map = {
+        "id": Documento.id,
+        "titulo": Documento.titulo,
+        "parceiro_id": Documento.parceiro_id,
+        "estado": Documento.estado,
+        "created_at": Documento.created_at,
+        "updated_at": Documento.updated_at,
+        "versao_atual": Documento.versao_atual
+    }
+    
+    campo_ordem = order_map.get(order_by, Documento.id)
+    if order_dir.lower() == "asc":
+        query = query.order_by(campo_ordem.asc())
+    else:
+        query = query.order_by(campo_ordem.desc())
+
+    documentos = query.all()
     return documentos
 
 @app.post("/documentos/", response_model=DocumentoOut)
@@ -274,17 +361,17 @@ def aprovar_documento(
     db.commit()
     db.refresh(doc)
 
-    # Envio de email
-    assunto = f"Documento '{doc.titulo}' aprovado (ID {doc.id})"
-    corpo = (
-        f"O documento '{doc.titulo}' (ID {doc.id}) foi aprovado.\n\n"
-        f"Parceiro: {doc.parceiro_id}\n"
-        f"Última versão: {doc.versao_atual}\n"
-        f"Aprovado por: {current_user.username}\n"
-        f"Data: {doc.updated_at or doc.created_at}\n\n"
-        "Aceda à plataforma para consultar os detalhes."
-    )
-    enviar_email(DESTINATARIO_PADRAO, assunto, corpo)
+    # EMAIL DESATIVADO - manter para futuro
+    # assunto = f"Documento '{doc.titulo}' aprovado (ID {doc.id})"
+    # corpo = (
+    #     f"O documento '{doc.titulo}' (ID {doc.id}) foi aprovado.\n\n"
+    #     f"Parceiro: {doc.parceiro_id}\n"
+    #     f"Última versão: {doc.versao_atual}\n"
+    #     f"Aprovado por: {current_user.username}\n"
+    #     f"Data: {doc.updated_at or doc.created_at}\n\n"
+    #     "Aceda à plataforma para consultar os detalhes."
+    # )
+    # enviar_email(DESTINATARIO_PADRAO, assunto, corpo)
 
     return doc
 
@@ -326,17 +413,17 @@ def arquivar_documento(
     db.commit()
     db.refresh(doc)
 
-    # ---------- Envio de email ----------
-    assunto = f"Documento '{doc.titulo}' arquivado (ID {doc.id})"
-    corpo = (
-        f"O documento '{doc.titulo}' (ID {doc.id}) foi arquivado.\n\n"
-        f"Parceiro: {doc.parceiro_id}\n"
-        f"Última versão: {doc.versao_atual}\n"
-        f"Arquivado por: {current_user.username}\n"
-        f"Data: {doc.updated_at or doc.created_at}\n\n"
-        "O documento está disponível apenas para consulta na plataforma."
-    )
-    enviar_email(DESTINATARIO_PADRAO, assunto, corpo)
+    # EMAIL DESATIVADO - manter para futuro
+    # assunto = f"Documento '{doc.titulo}' arquivado (ID {doc.id})"
+    # corpo = (
+    #     f"O documento '{doc.titulo}' (ID {doc.id}) foi arquivado.\n\n"
+    #     f"Parceiro: {doc.parceiro_id}\n"
+    #     f"Última versão: {doc.versao_atual}\n"
+    #     f"Arquivado por: {current_user.username}\n"
+    #     f"Data: {doc.updated_at or doc.created_at}\n\n"
+    #     "O documento está disponível apenas para consulta na plataforma."
+    # )
+    # enviar_email(DESTINATARIO_PADRAO, assunto, corpo)
 
     return doc
 
