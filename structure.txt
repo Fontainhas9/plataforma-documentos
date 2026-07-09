@@ -1,18 +1,19 @@
 plataforma-documentos/
 │
-├── .gitignore               # Ficheiros/pastas ignorados pelo Git (venv, __pycache__, etc.)
-│
-├── docker-compose.yml        # Configuração do container PostgreSQL
-│
-├── requirements.txt          # Lista de bibliotecas Python necessárias
-│
 ├── backend/
-│   ├── __init__.py           # Ficheiro vazio (marca a pasta como módulo Python)
-│   ├── auth.py               # Lógica de autenticação (hash de passwords, tokens JWT)
-│   ├── database.py           # Configuração da ligação à base de dados
-│   ├── main.py               # API FastAPI com todos os endpoints
-│   ├── models.py             # Modelos SQLAlchemy (tabelas: utilizadores, documentos, versões)
-│   └── schemas.py            # Schemas Pydantic para validação de dados da API
+│   ├── __init__.py
+│   ├── auth.py
+│   ├── dashboard.py   
+│   ├── database.py
+│   ├── email_utils.py
+│   ├── main.py       
+│   ├── models.py
+│   └── schemas.py
 │
-└── frontend/
-    └── app.py                # Interface Streamlit (login, área do parceiro, área da empresa)
+├── frontend/
+│   ├── app.py              
+│   └── pages/
+│       └── dashboard.py     
+│
+├── docker-compose.yml
+└── requirements.txt

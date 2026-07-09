@@ -8,7 +8,24 @@ API_URL = "http://127.0.0.1:8000"
 PROCESSOS = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
 DATASOURCE_OPTIONS = ["Medido", "Calculado", "Estimado", "Literatura"]
 
-st.set_page_config(page_title="Plataforma Documentos", layout="wide")
+# Configuração da página - sidebar colapsada para remover navegação automática
+st.set_page_config(
+    page_title="Plataforma Documentos",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# OCULTAR A BARRA DE NAVEGAÇÃO AUTOMÁTICA DO STREAMLIT
+st.markdown("""
+<style>
+    [data-testid="stSidebarNav"] {
+        display: none !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Importar componente de notificações
+from componentes.notificacoes import render_notificacoes_badge
 
 # Inicializar estado da sessão
 if "token" not in st.session_state:
@@ -41,6 +58,8 @@ if "admin_dropdown_key" not in st.session_state:
     st.session_state.admin_dropdown_key = 0
 if "admin_user_dropdown_key" not in st.session_state:
     st.session_state.admin_user_dropdown_key = 0
+if "ultimo_count" not in st.session_state:
+    st.session_state.ultimo_count = 0
 
 # Chave para forçar recriação dos widgets de filtro
 if "filtros_widget_key" not in st.session_state:
@@ -160,6 +179,7 @@ def logout():
     st.session_state.edit_data = None
     st.session_state.new_data = None
     st.session_state.refresh_counter = 0
+    st.session_state.ultimo_count = 0
 
 def headers_auth():
     return {"Authorization": f"Bearer {st.session_state.token}"}
@@ -239,6 +259,9 @@ def submeter(doc_id):
     if resp.status_code != 200:
         st.error(f"Erro ao submeter: {resp.text}")
         return None
+    st.success("✅ Documento submetido com sucesso!")
+    # Forçar atualização das notificações
+    st.rerun()
     return resp.json()
 
 def iniciar_revisao(doc_id):
@@ -246,6 +269,8 @@ def iniciar_revisao(doc_id):
     if resp.status_code != 200:
         st.error(f"Erro ao iniciar revisão: {resp.text}")
         return None
+    st.success("🔍 Revisão iniciada com sucesso!")
+    st.rerun()
     return resp.json()
 
 def pedir_alteracoes(doc_id, comentario):
@@ -257,6 +282,8 @@ def pedir_alteracoes(doc_id, comentario):
     if resp.status_code != 200:
         st.error(f"Erro ao pedir alterações: {resp.text}")
         return None
+    st.success("🔄 Alterações solicitadas com sucesso!")
+    st.rerun()
     return resp.json()
 
 def editar_novamente(doc_id):
@@ -264,6 +291,8 @@ def editar_novamente(doc_id):
     if resp.status_code != 200:
         st.error(f"Erro ao editar novamente: {resp.text}")
         return None
+    st.success("📝 Documento reaberto para edição!")
+    st.rerun()
     return resp.json()
 
 def aprovar(doc_id):
@@ -271,6 +300,8 @@ def aprovar(doc_id):
     if resp.status_code != 200:
         st.error(f"Erro ao aprovar: {resp.text}")
         return None
+    st.success("✅ Documento aprovado com sucesso!")
+    st.rerun()
     return resp.json()
 
 def reabrir(doc_id):
@@ -278,6 +309,8 @@ def reabrir(doc_id):
     if resp.status_code != 200:
         st.error(f"Erro ao reabrir: {resp.text}")
         return None
+    st.success("📂 Documento reaberto com sucesso!")
+    st.rerun()
     return resp.json()
 
 def arquivar(doc_id):
@@ -285,6 +318,8 @@ def arquivar(doc_id):
     if resp.status_code != 200:
         st.error(f"Erro ao arquivar: {resp.text}")
         return None
+    st.success("📁 Documento arquivado com sucesso!")
+    st.rerun()
     return resp.json()
 
 def listar_versoes(doc_id):
@@ -304,6 +339,30 @@ def exportar_excel(doc_id):
             erro = "Erro ao exportar"
         st.error(f"Falha na exportação: {erro}")
         return None
+
+# ---------- Função para obter notificações ----------
+def get_notificacoes_nao_lidas():
+    """Obtém o número de notificações não lidas."""
+    try:
+        resp = requests.get(f"{API_URL}/notificacoes/nao-lidas", headers=headers_auth())
+        if resp.status_code == 200:
+            return resp.json().get("count", 0)
+    except Exception as e:
+        print(f"Erro ao obter notificações: {e}")
+    return 0
+
+def verificar_novas_notificacoes():
+    """Verifica se há novas notificações e mostra um toast."""
+    if st.session_state.token is None:
+        return
+    
+    try:
+        count = get_notificacoes_nao_lidas()
+        if count > st.session_state.ultimo_count:
+            st.toast(f"🔔 {count - st.session_state.ultimo_count} nova(s) notificação(ões)!", icon="🔔")
+        st.session_state.ultimo_count = count
+    except:
+        pass
 
 # ---------- Função para resumo ----------
 def show_document_summary(documentos):
@@ -724,7 +783,34 @@ if st.session_state.redirect_to_docs:
     st.session_state.menu_parceiro_widget = "Meus Documentos"
     st.session_state.redirect_to_docs = False
 
+# Renderizar badge de notificações (apenas após login)
+if st.session_state.token is not None:
+    render_notificacoes_badge()
+    # Verificar novas notificações
+    verificar_novas_notificacoes()
+
+# Sidebar personalizada (sem navegação automática)
 st.sidebar.write(f"Logado como: **{st.session_state.username}** ({st.session_state.perfil})")
+
+# Contador de notificações no sidebar
+if st.session_state.token is not None:
+    try:
+        count = get_notificacoes_nao_lidas()
+        if count > 0:
+            st.sidebar.warning(f"🔔 {count} notificação(ões) não lida(s)")
+        else:
+            st.sidebar.info("🔔 Sem notificações")
+    except:
+        pass
+
+# Botão para Dashboard
+if st.sidebar.button("📊 Dashboard", use_container_width=True):
+    st.switch_page("pages/dashboard.py")
+
+# Botão para Notificações
+if st.sidebar.button("🔔 Notificações", use_container_width=True):
+    st.switch_page("pages/notificacoes.py")
+
 if st.sidebar.button("Logout"):
     logout()
     st.rerun()

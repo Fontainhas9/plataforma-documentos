@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, JSON, Text
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, JSON, Text, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -55,3 +55,28 @@ class VersaoDocumento(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     documento = relationship("Documento", back_populates="versoes")
+
+# ---------- Modelo de Notificações ----------
+class Notificacao(Base):
+    __tablename__ = "notificacoes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String, nullable=False)  # destinatário
+    titulo = Column(String, nullable=False)
+    mensagem = Column(Text, nullable=False)
+    lida = Column(Boolean, default=False)
+    link = Column(String, nullable=True)  # link para o documento (ex: "/documento/1")
+    icone = Column(String, nullable=True)  # emoji para a notificação
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "username": self.username,
+            "titulo": self.titulo,
+            "mensagem": self.mensagem,
+            "lida": self.lida,
+            "link": self.link,
+            "icone": self.icone or "📄",
+            "created_at": self.created_at.strftime("%d/%m/%Y %H:%M") if self.created_at else ""
+        }

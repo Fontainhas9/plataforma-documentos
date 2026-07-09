@@ -45,4 +45,4 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     db.close()
     if user is None:
         raise credentials_exception
-    return user
+    return user  # <-- Deve retornar um objeto Utilizador, não uma string

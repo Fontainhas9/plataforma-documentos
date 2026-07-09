@@ -14,7 +14,7 @@ import json
 import traceback
 
 from database import SessionLocal, engine
-from models import Base, Documento, VersaoDocumento, EstadoDocumento, Utilizador, PerfilUtilizador
+from models import Base, Documento, VersaoDocumento, EstadoDocumento, Utilizador, PerfilUtilizador, Notificacao  # <-- ADICIONAR Notificacao
 from schemas import (
     DocumentoCreate, DocumentoUpdate, DocumentoOut,
     VersaoOut, MudancaEstado, UtilizadorCreate, Token,
@@ -27,6 +27,24 @@ from auth import (
     get_current_user,
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
+
+# Importar funções do dashboard
+from dashboard import (
+    get_dashboard_kpis,
+    get_evolucao_mensal,
+    get_top_parceiros,
+    get_tempo_medio_por_estado,
+    get_documentos_recentes
+)
+
+# Importar funções de notificações
+from notificacoes import (
+    criar_notificacao_para_empresa,
+    criar_notificacao_para_parceiro,
+    get_notificacoes_utilizador,
+    get_notificacoes_nao_lidas_count
+)
+
 # EMAIL DESATIVADO - manter para futuro
 # from email_utils import enviar_email, DESTINATARIO_PADRAO
 
@@ -282,6 +300,16 @@ def submeter_documento(
     criar_versao(db, doc, EstadoDocumento.SUBMETIDO, criado_por=current_user.username, comentario="Submissão para validação")
     db.commit()
     db.refresh(doc)
+    
+    # Criar notificação para a empresa
+    criar_notificacao_para_empresa(
+        db=db,
+        documento=doc,
+        titulo="📤 Documento submetido",
+        mensagem=f"O documento '{doc.titulo}' foi submetido por {current_user.username} para validação.",
+        icone="📤"
+    )
+    
     return doc
 
 @app.post("/documentos/{doc_id}/iniciar-revisao", response_model=DocumentoOut)
@@ -301,7 +329,18 @@ def iniciar_revisao(
     criar_versao(db, doc, EstadoDocumento.EM_REVISAO, criado_por=current_user.username, comentario="Revisão iniciada")
     db.commit()
     db.refresh(doc)
+    
+    # Criar notificação para o parceiro
+    criar_notificacao_para_parceiro(
+        db=db,
+        documento=doc,
+        titulo="🔍 Revisão iniciada",
+        mensagem=f"O documento '{doc.titulo}' está em revisão pela empresa.",
+        icone="🔍"
+    )
+    
     return doc
+
 
 @app.post("/documentos/{doc_id}/pedir-alteracoes", response_model=DocumentoOut)
 def pedir_alteracoes(
@@ -321,6 +360,16 @@ def pedir_alteracoes(
     criar_versao(db, doc, EstadoDocumento.ALTERACOES, criado_por=current_user.username, comentario=motivo.comentario or "Alterações solicitadas")
     db.commit()
     db.refresh(doc)
+    
+    # Criar notificação para o parceiro
+    criar_notificacao_para_parceiro(
+        db=db,
+        documento=doc,
+        titulo="🔄 Alterações solicitadas",
+        mensagem=f"A empresa pediu alterações no documento '{doc.titulo}': {motivo.comentario or 'Ver detalhes'}",
+        icone="🔄"
+    )
+    
     return doc
 
 @app.post("/documentos/{doc_id}/editar-novamente", response_model=DocumentoOut)
@@ -360,6 +409,15 @@ def aprovar_documento(
     criar_versao(db, doc, EstadoDocumento.APROVADO, criado_por=current_user.username, comentario="Documento aprovado")
     db.commit()
     db.refresh(doc)
+    
+    # Criar notificação para o parceiro
+    criar_notificacao_para_parceiro(
+        db=db,
+        documento=doc,
+        titulo="✅ Documento aprovado",
+        mensagem=f"O documento '{doc.titulo}' foi aprovado por {current_user.username}.",
+        icone="✅"
+    )
 
     # EMAIL DESATIVADO - manter para futuro
     # assunto = f"Documento '{doc.titulo}' aprovado (ID {doc.id})"
@@ -412,6 +470,15 @@ def arquivar_documento(
     criar_versao(db, doc, EstadoDocumento.ARQUIVADO, criado_por=current_user.username, comentario="Documento arquivado")
     db.commit()
     db.refresh(doc)
+    
+    # Criar notificação para o parceiro
+    criar_notificacao_para_parceiro(
+        db=db,
+        documento=doc,
+        titulo="📁 Documento arquivado",
+        mensagem=f"O documento '{doc.titulo}' foi arquivado por {current_user.username}.",
+        icone="📁"
+    )
 
     # EMAIL DESATIVADO - manter para futuro
     # assunto = f"Documento '{doc.titulo}' arquivado (ID {doc.id})"
@@ -493,6 +560,134 @@ def alterar_password(
     db.commit()
     return {"ok": True}
 
+# -------------------- Dashboard --------------------
+@app.get("/dashboard/kpis")
+def dashboard_kpis(
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    """
+    Obtém os KPIs principais para o dashboard.
+    """
+    return get_dashboard_kpis(db, current_user.username, current_user.perfil)
+
+@app.get("/dashboard/evolucao")
+def dashboard_evolucao(
+    meses: int = 12,
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    """
+    Obtém a evolução mensal de documentos.
+    """
+    return get_evolucao_mensal(db, current_user.username, current_user.perfil, meses)
+
+@app.get("/dashboard/top-parceiros")
+def dashboard_top_parceiros(
+    limit: int = 10,
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    """
+    Obtém os parceiros com mais documentos (apenas para empresa/admin).
+    """
+    if current_user.perfil == PerfilUtilizador.PARCEIRO:
+        raise HTTPException(status_code=403, detail="Apenas empresa/admin podem ver top parceiros")
+    return get_top_parceiros(db, limit)
+
+@app.get("/dashboard/tempo-medio-estado")
+def dashboard_tempo_medio_estado(
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    """
+    Obtém o tempo médio em cada estado.
+    """
+    return get_tempo_medio_por_estado(db, current_user.username, current_user.perfil)
+
+@app.get("/dashboard/documentos-recentes")
+def dashboard_documentos_recentes(
+    limit: int = 10,
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    """
+    Obtém os documentos mais recentes.
+    """
+    return get_documentos_recentes(db, current_user.username, current_user.perfil, limit)
+
+# -------------------- Notificações --------------------
+@app.get("/notificacoes")
+def listar_notificacoes(
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    """
+    Lista as notificações do utilizador atual.
+    """
+    return get_notificacoes_utilizador(db, current_user.username, limit)
+
+@app.get("/notificacoes/nao-lidas")
+def contar_notificacoes_nao_lidas(
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    """
+    Conta as notificações não lidas do utilizador atual.
+    """
+    count = get_notificacoes_nao_lidas_count(db, current_user.username)
+    return {"count": count}
+
+@app.put("/notificacoes/{notificacao_id}/ler")
+def marcar_notificacao_lida(
+    notificacao_id: int,
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    """
+    Marca uma notificação como lida.
+    """
+    try:
+        # Verificar se a notificação existe e pertence ao utilizador
+        notificacao = db.query(Notificacao).filter(
+            Notificacao.id == notificacao_id,
+            Notificacao.username == current_user.username
+        ).first()
+        
+        if not notificacao:
+            raise HTTPException(status_code=404, detail="Notificação não encontrada")
+        
+        notificacao.lida = True
+        db.commit()
+        
+        return {"ok": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Erro ao marcar notificação como lida: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/notificacoes/ler-todas")
+def marcar_todas_notificacoes_lidas(
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    """
+    Marca todas as notificações como lidas.
+    """
+    try:
+        count = db.query(Notificacao).filter(
+            Notificacao.username == current_user.username,
+            Notificacao.lida == False
+        ).update({"lida": True})
+        
+        db.commit()
+        return {"ok": True, "count": count}
+    except Exception as e:
+        print(f"❌ Erro ao marcar todas notificações como lidas: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
 # -------------------- Exportar Excel --------------------
 @app.get("/documentos/{doc_id}/exportar-excel")
 def exportar_versoes_excel(

@@ -11,3 +11,4 @@ python-jose[cryptography]
 bcrypt
 python-multipart
 openpyxl
+plotly
