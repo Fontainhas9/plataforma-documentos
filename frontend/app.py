@@ -15,15 +15,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# OCULTAR A BARRA DE NAVEGAÇÃO AUTOMÁTICA DO STREAMLIT
-st.markdown("""
-<style>
-    [data-testid="stSidebarNav"] {
-        display: none !important;
-    }
-</style>
-""", unsafe_allow_html=True)
-
 # Importar componente de notificações
 from componentes.notificacoes import render_notificacoes_badge
 
@@ -86,6 +77,40 @@ if "filtros_temporarios" not in st.session_state:
         "order_by": "id",
         "order_dir": "desc"
     }
+
+# ---------- FUNÇÃO PARA OCULTAR A SIDEBAR NO LOGIN ----------
+def aplicar_css_sidebar(ocultar: bool = False):
+    """
+    Aplica CSS para ocultar ou mostrar a sidebar.
+    """
+    if ocultar:
+        css = """
+        <style>
+            [data-testid="stSidebar"] {
+                display: none !important;
+            }
+            [data-testid="stSidebarNav"] {
+                display: none !important;
+            }
+            /* Ajustar o conteúdo principal para ocupar toda a largura */
+            .main > div {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+        </style>
+        """
+    else:
+        css = """
+        <style>
+            [data-testid="stSidebar"] {
+                display: flex !important;
+            }
+            [data-testid="stSidebarNav"] {
+                display: none !important;
+            }
+        </style>
+        """
+    st.markdown(css, unsafe_allow_html=True)
 
 # ---------- Funções auxiliares ----------
 def safe_copy(data):
@@ -260,7 +285,6 @@ def submeter(doc_id):
         st.error(f"Erro ao submeter: {resp.text}")
         return None
     st.success("✅ Documento submetido com sucesso!")
-    # Forçar atualização das notificações
     st.rerun()
     return resp.json()
 
@@ -398,7 +422,8 @@ def render_filtros():
     Renderiza os filtros de pesquisa para empresa e admin.
     Os filtros só são aplicados quando o botão "Aplicar Filtros" é clicado.
     """
-    with st.expander("🔍 Filtros de Pesquisa", expanded=True):
+    # ALTERAÇÃO: expander começa fechado (expanded=False)
+    with st.expander("🔍 Filtros de Pesquisa", expanded=False):
         col1, col2 = st.columns(2)
         
         # Usar a chave atual para todos os widgets
@@ -762,7 +787,12 @@ def render_full_form(data_key, prefix=""):
     render_lcc_outputs(data_key, prefix)
 
 # ---------- Interface principal ----------
+
+# Verificar se o utilizador está autenticado
 if st.session_state.token is None:
+    # PÁGINA DE LOGIN - Ocultar a sidebar com CSS
+    aplicar_css_sidebar(ocultar=True)
+    
     st.title("Login")
     with st.form("login_form"):
         username = st.text_input("Username")
@@ -773,6 +803,13 @@ if st.session_state.token is None:
                 st.session_state.success_message = "Login efetuado com sucesso!"
                 st.rerun()
     st.stop()
+
+# ============================================
+# A PARTIR DAQUI, O UTILIZADOR ESTÁ AUTENTICADO
+# ============================================
+
+# Mostrar a sidebar (remover o CSS que a ocultava)
+aplicar_css_sidebar(ocultar=False)
 
 # Mostrar mensagem de sucesso com toast
 if st.session_state.success_message:
@@ -789,7 +826,9 @@ if st.session_state.token is not None:
     # Verificar novas notificações
     verificar_novas_notificacoes()
 
-# Sidebar personalizada (sem navegação automática)
+# ============================================
+# SIDEBAR - APENAS VISÍVEL APÓS LOGIN
+# ============================================
 st.sidebar.write(f"Logado como: **{st.session_state.username}** ({st.session_state.perfil})")
 
 # Contador de notificações no sidebar
@@ -996,7 +1035,7 @@ elif st.session_state.perfil == "empresa":
 
     st.subheader("Documentos disponíveis")
     
-    # FILTROS disponíveis para a empresa
+    # FILTROS disponíveis para a empresa - ALTERAÇÃO: expander começa fechado
     render_filtros()
     
     if st.button("🔄 Atualizar lista", key="refresh_list_empresa"):
@@ -1234,7 +1273,7 @@ elif st.session_state.perfil == "admin":
 
         st.subheader("Documentos disponíveis")
         
-        # FILTROS disponíveis para o admin
+        # FILTROS disponíveis para o admin - ALTERAÇÃO: expander começa fechado
         render_filtros()
         
         if st.button("🔄 Atualizar lista", key="refresh_list_admin"):
