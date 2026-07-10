@@ -18,6 +18,101 @@ st.set_page_config(
 # Importar componente de notificações
 from componentes.notificacoes import render_notificacoes_badge
 
+# ============================================================
+# CSS CRÍTICO - INJETADO IMEDIATAMENTE PARA OCULTAR A SIDEBAR
+# Este CSS é aplicado antes de qualquer renderização
+# ============================================================
+st.markdown("""
+<style>
+    /* Ocultar a sidebar completamente - prioridade máxima */
+    [data-testid="stSidebar"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        overflow: hidden !important;
+        pointer-events: none !important;
+    }
+    [data-testid="stSidebarNav"] {
+        display: none !important;
+        visibility: hidden !important;
+    }
+    /* Ocultar também o botão de toggle da sidebar */
+    [data-testid="collapsedControl"] {
+        display: none !important;
+        visibility: hidden !important;
+    }
+    /* Ajustar o conteúdo principal para ocupar toda a largura */
+    .main > div {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        max-width: 100% !important;
+    }
+    /* Remover qualquer espaço reservado para a sidebar */
+    section[data-testid="stSidebar"] {
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        flex: 0 0 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+    }
+    /* Garantir que o conteúdo principal ocupa 100% */
+    .appview-container .main .block-container {
+        max-width: 100% !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+</style>
+
+<!-- JavaScript para ocultar a sidebar imediatamente -->
+<script>
+    // Função para ocultar a sidebar imediatamente
+    function hideSidebarImmediately() {
+        var sidebar = document.querySelector('[data-testid="stSidebar"]');
+        if (sidebar) {
+            sidebar.style.display = 'none';
+            sidebar.style.visibility = 'hidden';
+            sidebar.style.opacity = '0';
+            sidebar.style.width = '0';
+            sidebar.style.minWidth = '0';
+            sidebar.style.maxWidth = '0';
+            sidebar.style.overflow = 'hidden';
+            sidebar.style.pointerEvents = 'none';
+        }
+        var nav = document.querySelector('[data-testid="stSidebarNav"]');
+        if (nav) {
+            nav.style.display = 'none';
+            nav.style.visibility = 'hidden';
+        }
+        var control = document.querySelector('[data-testid="collapsedControl"]');
+        if (control) {
+            control.style.display = 'none';
+            control.style.visibility = 'hidden';
+        }
+    }
+    
+    // Executar imediatamente
+    hideSidebarImmediately();
+    
+    // Executar novamente quando o DOM estiver pronto
+    document.addEventListener('DOMContentLoaded', hideSidebarImmediately);
+    
+    // Executar repetidamente com intervalos curtos para garantir
+    var intervalId = setInterval(hideSidebarImmediately, 100);
+    
+    // Parar o intervalo após 3 segundos
+    setTimeout(function() {
+        clearInterval(intervalId);
+    }, 3000);
+</script>
+""", unsafe_allow_html=True)
+
 # Inicializar estado da sessão
 if "token" not in st.session_state:
     st.session_state.token = None
@@ -78,39 +173,83 @@ if "filtros_temporarios" not in st.session_state:
         "order_dir": "desc"
     }
 
-# ---------- FUNÇÃO PARA OCULTAR A SIDEBAR NO LOGIN ----------
-def aplicar_css_sidebar(ocultar: bool = False):
+# Flag para controlar se a sidebar deve ser mostrada
+if "mostrar_sidebar" not in st.session_state:
+    st.session_state.mostrar_sidebar = False
+
+# ============================================================
+# FUNÇÃO PARA MOSTRAR A SIDEBAR APÓS LOGIN
+# ============================================================
+def mostrar_sidebar_apos_login():
     """
-    Aplica CSS para ocultar ou mostrar a sidebar.
+    Mostra a sidebar após o login usando JavaScript.
     """
-    if ocultar:
-        css = """
-        <style>
-            [data-testid="stSidebar"] {
-                display: none !important;
+    js = """
+    <script>
+        // Função para mostrar a sidebar
+        function showSidebar() {
+            var sidebar = document.querySelector('[data-testid="stSidebar"]');
+            if (sidebar) {
+                sidebar.style.display = 'flex';
+                sidebar.style.visibility = 'visible';
+                sidebar.style.opacity = '1';
+                sidebar.style.width = '';
+                sidebar.style.minWidth = '';
+                sidebar.style.maxWidth = '';
+                sidebar.style.overflow = '';
+                sidebar.style.pointerEvents = '';
             }
-            [data-testid="stSidebarNav"] {
-                display: none !important;
+            var control = document.querySelector('[data-testid="collapsedControl"]');
+            if (control) {
+                control.style.display = '';
+                control.style.visibility = '';
             }
-            /* Ajustar o conteúdo principal para ocupar toda a largura */
-            .main > div {
-                padding-left: 1rem !important;
-                padding-right: 1rem !important;
+        }
+        
+        // Executar imediatamente e após o DOM carregar
+        showSidebar();
+        document.addEventListener('DOMContentLoaded', showSidebar);
+        setTimeout(showSidebar, 100);
+        setTimeout(showSidebar, 300);
+    </script>
+    """
+    st.markdown(js, unsafe_allow_html=True)
+
+# ============================================================
+# FUNÇÃO PARA OCULTAR A SIDEBAR (FORÇADO)
+# ============================================================
+def ocultar_sidebar_forcado():
+    """
+    Oculta a sidebar de forma forçada usando JavaScript.
+    """
+    js = """
+    <script>
+        function hideSidebar() {
+            var sidebar = document.querySelector('[data-testid="stSidebar"]');
+            if (sidebar) {
+                sidebar.style.display = 'none';
+                sidebar.style.visibility = 'hidden';
+                sidebar.style.opacity = '0';
+                sidebar.style.width = '0';
+                sidebar.style.minWidth = '0';
+                sidebar.style.maxWidth = '0';
+                sidebar.style.overflow = 'hidden';
+                sidebar.style.pointerEvents = 'none';
             }
-        </style>
-        """
-    else:
-        css = """
-        <style>
-            [data-testid="stSidebar"] {
-                display: flex !important;
+            var control = document.querySelector('[data-testid="collapsedControl"]');
+            if (control) {
+                control.style.display = 'none';
+                control.style.visibility = 'hidden';
             }
-            [data-testid="stSidebarNav"] {
-                display: none !important;
-            }
-        </style>
-        """
-    st.markdown(css, unsafe_allow_html=True)
+        }
+        hideSidebar();
+        document.addEventListener('DOMContentLoaded', hideSidebar);
+        setTimeout(hideSidebar, 50);
+        setTimeout(hideSidebar, 150);
+        setTimeout(hideSidebar, 300);
+    </script>
+    """
+    st.markdown(js, unsafe_allow_html=True)
 
 # ---------- Funções auxiliares ----------
 def safe_copy(data):
@@ -205,6 +344,7 @@ def logout():
     st.session_state.new_data = None
     st.session_state.refresh_counter = 0
     st.session_state.ultimo_count = 0
+    st.session_state.mostrar_sidebar = False
 
 def headers_auth():
     return {"Authorization": f"Bearer {st.session_state.token}"}
@@ -786,12 +926,14 @@ def render_full_form(data_key, prefix=""):
     render_lcc_labour(data_key, prefix)
     render_lcc_outputs(data_key, prefix)
 
-# ---------- Interface principal ----------
+# ============================================================
+# INTERFACE PRINCIPAL
+# ============================================================
 
 # Verificar se o utilizador está autenticado
 if st.session_state.token is None:
-    # PÁGINA DE LOGIN - Ocultar a sidebar com CSS
-    aplicar_css_sidebar(ocultar=True)
+    # PÁGINA DE LOGIN - Ocultar a sidebar
+    ocultar_sidebar_forcado()
     
     st.title("Login")
     with st.form("login_form"):
@@ -801,15 +943,16 @@ if st.session_state.token is None:
         if submitted:
             if login(username, password):
                 st.session_state.success_message = "Login efetuado com sucesso!"
+                st.session_state.mostrar_sidebar = True
                 st.rerun()
     st.stop()
 
-# ============================================
+# ============================================================
 # A PARTIR DAQUI, O UTILIZADOR ESTÁ AUTENTICADO
-# ============================================
+# ============================================================
 
-# Mostrar a sidebar (remover o CSS que a ocultava)
-aplicar_css_sidebar(ocultar=False)
+# Mostrar a sidebar
+mostrar_sidebar_apos_login()
 
 # Mostrar mensagem de sucesso com toast
 if st.session_state.success_message:
@@ -826,9 +969,9 @@ if st.session_state.token is not None:
     # Verificar novas notificações
     verificar_novas_notificacoes()
 
-# ============================================
+# ============================================================
 # SIDEBAR - APENAS VISÍVEL APÓS LOGIN
-# ============================================
+# ============================================================
 st.sidebar.write(f"Logado como: **{st.session_state.username}** ({st.session_state.perfil})")
 
 # Contador de notificações no sidebar
