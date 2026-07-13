@@ -83,6 +83,8 @@ if "admin_user_dropdown_key" not in st.session_state:
     st.session_state.admin_user_dropdown_key = 0
 if "ultimo_count" not in st.session_state:
     st.session_state.ultimo_count = 0
+if "show_create_user_form" not in st.session_state:
+    st.session_state.show_create_user_form = False
 
 # Chave para forçar recriação dos widgets de filtro
 if "filtros_widget_key" not in st.session_state:
@@ -1191,17 +1193,26 @@ elif st.session_state.perfil == "empresa":
                 st.rerun()
 
 # ---------- Área do Admin (COM FILTROS) ----------
+# ---------- Área do Admin (COM FILTROS) ----------
 elif st.session_state.perfil == "admin":
     st.header("Painel Administrativo")
     menu_admin = st.sidebar.radio("Admin", ["Utilizadores", "Documentos (empresa)"])
 
     if menu_admin == "Utilizadores":
-        st.subheader("Gestão de Utilizadores")
-        if st.button("🔄 Carregar utilizadores"):
-            st.session_state.doc_selecionado = None
-            st.session_state.admin_user_dropdown_key += 1
-            st.session_state.refresh_counter += 1
-            st.rerun()
+        st.subheader("👥 Gestão de Utilizadores")
+        
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            if st.button("🔄 Carregar utilizadores", use_container_width=True):
+                st.session_state.doc_selecionado = None
+                st.session_state.admin_user_dropdown_key += 1
+                st.session_state.refresh_counter += 1
+                st.rerun()
+        with col2:
+            if st.button("➕ Novo Utilizador", use_container_width=True):
+                st.session_state.show_create_user_form = True
+                st.rerun()
+        
         st.write("")
 
         resp = requests.get(f"{API_URL}/admin/usuarios", headers=headers_auth())
@@ -1216,14 +1227,166 @@ elif st.session_state.perfil == "admin":
                 colunas_existentes = [col for col in colunas_desejadas if col in cols_disponiveis]
                 df = df[colunas_existentes]
                 df.columns = ["Username", "Perfil", "Nome", "Criado em"]
-                st.dataframe(df, hide_index=True)
+                st.dataframe(df, use_container_width=True, hide_index=True)
+
+                st.divider()
+                
+                # --- Gestão de Utilizador Individual ---
+                st.subheader("🔧 Gerir Utilizador")
+                
+                usernames = [""] + [u["username"] for u in users]
+
+                sel_user = st.selectbox(
+                    "Selecionar utilizador para gerir",
+                    usernames,
+                    format_func=lambda x: "Selecione um utilizador..." if x == "" else x,
+                    key=f"admin_user_selectbox_{st.session_state.admin_user_dropdown_key}"
+                )
+
+                if sel_user:
+                    # Mostrar informações do utilizador selecionado
+                    user_data = next((u for u in users if u["username"] == sel_user), None)
+                    if user_data:
+                        st.info(f"**Username:** {user_data['username']} | **Perfil:** {user_data['perfil']} | **Nome:** {user_data['nome_completo']}")
+                    
+                    # --- Alterar Password ---
+                    st.subheader("🔑 Alterar Password")
+                    pw_key = f"admin_pw_input_{st.session_state.pw_input_counter}"
+                    nova_pw = st.text_input(
+                        "Nova password (deixar vazio para não alterar)", 
+                        type="password", 
+                        key=pw_key,
+                        placeholder="Insira a nova password..."
+                    )
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("🔑 Alterar password", key="btn_alterar_pw", use_container_width=True):
+                            if not sel_user:
+                                st.warning("Selecione um utilizador.")
+                            elif not nova_pw.strip():
+                                st.warning("Insira uma nova password")
+                            elif len(nova_pw.strip()) < 3:
+                                st.warning("A password deve ter pelo menos 3 caracteres")
+                            else:
+                                resp_pw = requests.put(
+                                    f"{API_URL}/admin/usuarios/{sel_user}/password",
+                                    json={"nova_password": nova_pw},
+                                    headers=headers_auth()
+                                )
+                                if resp_pw.status_code == 200:
+                                    st.toast(f"✅ Password de '{sel_user}' alterada com sucesso!", icon="✅")
+                                    st.session_state.pw_input_counter += 1
+                                    st.rerun()
+                                else:
+                                    try:
+                                        erro = resp_pw.json().get("detail", "Erro desconhecido")
+                                    except:
+                                        erro = resp_pw.text
+                                    st.error(f"Erro ao alterar password: {erro}")
+                    
+                    # --- Eliminar Utilizador ---
+                    st.divider()
+                    st.subheader("🗑️ Eliminar Utilizador")
+                    st.warning("⚠️ Esta ação é irreversível!")
+                    
+                    with col2:
+                        if st.button("🗑️ Eliminar utilizador", key="btn_eliminar_user", use_container_width=True):
+                            if not sel_user:
+                                st.warning("Selecione um utilizador.")
+                            elif sel_user == st.session_state.username:
+                                st.error("❌ Não pode eliminar a si próprio")
+                            else:
+                                # Confirmar eliminação
+                                if st.button("⚠️ Confirmar eliminação", key="btn_confirmar_eliminar"):
+                                    resp_del = requests.delete(f"{API_URL}/admin/usuarios/{sel_user}", headers=headers_auth())
+                                    if resp_del.status_code == 200:
+                                        st.toast(f"🗑️ Utilizador '{sel_user}' eliminado com sucesso!", icon="🗑️")
+                                        st.session_state.pw_input_counter += 1
+                                        st.session_state.admin_user_dropdown_key += 1
+                                        st.rerun()
+                                    else:
+                                        try:
+                                            erro = resp_del.json().get("detail", "Erro desconhecido")
+                                        except:
+                                            erro = resp_del.text
+                                        st.error(f"Erro ao eliminar: {erro}")
+                
+                # --- Formulário para Criar Novo Utilizador ---
+                if "show_create_user_form" in st.session_state and st.session_state.show_create_user_form:
+                    st.divider()
+                    st.subheader("➕ Criar Novo Utilizador")
+                    
+                    with st.form("create_user_form"):
+                        new_username = st.text_input("Username *", placeholder="Ex: novo_parceiro")
+                        new_password = st.text_input("Password *", type="password", placeholder="Mínimo 3 caracteres")
+                        new_nome = st.text_input("Nome Completo", placeholder="Ex: João Silva")
+                        new_perfil = st.selectbox(
+                            "Perfil *",
+                            options=["parceiro", "empresa", "admin"],
+                            format_func=lambda x: {
+                                "parceiro": "🤝 Parceiro",
+                                "empresa": "🏢 Empresa",
+                                "admin": "🔧 Admin"
+                            }.get(x, x)
+                        )
+                        
+                        col1, col2, col3 = st.columns([1, 1, 2])
+                        with col1:
+                            submit_create = st.form_submit_button("✅ Criar Utilizador", use_container_width=True)
+                        with col2:
+                            cancel_create = st.form_submit_button("❌ Cancelar", use_container_width=True)
+                        
+                        if cancel_create:
+                            st.session_state.show_create_user_form = False
+                            st.rerun()
+                        
+                        if submit_create:
+                            # Validações
+                            if not new_username.strip():
+                                st.error("Username é obrigatório")
+                            elif not new_password.strip() or len(new_password.strip()) < 3:
+                                st.error("Password é obrigatória e deve ter pelo menos 3 caracteres")
+                            elif not new_perfil:
+                                st.error("Perfil é obrigatório")
+                            else:
+                                # Verificar se o username já existe
+                                if any(u["username"] == new_username for u in users):
+                                    st.error(f"❌ Username '{new_username}' já existe!")
+                                else:
+                                    # Criar utilizador
+                                    try:
+                                        resp_create = requests.post(
+                                            f"{API_URL}/registar",
+                                            json={
+                                                "username": new_username.strip(),
+                                                "password": new_password.strip(),
+                                                "perfil": new_perfil,
+                                                "nome_completo": new_nome.strip() if new_nome.strip() else new_username.strip()
+                                            }
+                                        )
+                                        if resp_create.status_code == 200:
+                                            st.toast(f"✅ Utilizador '{new_username}' criado com sucesso!", icon="✅")
+                                            st.session_state.show_create_user_form = False
+                                            st.session_state.pw_input_counter += 1
+                                            st.session_state.admin_user_dropdown_key += 1
+                                            st.rerun()
+                                        else:
+                                            try:
+                                                erro = resp_create.json().get("detail", "Erro desconhecido")
+                                            except:
+                                                erro = resp_create.text
+                                            st.error(f"❌ Erro ao criar utilizador: {erro}")
+                                    except Exception as e:
+                                        st.error(f"❌ Erro ao criar utilizador: {str(e)}")
+
             else:
                 st.info("Nenhum utilizador encontrado")
         else:
             st.error("Falha ao carregar utilizadores")
 
     else:  # Documentos (empresa) - COM FILTROS
-        st.header("Área da Empresa (Validação) – Admin")
+        st.header("📄 Área da Empresa (Validação) – Admin")
 
         st.subheader("Documentos disponíveis")
         
