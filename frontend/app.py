@@ -8,106 +8,46 @@ API_URL = "http://127.0.0.1:8000"
 PROCESSOS = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
 DATASOURCE_OPTIONS = ["Medido", "Calculado", "Estimado", "Literatura"]
 
-# Configuração da página - sidebar colapsada para remover navegação automática
+# Configuração da página - sidebar NÃO colapsada para permitir a navegação
 st.set_page_config(
     page_title="Plataforma Documentos",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"  # ALTERADO: expanded em vez de collapsed
 )
 
 # Importar componente de notificações
 from componentes.notificacoes import render_notificacoes_badge
 
 # ============================================================
-# CSS CRÍTICO - OCULTAR A BARRA DE NAVEGAÇÃO AUTOMÁTICA
+# CSS - Apenas para ocultar a barra de navegação automática,
+# mas manter a sidebar funcional
 # ============================================================
 st.markdown("""
 <style>
-    /* OCULTAR A BARRA DE NAVEGAÇÃO AUTOMÁTICA DO STREAMLIT */
+    /* Ocultar apenas a barra de navegação automática do Streamlit */
     [data-testid="stSidebarNav"] {
         display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        height: 0 !important;
-        min-height: 0 !important;
-        max-height: 0 !important;
-        overflow: hidden !important;
-        padding: 0 !important;
-        margin: 0 !important;
     }
     
-    /* OCULTAR O BOTÃO DE COLLAPSE DA SIDEBAR (SETAS) */
-    [data-testid="collapsedControl"] {
-        display: none !important;
-        visibility: hidden !important;
-    }
-    
-    /* GARANTIR QUE A SIDEBAR PERSONALIZADA FICA VISÍVEL */
+    /* Manter a sidebar visível e funcional */
     [data-testid="stSidebar"] {
         display: flex !important;
         visibility: visible !important;
         opacity: 1 !important;
-    }
-    
-    /* REMOVER ESPAÇO EXTRA DA BARRA DE NAVEGAÇÃO */
-    section[data-testid="stSidebar"] > div:first-child {
-        padding-top: 0 !important;
+        width: auto !important;
+        min-width: auto !important;
+        max-width: auto !important;
+        overflow: auto !important;
+        pointer-events: auto !important;
     }
     
     /* Ajustar o conteúdo principal */
     .main > div {
         padding-left: 1rem !important;
         padding-right: 1rem !important;
+        max-width: 100% !important;
     }
 </style>
-
-<!-- JavaScript para ocultar a barra de navegação imediatamente -->
-<script>
-    // Função para ocultar a barra de navegação automática
-    function hideNavBar() {
-        // Ocultar a barra de navegação automática
-        var nav = document.querySelector('[data-testid="stSidebarNav"]');
-        if (nav) {
-            nav.style.display = 'none';
-            nav.style.visibility = 'hidden';
-            nav.style.opacity = '0';
-            nav.style.height = '0';
-            nav.style.minHeight = '0';
-            nav.style.maxHeight = '0';
-            nav.style.overflow = 'hidden';
-            nav.style.padding = '0';
-            nav.style.margin = '0';
-        }
-        
-        // Ocultar o botão de collapse
-        var control = document.querySelector('[data-testid="collapsedControl"]');
-        if (control) {
-            control.style.display = 'none';
-            control.style.visibility = 'hidden';
-        }
-        
-        // Remover o espaço extra da sidebar
-        var sidebar = document.querySelector('[data-testid="stSidebar"]');
-        if (sidebar) {
-            var firstChild = sidebar.querySelector('div:first-child');
-            if (firstChild) {
-                firstChild.style.paddingTop = '0';
-            }
-        }
-    }
-    
-    // Executar imediatamente
-    hideNavBar();
-    
-    // Executar quando o DOM estiver pronto
-    document.addEventListener('DOMContentLoaded', hideNavBar);
-    
-    // Executar repetidamente para garantir (a cada 100ms durante 2 segundos)
-    var intervalId = setInterval(hideNavBar, 100);
-    setTimeout(function() {
-        clearInterval(intervalId);
-    }, 2000);
-</script>
 """, unsafe_allow_html=True)
 
 # Inicializar estado da sessão
@@ -470,7 +410,7 @@ def display_dataframe(df):
         df = df.copy()
         df.columns = [col.title() for col in df.columns]
         df = df.reset_index(drop=True)
-        st.dataframe(df, width='stretch', hide_index=True)
+        st.dataframe(df, use_container_width=True, hide_index=True)
     else:
         st.write("(sem dados)")
 
@@ -480,7 +420,6 @@ def render_filtros():
     Renderiza os filtros de pesquisa para empresa e admin.
     Os filtros só são aplicados quando o botão "Aplicar Filtros" é clicado.
     """
-    # ALTERAÇÃO: expander começa fechado (expanded=False)
     with st.expander("🔍 Filtros de Pesquisa", expanded=False):
         col1, col2 = st.columns(2)
         
@@ -844,9 +783,12 @@ def render_full_form(data_key, prefix=""):
     render_lcc_labour(data_key, prefix)
     render_lcc_outputs(data_key, prefix)
 
-# ---------- Interface principal ----------
+# ============================================================
+# INTERFACE PRINCIPAL
+# ============================================================
+
+# Verificar se o utilizador está autenticado
 if st.session_state.token is None:
-    # PÁGINA DE LOGIN - A sidebar personalizada NÃO deve aparecer
     st.title("Login")
     with st.form("login_form"):
         username = st.text_input("Username")
@@ -858,9 +800,9 @@ if st.session_state.token is None:
                 st.rerun()
     st.stop()
 
-# ============================================
+# ============================================================
 # A PARTIR DAQUI, O UTILIZADOR ESTÁ AUTENTICADO
-# ============================================
+# ============================================================
 
 # Mostrar mensagem de sucesso com toast
 if st.session_state.success_message:
@@ -877,33 +819,40 @@ if st.session_state.token is not None:
     # Verificar novas notificações
     verificar_novas_notificacoes()
 
-# ============================================
-# SIDEBAR PERSONALIZADA - APENAS VISÍVEL APÓS LOGIN
-# ============================================
-st.sidebar.write(f"Logado como: **{st.session_state.username}** ({st.session_state.perfil})")
-
-# Contador de notificações no sidebar
-if st.session_state.token is not None:
-    try:
-        count = get_notificacoes_nao_lidas()
-        if count > 0:
-            st.sidebar.warning(f"🔔 {count} notificação(ões) não lida(s)")
-        else:
-            st.sidebar.info("🔔 Sem notificações")
-    except:
-        pass
-
-# Botão para Dashboard
-if st.sidebar.button("📊 Dashboard", use_container_width=True):
-    st.switch_page("pages/dashboard.py")
-
-# Botão para Notificações
-if st.sidebar.button("🔔 Notificações", use_container_width=True):
-    st.switch_page("pages/notificacoes.py")
-
-if st.sidebar.button("Logout"):
-    logout()
-    st.rerun()
+# ============================================================
+# SIDEBAR - VISÍVEL APÓS LOGIN
+# ============================================================
+with st.sidebar:
+    st.write(f"Logado como: **{st.session_state.username}** ({st.session_state.perfil})")
+    st.divider()
+    
+    # Contador de notificações no sidebar
+    if st.session_state.token is not None:
+        try:
+            count = get_notificacoes_nao_lidas()
+            if count > 0:
+                st.warning(f"🔔 {count} notificação(ões) não lida(s)")
+            else:
+                st.info("🔔 Sem notificações")
+        except:
+            pass
+    
+    st.divider()
+    
+    # Botão para Dashboard
+    if st.button("📊 Dashboard", use_container_width=True):
+        st.switch_page("pages/dashboard.py")
+    
+    # Botão para Notificações
+    if st.button("🔔 Notificações", use_container_width=True):
+        st.switch_page("pages/notificacoes.py")
+    
+    st.divider()
+    
+    # Botão Logout
+    if st.button("🚪 Logout", use_container_width=True):
+        logout()
+        st.rerun()
 
 st.title("📄 Plataforma de Gestão de Documentos")
 
@@ -954,7 +903,7 @@ if st.session_state.perfil == "parceiro":
             st.rerun()
         st.write("")
 
-        documentos = listar_documentos()  # <-- SEM filtros
+        documentos = listar_documentos()
         if not documentos:
             st.info("Nenhum documento encontrado.")
         else:
@@ -963,7 +912,7 @@ if st.session_state.perfil == "parceiro":
                 df["updated_at"] = pd.to_datetime(df["updated_at"]).dt.strftime("%d/%m/%Y %H:%M")
             df = df[["id", "titulo", "estado", "versao_atual", "updated_at"]]
             df.columns = ["ID", "Título", "Estado", "Versão", "Última Atualização"]
-            st.dataframe(df, width='stretch', hide_index=True)
+            st.dataframe(df, use_container_width=True, hide_index=True)
 
             ids = [""] + [doc["id"] for doc in documentos]
 
@@ -1086,7 +1035,7 @@ elif st.session_state.perfil == "empresa":
 
     st.subheader("Documentos disponíveis")
     
-    # FILTROS disponíveis para a empresa - ALTERAÇÃO: expander começa fechado
+    # FILTROS disponíveis para a empresa
     render_filtros()
     
     if st.button("🔄 Atualizar lista", key="refresh_list_empresa"):
@@ -1108,7 +1057,7 @@ elif st.session_state.perfil == "empresa":
             df["created_at"] = pd.to_datetime(df["created_at"]).dt.strftime("%d/%m/%Y %H:%M")
         df = df[["id", "titulo", "parceiro_id", "estado", "versao_atual", "updated_at"]]
         df.columns = ["ID", "Título", "Parceiro", "Estado", "Versão", "Última Atualização"]
-        st.dataframe(df, width='stretch', hide_index=True)
+        st.dataframe(df, use_container_width=True, hide_index=True)
 
         ids = [""] + [doc["id"] for doc in documentos]
 
@@ -1268,52 +1217,6 @@ elif st.session_state.perfil == "admin":
                 df = df[colunas_existentes]
                 df.columns = ["Username", "Perfil", "Nome", "Criado em"]
                 st.dataframe(df, hide_index=True)
-
-                usernames = [""] + [u["username"] for u in users]
-
-                sel_user = st.selectbox(
-                    "Selecionar utilizador para gerir",
-                    usernames,
-                    format_func=lambda x: "Selecione um utilizador..." if x == "" else x,
-                    key=f"admin_user_selectbox_{st.session_state.admin_user_dropdown_key}"
-                )
-
-                pw_key = f"admin_pw_input_{st.session_state.pw_input_counter}"
-                nova_pw = st.text_input("Nova password (deixar vazio para não alterar)", 
-                                        type="password", 
-                                        key=pw_key)
-                
-                if st.button("🔑 Alterar password", key="btn_alterar_pw"):
-                    if not sel_user:
-                        st.warning("Selecione um utilizador.")
-                    elif nova_pw.strip():
-                        resp_pw = requests.put(
-                            f"{API_URL}/admin/usuarios/{sel_user}/password",
-                            json={"nova_password": nova_pw},
-                            headers=headers_auth()
-                        )
-                        if resp_pw.status_code == 200:
-                            st.toast("Password alterada com sucesso!", icon="✅")
-                            st.session_state.pw_input_counter += 1
-                            st.rerun()
-                        else:
-                            st.error(f"Erro ao alterar password: {resp_pw.text}")
-                    else:
-                        st.warning("Insira uma nova password")
-                
-                if st.button("🗑️ Eliminar utilizador", key="btn_eliminar_user"):
-                    if not sel_user:
-                        st.warning("Selecione um utilizador.")
-                    elif sel_user == st.session_state.username:
-                        st.error("Não pode eliminar a si próprio")
-                    else:
-                        resp_del = requests.delete(f"{API_URL}/admin/usuarios/{sel_user}", headers=headers_auth())
-                        if resp_del.status_code == 200:
-                            st.toast("Utilizador eliminado com sucesso!", icon="🗑️")
-                            st.session_state.pw_input_counter += 1
-                            st.rerun()
-                        else:
-                            st.error(f"Erro ao eliminar: {resp_del.text}")
             else:
                 st.info("Nenhum utilizador encontrado")
         else:
@@ -1324,7 +1227,7 @@ elif st.session_state.perfil == "admin":
 
         st.subheader("Documentos disponíveis")
         
-        # FILTROS disponíveis para o admin - ALTERAÇÃO: expander começa fechado
+        # FILTROS disponíveis para o admin
         render_filtros()
         
         if st.button("🔄 Atualizar lista", key="refresh_list_admin"):
@@ -1346,7 +1249,7 @@ elif st.session_state.perfil == "admin":
                 df["created_at"] = pd.to_datetime(df["created_at"]).dt.strftime("%d/%m/%Y %H:%M")
             df = df[["id", "titulo", "parceiro_id", "estado", "versao_atual", "updated_at"]]
             df.columns = ["ID", "Título", "Parceiro", "Estado", "Versão", "Última Atualização"]
-            st.dataframe(df, width='stretch', hide_index=True)
+            st.dataframe(df, use_container_width=True, hide_index=True)
 
             ids = [""] + [doc["id"] for doc in documentos]
 

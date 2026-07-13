@@ -191,7 +191,7 @@ try:
                     "created_at": "Criado em"
                 },
                 hide_index=True,
-                use_container_width=True
+                use_container_width=True  # CORRIGIDO
             )
         else:
             st.info("Sem documentos recentes")
