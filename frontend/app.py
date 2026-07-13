@@ -1,36 +1,33 @@
-import os
 import streamlit as st
 import requests
 import pandas as pd
 import copy
 from datetime import datetime
+import os
 
+# Usar variável de ambiente ou fallback para local
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 PROCESSOS = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
 DATASOURCE_OPTIONS = ["Medido", "Calculado", "Estimado", "Literatura"]
 
-# Configuração da página - sidebar NÃO colapsada para permitir a navegação
+# Configuração da página
 st.set_page_config(
     page_title="Plataforma Documentos",
     layout="wide",
-    initial_sidebar_state="expanded"  # ALTERADO: expanded em vez de collapsed
+    initial_sidebar_state="expanded"
 )
 
 # Importar componente de notificações
 from componentes.notificacoes import render_notificacoes_badge
 
 # ============================================================
-# CSS - Apenas para ocultar a barra de navegação automática,
-# mas manter a sidebar funcional
+# CSS - Apenas para ocultar a barra de navegação automática
 # ============================================================
 st.markdown("""
 <style>
-    /* Ocultar apenas a barra de navegação automática do Streamlit */
     [data-testid="stSidebarNav"] {
         display: none !important;
     }
-    
-    /* Manter a sidebar visível e funcional */
     [data-testid="stSidebar"] {
         display: flex !important;
         visibility: visible !important;
@@ -41,8 +38,6 @@ st.markdown("""
         overflow: auto !important;
         pointer-events: auto !important;
     }
-    
-    /* Ajustar o conteúdo principal */
     .main > div {
         padding-left: 1rem !important;
         padding-right: 1rem !important;
@@ -220,9 +215,6 @@ def listar_documentos(estado=None):
     return []
 
 def listar_documentos_com_filtros(filtros):
-    """
-    Lista documentos aplicando os filtros atuais.
-    """
     params = {}
     
     if filtros.get("q"):
@@ -367,7 +359,6 @@ def exportar_excel(doc_id):
 
 # ---------- Função para obter notificações ----------
 def get_notificacoes_nao_lidas():
-    """Obtém o número de notificações não lidas."""
     try:
         resp = requests.get(f"{API_URL}/notificacoes/nao-lidas", headers=headers_auth())
         if resp.status_code == 200:
@@ -377,7 +368,6 @@ def get_notificacoes_nao_lidas():
     return 0
 
 def verificar_novas_notificacoes():
-    """Verifica se há novas notificações e mostra um toast."""
     if st.session_state.token is None:
         return
     
@@ -407,7 +397,7 @@ def show_document_summary(documentos):
         with cols[i]:
             st.metric(label=estado, value=contagens[estado])
 
-# ---------- Função para exibir dataframes sem índice ----------
+# ---------- Função para exibir dataframes ----------
 def display_dataframe(df):
     if df is not None and not df.empty:
         df = df.copy()
@@ -417,20 +407,13 @@ def display_dataframe(df):
     else:
         st.write("(sem dados)")
 
-# ---------- Componente de filtros (apenas para empresa e admin) ----------
+# ---------- Componente de filtros ----------
 def render_filtros():
-    """
-    Renderiza os filtros de pesquisa para empresa e admin.
-    Os filtros só são aplicados quando o botão "Aplicar Filtros" é clicado.
-    """
     with st.expander("🔍 Filtros de Pesquisa", expanded=False):
         col1, col2 = st.columns(2)
-        
-        # Usar a chave atual para todos os widgets
         key_suffix = st.session_state.filtros_widget_key
         
         with col1:
-            # Pesquisa de texto
             q = st.text_input(
                 "Pesquisar",
                 value=st.session_state.filtros_temporarios.get("q", ""),
@@ -439,7 +422,6 @@ def render_filtros():
             )
             st.session_state.filtros_temporarios["q"] = q
             
-            # Estados
             estados_disponiveis = ["Rascunho", "Submetido", "Em Revisão", "Alterações", "Aprovado", "Arquivado"]
             estados_selecionados = st.multiselect(
                 "Estado",
@@ -450,7 +432,6 @@ def render_filtros():
             st.session_state.filtros_temporarios["estados"] = estados_selecionados
         
         with col2:
-            # Datas
             data_inicio = st.date_input(
                 "Data Início",
                 value=st.session_state.filtros_temporarios.get("data_inicio"),
@@ -467,7 +448,6 @@ def render_filtros():
             )
             st.session_state.filtros_temporarios["data_fim"] = data_fim.strftime("%Y-%m-%d") if data_fim else None
         
-        # Ordenação
         col3, col4 = st.columns(2)
         with col3:
             ordem_campos = {
@@ -498,16 +478,13 @@ def render_filtros():
             )
             st.session_state.filtros_temporarios["order_dir"] = order_dir
         
-        # Botões de ação
         col5, col6 = st.columns(2)
         with col5:
             if st.button("🔍 Aplicar Filtros", use_container_width=True):
-                # Copiar filtros temporários para filtros aplicados
                 st.session_state.filtros_aplicados = st.session_state.filtros_temporarios.copy()
                 st.rerun()
         with col6:
             if st.button("🧹 Limpar Filtros", use_container_width=True):
-                # Reset dos filtros temporários
                 st.session_state.filtros_temporarios = {
                     "q": "",
                     "estados": [],
@@ -516,7 +493,6 @@ def render_filtros():
                     "order_by": "id",
                     "order_dir": "desc"
                 }
-                # Reset dos filtros aplicados também
                 st.session_state.filtros_aplicados = {
                     "q": "",
                     "estados": [],
@@ -525,16 +501,21 @@ def render_filtros():
                     "order_by": "id",
                     "order_dir": "desc"
                 }
-                # Incrementar a chave para forçar recriação dos widgets
                 st.session_state.filtros_widget_key += 1
                 st.rerun()
 
-# ---------- Funções de renderização das tabelas ----------
+# ---------- Funções de renderização com auto-add ----------
 def render_lca_inputs(data_key, prefix=""):
     st.subheader("Inputs")
     for proc in PROCESSOS:
+        items = st.session_state[data_key]["lca"]["inputs"][proc]
+        
+        # AUTO-ADD: Adicionar linha vazia se a secção estiver vazia
+        if not items:
+            items.append({})
+            st.session_state[data_key]["lca"]["inputs"][proc] = items
+        
         with st.expander(f"Inputs - {proc}", expanded=False):
-            items = st.session_state[data_key]["lca"]["inputs"][proc]
             for i, item in enumerate(items):
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
@@ -551,6 +532,7 @@ def render_lca_inputs(data_key, prefix=""):
                     item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
                                                       index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
                                                       key=f"{prefix}lca_in_{proc}_ds_{i}")
+            
             col1, col2 = st.columns(2)
             with col1:
                 if st.button(f"➕ Adicionar input - {proc}", key=f"{prefix}add_lca_in_{proc}"):
@@ -564,30 +546,49 @@ def render_lca_inputs(data_key, prefix=""):
 def render_lca_processes(data_key, prefix=""):
     st.subheader("Processes")
     for proc in PROCESSOS:
+        items = st.session_state[data_key]["lca"]["processes"][proc]
+        
+        # AUTO-ADD: Adicionar 3 linhas vazias se a secção estiver vazia
+        if not items:
+            items.append({"tipo": "Energy Consumption (kWh)", "qty": "", "unit": "", "description": "", "comments": "", "datasource": "Medido"})
+            items.append({"tipo": "Rate Power of the Equipment (W)", "qty": "", "unit": "", "description": "", "comments": "", "datasource": "Medido"})
+            items.append({"tipo": "Operating Time (h)", "qty": "", "unit": "", "description": "", "comments": "", "datasource": "Medido"})
+            st.session_state[data_key]["lca"]["processes"][proc] = items
+        
         with st.expander(f"Processes - {proc}", expanded=False):
-            items = st.session_state[data_key]["lca"]["processes"][proc]
+            # Mostrar os grupos de processos como secções com cabeçalhos
             num_groups = len(items) // 3
             for g in range(num_groups):
                 base = g * 3
-                with st.expander(f"Grupo de processos #{g+1}", expanded=False):
-                    tipos = ["Energy Consumption (kWh)", "Rate Power of the Equipment (W)", "Operating Time (h)"]
-                    for j, tipo in enumerate(tipos):
-                        idx = base + j
-                        if idx < len(items):
-                            item = items[idx]
-                            item["tipo"] = tipo
-                            with st.expander(f"{tipo}", expanded=False):
-                                col1, col2, col3 = st.columns(3)
-                                with col1:
-                                    item["qty"] = st.text_input("QTY", item.get("qty",""), key=f"{prefix}lca_proc_{proc}_qty_{idx}")
-                                    item["unit"] = st.text_input("Unit", item.get("unit",""), key=f"{prefix}lca_proc_{proc}_unit_{idx}")
-                                with col2:
-                                    item["description"] = st.text_area("Description", item.get("description",""), key=f"{prefix}lca_proc_{proc}_desc_{idx}")
-                                with col3:
-                                    item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lca_proc_{proc}_comments_{idx}")
-                                    item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
-                                                                      index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
-                                                                      key=f"{prefix}lca_proc_{proc}_ds_{idx}")
+                # Usar um cabeçalho em vez de expander aninhado
+                st.markdown(f"**📋 Grupo de processos #{g+1}**")
+                
+                tipos = ["Energy Consumption (kWh)", "Rate Power of the Equipment (W)", "Operating Time (h)"]
+                for j, tipo in enumerate(tipos):
+                    idx = base + j
+                    if idx < len(items):
+                        item = items[idx]
+                        item["tipo"] = tipo
+                        
+                        # Usar um sub-cabeçalho para cada tipo
+                        st.markdown(f"*{tipo}*")
+                        
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            item["qty"] = st.text_input("QTY", item.get("qty",""), key=f"{prefix}lca_proc_{proc}_qty_{idx}")
+                            item["unit"] = st.text_input("Unit", item.get("unit",""), key=f"{prefix}lca_proc_{proc}_unit_{idx}")
+                        with col2:
+                            item["description"] = st.text_area("Description", item.get("description",""), key=f"{prefix}lca_proc_{proc}_desc_{idx}")
+                        with col3:
+                            item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lca_proc_{proc}_comments_{idx}")
+                            item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
+                                                              index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                                                              key=f"{prefix}lca_proc_{proc}_ds_{idx}")
+                
+                # Adicionar um separador entre grupos
+                st.divider()
+            
+            # Botões de adicionar/remover (fora do loop de grupos)
             col1, col2 = st.columns(2)
             with col1:
                 if st.button(f"➕ Adicionar processo (3 linhas) - {proc}", key=f"{prefix}add_lca_proc_{proc}"):
@@ -605,8 +606,14 @@ def render_lca_processes(data_key, prefix=""):
 def render_lca_outputs(data_key, prefix=""):
     st.subheader("Outputs")
     for proc in PROCESSOS:
+        items = st.session_state[data_key]["lca"]["outputs"][proc]
+        
+        # AUTO-ADD: Adicionar linha vazia se a secção estiver vazia
+        if not items:
+            items.append({})
+            st.session_state[data_key]["lca"]["outputs"][proc] = items
+        
         with st.expander(f"Outputs - {proc}", expanded=False):
-            items = st.session_state[data_key]["lca"]["outputs"][proc]
             for i, item in enumerate(items):
                 col1, col2, col3 = st.columns(3)
                 with col1:
@@ -624,6 +631,7 @@ def render_lca_outputs(data_key, prefix=""):
                     item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
                                                       index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
                                                       key=f"{prefix}lca_out_{proc}_ds_{i}")
+            
             col1, col2 = st.columns(2)
             with col1:
                 if st.button(f"➕ Adicionar output - {proc}", key=f"{prefix}add_lca_out_{proc}"):
@@ -637,8 +645,14 @@ def render_lca_outputs(data_key, prefix=""):
 def render_lcc_materials(data_key, prefix=""):
     st.subheader("Cost Breakdown Material")
     for proc in PROCESSOS:
+        items = st.session_state[data_key]["lcc"]["materials"][proc]
+        
+        # AUTO-ADD: Adicionar linha vazia se a secção estiver vazia
+        if not items:
+            items.append({})
+            st.session_state[data_key]["lcc"]["materials"][proc] = items
+        
         with st.expander(f"Materials - {proc}", expanded=False):
-            items = st.session_state[data_key]["lcc"]["materials"][proc]
             for i, item in enumerate(items):
                 col1, col2, col3 = st.columns(3)
                 with col1:
@@ -655,6 +669,7 @@ def render_lcc_materials(data_key, prefix=""):
                     item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
                                                       index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
                                                       key=f"{prefix}lcc_mat_{proc}_ds_{i}")
+            
             col1, col2 = st.columns(2)
             with col1:
                 if st.button(f"➕ Adicionar material - {proc}", key=f"{prefix}add_lcc_mat_{proc}"):
@@ -668,8 +683,14 @@ def render_lcc_materials(data_key, prefix=""):
 def render_lcc_equipment(data_key, prefix=""):
     st.subheader("Equipment")
     for proc in PROCESSOS:
+        items = st.session_state[data_key]["lcc"]["equipment"][proc]
+        
+        # AUTO-ADD: Adicionar linha vazia se a secção estiver vazia
+        if not items:
+            items.append({})
+            st.session_state[data_key]["lcc"]["equipment"][proc] = items
+        
         with st.expander(f"Equipment - {proc}", expanded=False):
-            items = st.session_state[data_key]["lcc"]["equipment"][proc]
             for i, item in enumerate(items):
                 col1, col2, col3 = st.columns(3)
                 with col1:
@@ -685,6 +706,7 @@ def render_lcc_equipment(data_key, prefix=""):
                     item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
                                                       index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
                                                       key=f"{prefix}lcc_eq_{proc}_ds_{i}")
+            
             col1, col2 = st.columns(2)
             with col1:
                 if st.button(f"➕ Adicionar equipamento - {proc}", key=f"{prefix}add_lcc_eq_{proc}"):
@@ -698,8 +720,14 @@ def render_lcc_equipment(data_key, prefix=""):
 def render_lcc_labour(data_key, prefix=""):
     st.subheader("Labour")
     for proc in PROCESSOS:
+        items = st.session_state[data_key]["lcc"]["labour"][proc]
+        
+        # AUTO-ADD: Adicionar linha vazia se a secção estiver vazia
+        if not items:
+            items.append({})
+            st.session_state[data_key]["lcc"]["labour"][proc] = items
+        
         with st.expander(f"Labour - {proc}", expanded=False):
-            items = st.session_state[data_key]["lcc"]["labour"][proc]
             for i, item in enumerate(items):
                 col1, col2, col3 = st.columns(3)
                 with col1:
@@ -718,6 +746,7 @@ def render_lcc_labour(data_key, prefix=""):
                     item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
                                                       index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
                                                       key=f"{prefix}lcc_lab_{proc}_ds_{i}")
+            
             col1, col2 = st.columns(2)
             with col1:
                 if st.button(f"➕ Adicionar linha de trabalho - {proc}", key=f"{prefix}add_lcc_lab_{proc}"):
@@ -731,8 +760,14 @@ def render_lcc_labour(data_key, prefix=""):
 def render_lcc_outputs(data_key, prefix=""):
     st.subheader("Outputs (produto final)")
     for proc in PROCESSOS:
+        items = st.session_state[data_key]["lcc"]["outputs"][proc]
+        
+        # AUTO-ADD: Adicionar linha vazia se a secção estiver vazia
+        if not items:
+            items.append({})
+            st.session_state[data_key]["lcc"]["outputs"][proc] = items
+        
         with st.expander(f"Outputs LCC - {proc}", expanded=False):
-            items = st.session_state[data_key]["lcc"]["outputs"][proc]
             for i, item in enumerate(items):
                 col1, col2, col3 = st.columns(3)
                 with col1:
@@ -747,6 +782,7 @@ def render_lcc_outputs(data_key, prefix=""):
                     item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
                                                       index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
                                                       key=f"{prefix}lcc_out_{proc}_ds_{i}")
+            
             col1, col2 = st.columns(2)
             with col1:
                 if st.button(f"➕ Adicionar output LCC - {proc}", key=f"{prefix}add_lcc_out_{proc}"):
@@ -816,10 +852,9 @@ if st.session_state.redirect_to_docs:
     st.session_state.menu_parceiro_widget = "Meus Documentos"
     st.session_state.redirect_to_docs = False
 
-# Renderizar badge de notificações (apenas após login)
+# Renderizar badge de notificações
 if st.session_state.token is not None:
     render_notificacoes_badge()
-    # Verificar novas notificações
     verificar_novas_notificacoes()
 
 # ============================================================
@@ -829,7 +864,6 @@ with st.sidebar:
     st.write(f"Logado como: **{st.session_state.username}** ({st.session_state.perfil})")
     st.divider()
     
-    # Contador de notificações no sidebar
     if st.session_state.token is not None:
         try:
             count = get_notificacoes_nao_lidas()
@@ -842,24 +876,21 @@ with st.sidebar:
     
     st.divider()
     
-    # Botão para Dashboard
     if st.button("📊 Dashboard", use_container_width=True):
         st.switch_page("pages/dashboard.py")
     
-    # Botão para Notificações
     if st.button("🔔 Notificações", use_container_width=True):
         st.switch_page("pages/notificacoes.py")
     
     st.divider()
     
-    # Botão Logout
     if st.button("🚪 Logout", use_container_width=True):
         logout()
         st.rerun()
 
 st.title("📄 Plataforma de Gestão de Documentos")
 
-# ---------- Resumo de documentos (apenas para parceiro e empresa) ----------
+# ---------- Resumo de documentos ----------
 if st.session_state.perfil != "admin":
     documentos = listar_documentos()
     if documentos:
@@ -869,7 +900,7 @@ if st.session_state.perfil != "admin":
     else:
         st.info("Nenhum documento encontrado. Comece por criar um novo documento.")
 
-# ---------- Área do Parceiro (SEM FILTROS) ----------
+# ---------- Área do Parceiro ----------
 if st.session_state.perfil == "parceiro":
     st.header("Área do Parceiro")
     menu = st.sidebar.radio("Menu", ["Meus Documentos", "Criar Documento"], key="menu_parceiro_widget")
@@ -897,7 +928,6 @@ if st.session_state.perfil == "parceiro":
     elif menu == "Meus Documentos":
         st.subheader("Os meus documentos")
         
-        # SEM FILTROS - apenas botão atualizar
         if st.button("🔄 Atualizar lista", key="refresh_list"):
             st.session_state.doc_selecionado = None
             st.session_state.edit_data = None
@@ -1032,13 +1062,11 @@ if st.session_state.perfil == "parceiro":
                     st.session_state.edit_data = None
                     st.rerun()
 
-# ---------- Área da Empresa (COM FILTROS) ----------
+# ---------- Área da Empresa ----------
 elif st.session_state.perfil == "empresa":
     st.header("Área da Empresa (Validação)")
 
     st.subheader("Documentos disponíveis")
-    
-    # FILTROS disponíveis para a empresa
     render_filtros()
     
     if st.button("🔄 Atualizar lista", key="refresh_list_empresa"):
@@ -1048,7 +1076,6 @@ elif st.session_state.perfil == "empresa":
         st.rerun()
     st.write("")
 
-    # Usar a função com filtros aplicados
     documentos = listar_documentos_com_filtros(st.session_state.filtros_aplicados)
     if not documentos:
         st.info("Nenhum documento encontrado com os filtros atuais.")
@@ -1193,8 +1220,7 @@ elif st.session_state.perfil == "empresa":
                 st.session_state.doc_selecionado = None
                 st.rerun()
 
-# ---------- Área do Admin (COM FILTROS) ----------
-# ---------- Área do Admin (COM FILTROS) ----------
+# ---------- Área do Admin ----------
 elif st.session_state.perfil == "admin":
     st.header("Painel Administrativo")
     menu_admin = st.sidebar.radio("Admin", ["Utilizadores", "Documentos (empresa)"])
@@ -1232,7 +1258,6 @@ elif st.session_state.perfil == "admin":
 
                 st.divider()
                 
-                # --- Gestão de Utilizador Individual ---
                 st.subheader("🔧 Gerir Utilizador")
                 
                 usernames = [""] + [u["username"] for u in users]
@@ -1245,12 +1270,10 @@ elif st.session_state.perfil == "admin":
                 )
 
                 if sel_user:
-                    # Mostrar informações do utilizador selecionado
                     user_data = next((u for u in users if u["username"] == sel_user), None)
                     if user_data:
                         st.info(f"**Username:** {user_data['username']} | **Perfil:** {user_data['perfil']} | **Nome:** {user_data['nome_completo']}")
                     
-                    # --- Alterar Password ---
                     st.subheader("🔑 Alterar Password")
                     pw_key = f"admin_pw_input_{st.session_state.pw_input_counter}"
                     nova_pw = st.text_input(
@@ -1286,7 +1309,6 @@ elif st.session_state.perfil == "admin":
                                         erro = resp_pw.text
                                     st.error(f"Erro ao alterar password: {erro}")
                     
-                    # --- Eliminar Utilizador ---
                     st.divider()
                     st.subheader("🗑️ Eliminar Utilizador")
                     st.warning("⚠️ Esta ação é irreversível!")
@@ -1298,8 +1320,8 @@ elif st.session_state.perfil == "admin":
                             elif sel_user == st.session_state.username:
                                 st.error("❌ Não pode eliminar a si próprio")
                             else:
-                                # Confirmar eliminação
-                                if st.button("⚠️ Confirmar eliminação", key="btn_confirmar_eliminar"):
+                                confirm = st.button("⚠️ Confirmar eliminação", key="btn_confirmar_eliminar")
+                                if confirm:
                                     resp_del = requests.delete(f"{API_URL}/admin/usuarios/{sel_user}", headers=headers_auth())
                                     if resp_del.status_code == 200:
                                         st.toast(f"🗑️ Utilizador '{sel_user}' eliminado com sucesso!", icon="🗑️")
@@ -1313,8 +1335,7 @@ elif st.session_state.perfil == "admin":
                                             erro = resp_del.text
                                         st.error(f"Erro ao eliminar: {erro}")
                 
-                # --- Formulário para Criar Novo Utilizador ---
-                if "show_create_user_form" in st.session_state and st.session_state.show_create_user_form:
+                if st.session_state.show_create_user_form:
                     st.divider()
                     st.subheader("➕ Criar Novo Utilizador")
                     
@@ -1343,7 +1364,6 @@ elif st.session_state.perfil == "admin":
                             st.rerun()
                         
                         if submit_create:
-                            # Validações
                             if not new_username.strip():
                                 st.error("Username é obrigatório")
                             elif not new_password.strip() or len(new_password.strip()) < 3:
@@ -1351,11 +1371,9 @@ elif st.session_state.perfil == "admin":
                             elif not new_perfil:
                                 st.error("Perfil é obrigatório")
                             else:
-                                # Verificar se o username já existe
                                 if any(u["username"] == new_username for u in users):
                                     st.error(f"❌ Username '{new_username}' já existe!")
                                 else:
-                                    # Criar utilizador
                                     try:
                                         resp_create = requests.post(
                                             f"{API_URL}/registar",
@@ -1386,12 +1404,10 @@ elif st.session_state.perfil == "admin":
         else:
             st.error("Falha ao carregar utilizadores")
 
-    else:  # Documentos (empresa) - COM FILTROS
+    else:  # Documentos (empresa) - Admin
         st.header("📄 Área da Empresa (Validação) – Admin")
 
         st.subheader("Documentos disponíveis")
-        
-        # FILTROS disponíveis para o admin
         render_filtros()
         
         if st.button("🔄 Atualizar lista", key="refresh_list_admin"):
@@ -1401,7 +1417,6 @@ elif st.session_state.perfil == "admin":
             st.rerun()
         st.write("")
 
-        # Usar a função com filtros aplicados
         documentos = listar_documentos_com_filtros(st.session_state.filtros_aplicados)
         if not documentos:
             st.info("Nenhum documento encontrado com os filtros atuais.")
@@ -1428,7 +1443,7 @@ elif st.session_state.perfil == "admin":
                 if not id_selecionado:
                     st.warning("Selecione um documento.")
                 else:
-                    st.session_state.doc_selecionado = id_selecionado
+                    st.session_state.doc_selecionado = id_selecionado                    
                     st.rerun()
 
         if st.session_state.doc_selecionado:
