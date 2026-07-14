@@ -1,20 +1,41 @@
 import streamlit as st
 import requests
 from datetime import datetime
+import os
 
-API_URL = "http://127.0.0.1:8000"
+# ============================================================
+# CONFIGURAÇÃO DA API_URL
+# ============================================================
+def get_api_url():
+    try:
+        if hasattr(st, 'secrets') and st.secrets and 'API_URL' in st.secrets:
+            return st.secrets['API_URL']
+    except Exception:
+        pass
+    
+    api_url = os.getenv('API_URL')
+    if api_url:
+        return api_url
+    
+    return "http://127.0.0.1:8000"
+
+API_URL = get_api_url()
 
 st.set_page_config(
     page_title="Notificações",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
-# Ocultar a barra de navegação automática do Streamlit
+# Ocultar APENAS a barra de navegação automática do Streamlit
 st.markdown("""
 <style>
     [data-testid="stSidebarNav"] {
         display: none !important;
+    }
+    [data-testid="stSidebar"] {
+        min-width: 300px !important;
+        width: 300px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -66,24 +87,26 @@ def marcar_como_lida(notificacao_id):
         st.error(f"Erro ao marcar como lida: {e}")
         return False
 
-# Sidebar personalizada
-st.sidebar.write(f"Logado como: **{st.session_state.username}** ({st.session_state.perfil})")
-
-if st.sidebar.button("← Voltar", use_container_width=True):
-    st.switch_page("app.py")
-
-if st.sidebar.button("Logout"):
-    st.session_state.token = None
-    st.session_state.perfil = None
-    st.session_state.username = None
-    st.session_state.doc_selecionado = None
-    st.session_state.success_message = None
-    st.session_state.menu_parceiro_widget = "Meus Documentos"
-    st.session_state.redirect_to_docs = False
-    st.session_state.edit_data = None
-    st.session_state.new_data = None
-    st.session_state.refresh_counter = 0
-    st.rerun()
+# Sidebar personalizada com largura normal
+with st.sidebar:
+    st.write(f"Logado como: **{st.session_state.username}** ({st.session_state.perfil})")
+    st.divider()
+    
+    if st.button("← Voltar", use_container_width=True, key="notificacoes_sidebar_voltar"):
+        st.switch_page("app.py")
+    
+    if st.button("Logout", key="notificacoes_sidebar_logout"):
+        st.session_state.token = None
+        st.session_state.perfil = None
+        st.session_state.username = None
+        st.session_state.doc_selecionado = None
+        st.session_state.success_message = None
+        st.session_state.menu_parceiro_widget = "Meus Documentos"
+        st.session_state.redirect_to_docs = False
+        st.session_state.edit_data = None
+        st.session_state.new_data = None
+        st.session_state.refresh_counter = 0
+        st.rerun()
 
 # Título
 st.title("🔔 Notificações")
@@ -103,10 +126,10 @@ except:
 # Botões de ação
 col1, col2 = st.columns([1, 5])
 with col1:
-    if st.button("← Voltar", use_container_width=True):
+    if st.button("← Voltar", use_container_width=True, key="notificacoes_voltar_principal"):
         st.switch_page("app.py")
 with col2:
-    if st.button("📌 Marcar todas como lidas", use_container_width=True):
+    if st.button("📌 Marcar todas como lidas", use_container_width=True, key="notificacoes_marcar_todas"):
         if marcar_todas_lidas():
             st.rerun()
 
@@ -132,22 +155,24 @@ else:
                 st.caption(f"📅 {notif['created_at']}")
             with col3:
                 if not notif.get("lida", False):
-                    if st.button("✓ Marcar lida", key=f"ler_{notif['id']}"):
+                    if st.button("✓ Marcar lida", key=f"notificacao_marcar_lida_{notif['id']}"):
                         if marcar_como_lida(notif['id']):
-                            # Atualizar o contador de não lidas
                             st.rerun()
                 else:
                     st.write("✅ Lida")
             
             # Link para o documento
             if notif.get("link"):
-                # Extrair o ID do documento do link
                 link = notif['link'].replace("/documentos?doc_id=", "")
-                if link and st.button(f"🔗 Ver documento ID {link}", key=f"link_{notif['id']}"):
+                if link:
                     try:
-                        st.session_state.doc_selecionado = int(link)
-                        st.switch_page("app.py")
-                    except:
+                        doc_id = int(link)
+                        if st.button("📄 Ver Documento", key=f"notificacao_ver_doc_{notif['id']}"):
+                            st.session_state.doc_selecionado = doc_id
+                            st.query_params["doc_id"] = str(doc_id)
+                            st.query_params["from_notification"] = "true"
+                            st.switch_page("app.py")
+                    except ValueError:
                         pass
             
             st.divider()

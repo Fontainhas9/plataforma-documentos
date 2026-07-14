@@ -5,8 +5,30 @@ import copy
 from datetime import datetime
 import os
 
-# Usar variável de ambiente ou fallback para local
-API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
+# ============================================================
+# CONFIGURAÇÃO DA API_URL - FUNCIONA EM LOCAL E PRODUÇÃO
+# ============================================================
+def get_api_url():
+    """Retorna a URL da API consoante o ambiente (local ou produção)."""
+    # Primeiro: verificar se estamos no Streamlit Cloud com secrets
+    try:
+        # Tentar aceder aos secrets (se existirem)
+        if hasattr(st, 'secrets') and st.secrets and 'API_URL' in st.secrets:
+            return st.secrets['API_URL']
+    except Exception:
+        # Se falhar (não há secrets), continua
+        pass
+    
+    # Segundo: verificar variável de ambiente
+    api_url = os.getenv('API_URL')
+    if api_url:
+        return api_url
+    
+    # Terceiro: fallback para local
+    return "http://127.0.0.1:8000"
+
+API_URL = get_api_url()
+
 PROCESSOS = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
 DATASOURCE_OPTIONS = ["Medido", "Calculado", "Estimado", "Literatura"]
 
@@ -18,10 +40,10 @@ st.set_page_config(
 )
 
 # Importar componente de notificações
-from componentes.notificacoes import render_notificacoes_badge
+from componentes.notificacoes import render_notificacoes_badge, get_notificacoes_nao_lidas
 
 # ============================================================
-# CSS - Apenas para ocultar a barra de navegação automática
+# CSS e JavaScript para scroll automático
 # ============================================================
 st.markdown("""
 <style>
@@ -33,8 +55,8 @@ st.markdown("""
         visibility: visible !important;
         opacity: 1 !important;
         width: auto !important;
-        min-width: auto !important;
-        max-width: auto !important;
+        min-width: 300px !important;
+        max-width: 300px !important;
         overflow: auto !important;
         pointer-events: auto !important;
     }
@@ -43,7 +65,57 @@ st.markdown("""
         padding-right: 1rem !important;
         max-width: 100% !important;
     }
+    html {
+        scroll-behavior: smooth;
+    }
+    .doc-anchor {
+        display: block;
+        position: relative;
+        top: -80px;
+        visibility: hidden;
+        height: 0;
+    }
 </style>
+
+<script>
+    function checkScrollParam() {
+        var urlParams = new URLSearchParams(window.location.search);
+        var docId = urlParams.get('scroll_to');
+        if (docId) {
+            setTimeout(function() {
+                var element = document.getElementById('doc-' + docId);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 100);
+            setTimeout(function() {
+                var element = document.getElementById('doc-' + docId);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 400);
+            setTimeout(function() {
+                var element = document.getElementById('doc-' + docId);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 800);
+            setTimeout(function() {
+                urlParams.delete('scroll_to');
+                var newUrl = window.location.pathname + '?' + urlParams.toString();
+                window.history.replaceState({}, '', newUrl);
+            }, 1000);
+        }
+    }
+    
+    window.addEventListener('load', function() {
+        setTimeout(checkScrollParam, 200);
+    });
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(checkScrollParam, 300);
+    });
+</script>
 """, unsafe_allow_html=True)
 
 # Inicializar estado da sessão
@@ -81,6 +153,8 @@ if "ultimo_count" not in st.session_state:
     st.session_state.ultimo_count = 0
 if "show_create_user_form" not in st.session_state:
     st.session_state.show_create_user_form = False
+if "close_doc_after_action" not in st.session_state:
+    st.session_state.close_doc_after_action = False
 
 # Chave para forçar recriação dos widgets de filtro
 if "filtros_widget_key" not in st.session_state:
@@ -278,6 +352,9 @@ def submeter(doc_id):
         st.error(f"Erro ao submeter: {resp.text}")
         return None
     st.success("✅ Documento submetido com sucesso!")
+    st.session_state.doc_selecionado = None
+    st.session_state.edit_data = None
+    st.session_state.close_doc_after_action = True
     st.rerun()
     return resp.json()
 
@@ -287,6 +364,7 @@ def iniciar_revisao(doc_id):
         st.error(f"Erro ao iniciar revisão: {resp.text}")
         return None
     st.success("🔍 Revisão iniciada com sucesso!")
+    st.session_state.doc_selecionado = doc_id
     st.rerun()
     return resp.json()
 
@@ -300,6 +378,7 @@ def pedir_alteracoes(doc_id, comentario):
         st.error(f"Erro ao pedir alterações: {resp.text}")
         return None
     st.success("🔄 Alterações solicitadas com sucesso!")
+    st.session_state.doc_selecionado = doc_id
     st.rerun()
     return resp.json()
 
@@ -309,6 +388,9 @@ def editar_novamente(doc_id):
         st.error(f"Erro ao editar novamente: {resp.text}")
         return None
     st.success("📝 Documento reaberto para edição!")
+    st.session_state.doc_selecionado = None
+    st.session_state.edit_data = None
+    st.session_state.close_doc_after_action = True
     st.rerun()
     return resp.json()
 
@@ -318,6 +400,8 @@ def aprovar(doc_id):
         st.error(f"Erro ao aprovar: {resp.text}")
         return None
     st.success("✅ Documento aprovado com sucesso!")
+    st.session_state.doc_selecionado = None
+    st.session_state.close_doc_after_action = True
     st.rerun()
     return resp.json()
 
@@ -327,6 +411,7 @@ def reabrir(doc_id):
         st.error(f"Erro ao reabrir: {resp.text}")
         return None
     st.success("📂 Documento reaberto com sucesso!")
+    st.session_state.doc_selecionado = doc_id
     st.rerun()
     return resp.json()
 
@@ -336,6 +421,8 @@ def arquivar(doc_id):
         st.error(f"Erro ao arquivar: {resp.text}")
         return None
     st.success("📁 Documento arquivado com sucesso!")
+    st.session_state.doc_selecionado = None
+    st.session_state.close_doc_after_action = True
     st.rerun()
     return resp.json()
 
@@ -510,7 +597,6 @@ def render_lca_inputs(data_key, prefix=""):
     for proc in PROCESSOS:
         items = st.session_state[data_key]["lca"]["inputs"][proc]
         
-        # AUTO-ADD: Adicionar linha vazia se a secção estiver vazia
         if not items:
             items.append({})
             st.session_state[data_key]["lca"]["inputs"][proc] = items
@@ -548,7 +634,6 @@ def render_lca_processes(data_key, prefix=""):
     for proc in PROCESSOS:
         items = st.session_state[data_key]["lca"]["processes"][proc]
         
-        # AUTO-ADD: Adicionar 3 linhas vazias se a secção estiver vazia
         if not items:
             items.append({"tipo": "Energy Consumption (kWh)", "qty": "", "unit": "", "description": "", "comments": "", "datasource": "Medido"})
             items.append({"tipo": "Rate Power of the Equipment (W)", "qty": "", "unit": "", "description": "", "comments": "", "datasource": "Medido"})
@@ -556,11 +641,9 @@ def render_lca_processes(data_key, prefix=""):
             st.session_state[data_key]["lca"]["processes"][proc] = items
         
         with st.expander(f"Processes - {proc}", expanded=False):
-            # Mostrar os grupos de processos como secções com cabeçalhos
             num_groups = len(items) // 3
             for g in range(num_groups):
                 base = g * 3
-                # Usar um cabeçalho em vez de expander aninhado
                 st.markdown(f"**📋 Grupo de processos #{g+1}**")
                 
                 tipos = ["Energy Consumption (kWh)", "Rate Power of the Equipment (W)", "Operating Time (h)"]
@@ -569,10 +652,7 @@ def render_lca_processes(data_key, prefix=""):
                     if idx < len(items):
                         item = items[idx]
                         item["tipo"] = tipo
-                        
-                        # Usar um sub-cabeçalho para cada tipo
                         st.markdown(f"*{tipo}*")
-                        
                         col1, col2, col3 = st.columns(3)
                         with col1:
                             item["qty"] = st.text_input("QTY", item.get("qty",""), key=f"{prefix}lca_proc_{proc}_qty_{idx}")
@@ -585,10 +665,8 @@ def render_lca_processes(data_key, prefix=""):
                                                               index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
                                                               key=f"{prefix}lca_proc_{proc}_ds_{idx}")
                 
-                # Adicionar um separador entre grupos
                 st.divider()
             
-            # Botões de adicionar/remover (fora do loop de grupos)
             col1, col2 = st.columns(2)
             with col1:
                 if st.button(f"➕ Adicionar processo (3 linhas) - {proc}", key=f"{prefix}add_lca_proc_{proc}"):
@@ -608,7 +686,6 @@ def render_lca_outputs(data_key, prefix=""):
     for proc in PROCESSOS:
         items = st.session_state[data_key]["lca"]["outputs"][proc]
         
-        # AUTO-ADD: Adicionar linha vazia se a secção estiver vazia
         if not items:
             items.append({})
             st.session_state[data_key]["lca"]["outputs"][proc] = items
@@ -647,7 +724,6 @@ def render_lcc_materials(data_key, prefix=""):
     for proc in PROCESSOS:
         items = st.session_state[data_key]["lcc"]["materials"][proc]
         
-        # AUTO-ADD: Adicionar linha vazia se a secção estiver vazia
         if not items:
             items.append({})
             st.session_state[data_key]["lcc"]["materials"][proc] = items
@@ -685,7 +761,6 @@ def render_lcc_equipment(data_key, prefix=""):
     for proc in PROCESSOS:
         items = st.session_state[data_key]["lcc"]["equipment"][proc]
         
-        # AUTO-ADD: Adicionar linha vazia se a secção estiver vazia
         if not items:
             items.append({})
             st.session_state[data_key]["lcc"]["equipment"][proc] = items
@@ -722,7 +797,6 @@ def render_lcc_labour(data_key, prefix=""):
     for proc in PROCESSOS:
         items = st.session_state[data_key]["lcc"]["labour"][proc]
         
-        # AUTO-ADD: Adicionar linha vazia se a secção estiver vazia
         if not items:
             items.append({})
             st.session_state[data_key]["lcc"]["labour"][proc] = items
@@ -762,7 +836,6 @@ def render_lcc_outputs(data_key, prefix=""):
     for proc in PROCESSOS:
         items = st.session_state[data_key]["lcc"]["outputs"][proc]
         
-        # AUTO-ADD: Adicionar linha vazia se a secção estiver vazia
         if not items:
             items.append({})
             st.session_state[data_key]["lcc"]["outputs"][proc] = items
@@ -823,6 +896,17 @@ def render_full_form(data_key, prefix=""):
     render_lcc_outputs(data_key, prefix)
 
 # ============================================================
+# FUNÇÃO PARA CRIAR ÂNCORA E TRIGGER SCROLL
+# ============================================================
+def create_document_anchor(doc_id):
+    """Cria uma âncora invisível para o documento."""
+    st.markdown(f'<div id="doc-{doc_id}" class="doc-anchor"></div>', unsafe_allow_html=True)
+
+def trigger_scroll(doc_id):
+    """Adiciona parâmetro à URL para forçar scroll após recarregar."""
+    st.query_params["scroll_to"] = str(doc_id)
+
+# ============================================================
 # INTERFACE PRINCIPAL
 # ============================================================
 
@@ -848,9 +932,24 @@ if st.session_state.success_message:
     st.toast(st.session_state.success_message, icon="✅")
     st.session_state.success_message = None
 
+# Processar abertura de documento vindo das notificações
+if "doc_id" in st.query_params and st.query_params["doc_id"]:
+    try:
+        doc_id = int(st.query_params["doc_id"])
+        st.session_state.doc_selecionado = doc_id
+        st.query_params.clear()
+    except ValueError:
+        pass
+
 if st.session_state.redirect_to_docs:
     st.session_state.menu_parceiro_widget = "Meus Documentos"
     st.session_state.redirect_to_docs = False
+
+# Se close_doc_after_action estiver ativo, fechar o documento
+if st.session_state.get("close_doc_after_action", False):
+    st.session_state.doc_selecionado = None
+    st.session_state.edit_data = None
+    st.session_state.close_doc_after_action = False
 
 # Renderizar badge de notificações
 if st.session_state.token is not None:
@@ -876,15 +975,15 @@ with st.sidebar:
     
     st.divider()
     
-    if st.button("📊 Dashboard", use_container_width=True):
+    if st.button("📊 Dashboard", use_container_width=True, key="app_dashboard"):
         st.switch_page("pages/dashboard.py")
     
-    if st.button("🔔 Notificações", use_container_width=True):
+    if st.button("🔔 Notificações", use_container_width=True, key="app_notificacoes"):
         st.switch_page("pages/notificacoes.py")
     
     st.divider()
     
-    if st.button("🚪 Logout", use_container_width=True):
+    if st.button("🚪 Logout", use_container_width=True, key="app_logout"):
         logout()
         st.rerun()
 
@@ -928,7 +1027,7 @@ if st.session_state.perfil == "parceiro":
     elif menu == "Meus Documentos":
         st.subheader("Os meus documentos")
         
-        if st.button("🔄 Atualizar lista", key="refresh_list"):
+        if st.button("🔄 Atualizar lista", key="refresh_list_parceiro"):
             st.session_state.doc_selecionado = None
             st.session_state.edit_data = None
             st.session_state.parceiro_dropdown_key += 1
@@ -956,20 +1055,23 @@ if st.session_state.perfil == "parceiro":
                 key=f"parceiro_selectbox_{st.session_state.parceiro_dropdown_key}"
             )
 
-            if st.button("Carregar documento"):
+            if st.button("Carregar documento", key="parceiro_carregar_doc"):
                 if not id_selecionado:
                     st.warning("Selecione um documento.")
                 else:
                     st.session_state.doc_selecionado = id_selecionado
+                    trigger_scroll(id_selecionado)
                     st.rerun()
 
         if st.session_state.doc_selecionado:
             doc = obter_documento(st.session_state.doc_selecionado)
             if doc:
+                create_document_anchor(doc['id'])
+                
                 st.divider()
-                st.subheader(f"Documento ID {doc['id']}: {doc['titulo']}")
+                st.subheader(f"📄 Documento ID {doc['id']}: {doc['titulo']}")
                 st.write(f"Estado: **{doc['estado']}** | Versão: {doc['versao_atual']}")
-
+                
                 dados = doc['dados']
                 with st.expander("Ver dados em tabelas", expanded=True):
                     st.subheader("LCA")
@@ -1012,16 +1114,17 @@ if st.session_state.perfil == "parceiro":
                     render_full_form("edit_data", prefix="edit_")
                     col1, col2 = st.columns(2)
                     with col1:
-                        if st.button("💾 Guardar alterações", key="save_edit_btn"):
+                        if st.button("💾 Guardar alterações", key="parceiro_save_edit"):
                             novos_dados = st.session_state.edit_data
                             resultado = editar_documento(doc['id'], novos_dados)
                             if resultado:
                                 st.session_state.edit_data = None
                                 st.session_state.doc_selecionado = None
+                                st.session_state.close_doc_after_action = True
                                 st.success("Documento atualizado com sucesso!")
                                 st.rerun()
                     with col2:
-                        if st.button("📤 Submeter para validação", key="submit_doc_btn"):
+                        if st.button("📤 Submeter para validação", key="parceiro_submeter"):
                             novos_dados = st.session_state.edit_data
                             resultado_edicao = editar_documento(doc['id'], novos_dados)
                             if resultado_edicao:
@@ -1029,6 +1132,7 @@ if st.session_state.perfil == "parceiro":
                                 if resultado_sub:
                                     st.session_state.edit_data = None
                                     st.session_state.doc_selecionado = None
+                                    st.session_state.close_doc_after_action = True
                                     st.success("Documento submetido!")
                                     st.rerun()
                 elif doc['estado'] == "Alterações":
@@ -1038,10 +1142,8 @@ if st.session_state.perfil == "parceiro":
                         ultima = versoes[-1]
                         if ultima['comentario']:
                             st.info(f"Motivo: {ultima['comentario']}")
-                    if st.button("✏️ Editar novamente", key="edit_again_btn"):
+                    if st.button("✏️ Editar novamente", key="parceiro_editar_novamente"):
                         if editar_novamente(doc['id']):
-                            st.session_state.doc_selecionado = None
-                            st.success("Documento reaberto para edição.")
                             st.rerun()
                 elif doc['estado'] == "Aprovado":
                     st.success("Documento aprovado. Não pode ser editado.")
@@ -1057,7 +1159,7 @@ if st.session_state.perfil == "parceiro":
                         if v['comentario']:
                             st.caption(f"  Comentário: {v['comentario']}")
 
-                if st.button("Fechar detalhes"):
+                if st.button("Fechar detalhes", key="parceiro_fechar_detalhes"):
                     st.session_state.doc_selecionado = None
                     st.session_state.edit_data = None
                     st.rerun()
@@ -1098,18 +1200,21 @@ elif st.session_state.perfil == "empresa":
             key=f"empresa_selectbox_{st.session_state.empresa_dropdown_key}"
         )
 
-        if st.button("Carregar documento"):
+        if st.button("Carregar documento", key="empresa_carregar_doc"):
             if not id_selecionado:
                 st.warning("Selecione um documento.")
             else:
                 st.session_state.doc_selecionado = id_selecionado
+                trigger_scroll(id_selecionado)
                 st.rerun()
 
     if st.session_state.doc_selecionado:
         doc = obter_documento(st.session_state.doc_selecionado)
         if doc:
+            create_document_anchor(doc['id'])
+            
             st.divider()
-            st.subheader(f"Documento ID {doc['id']}: {doc['titulo']} (Parceiro: {doc['parceiro_id']})")
+            st.subheader(f"📄 Documento ID {doc['id']}: {doc['titulo']} (Parceiro: {doc['parceiro_id']})")
             st.write(f"Estado: **{doc['estado']}** | Versão: {doc['versao_atual']}")
 
             dados = doc['dados']
@@ -1148,50 +1253,38 @@ elif st.session_state.perfil == "empresa":
                 st.json(dados)
 
             if doc['estado'] == "Submetido":
-                if st.button("Iniciar revisão"):
+                if st.button("Iniciar revisão", key="empresa_iniciar_revisao"):
                     if iniciar_revisao(doc['id']):
-                        st.session_state.doc_selecionado = None
-                        st.success("Revisão iniciada.")
                         st.rerun()
             elif doc['estado'] == "Em Revisão":
-                comentario = st.text_area("Comentário (obrigatório se pedir alterações)")
+                comentario = st.text_area("Comentário (obrigatório se pedir alterações)", key="empresa_comentario")
                 col1, col2 = st.columns(2)
                 with col1:
-                    if st.button("✅ Aprovar"):
+                    if st.button("✅ Aprovar", key="empresa_aprovar"):
                         if aprovar(doc['id']):
-                            st.session_state.doc_selecionado = None
-                            st.success("Documento aprovado.")
                             st.rerun()
                 with col2:
-                    if st.button("🔄 Pedir alterações"):
+                    if st.button("🔄 Pedir alterações", key="empresa_pedir_alteracoes"):
                         if not comentario.strip():
                             st.error("É necessário um comentário para pedir alterações")
                         else:
                             if pedir_alteracoes(doc['id'], comentario):
-                                st.session_state.doc_selecionado = None
-                                st.success("Pedido de alterações registado.")
                                 st.rerun()
             elif doc['estado'] == "Aprovado":
                 st.success("Documento aprovado.")
                 col1, col2 = st.columns(2)
                 with col1:
-                    if st.button("Reabrir para nova edição"):
+                    if st.button("Reabrir para nova edição", key="empresa_reabrir"):
                         if reabrir(doc['id']):
-                            st.session_state.doc_selecionado = None
-                            st.success("Documento reaberto.")
                             st.rerun()
                 with col2:
-                    if st.button("📁 Arquivar documento"):
+                    if st.button("📁 Arquivar documento", key="empresa_arquivar"):
                         if arquivar(doc['id']):
-                            st.session_state.doc_selecionado = None
-                            st.success("Documento arquivado.")
                             st.rerun()
             elif doc['estado'] == "Rascunho":
                 st.info("O parceiro ainda está a editar.")
-                if st.button("📁 Arquivar documento (rascunho)"):
+                if st.button("📁 Arquivar documento (rascunho)", key="empresa_arquivar_rascunho"):
                     if arquivar(doc['id']):
-                        st.session_state.doc_selecionado = None
-                        st.success("Documento arquivado.")
                         st.rerun()
             elif doc['estado'] == "Alterações":
                 st.warning("Aguardando o parceiro iniciar a edição.")
@@ -1199,7 +1292,7 @@ elif st.session_state.perfil == "empresa":
                 st.warning("Documento arquivado (apenas consulta).")
 
             with st.expander("📥 Exportar histórico"):
-                if st.button("Exportar versões para Excel (completo)"):
+                if st.button("Exportar versões para Excel (completo)", key="empresa_exportar_excel"):
                     conteudo = exportar_excel(doc['id'])
                     if conteudo:
                         st.download_button(
@@ -1216,27 +1309,27 @@ elif st.session_state.perfil == "empresa":
                     if v['comentario']:
                         st.caption(f"  Comentário: {v['comentario']}")
 
-            if st.button("Fechar detalhes"):
+            if st.button("Fechar detalhes", key="empresa_fechar_detalhes"):
                 st.session_state.doc_selecionado = None
                 st.rerun()
 
 # ---------- Área do Admin ----------
 elif st.session_state.perfil == "admin":
     st.header("Painel Administrativo")
-    menu_admin = st.sidebar.radio("Admin", ["Utilizadores", "Documentos (empresa)"])
+    menu_admin = st.sidebar.radio("Admin", ["Utilizadores", "Documentos (empresa)"], key="admin_menu")
 
     if menu_admin == "Utilizadores":
         st.subheader("👥 Gestão de Utilizadores")
         
         col1, col2 = st.columns([3, 1])
         with col1:
-            if st.button("🔄 Carregar utilizadores", use_container_width=True):
+            if st.button("🔄 Carregar utilizadores", use_container_width=True, key="admin_carregar_users"):
                 st.session_state.doc_selecionado = None
                 st.session_state.admin_user_dropdown_key += 1
                 st.session_state.refresh_counter += 1
                 st.rerun()
         with col2:
-            if st.button("➕ Novo Utilizador", use_container_width=True):
+            if st.button("➕ Novo Utilizador", use_container_width=True, key="admin_novo_user"):
                 st.session_state.show_create_user_form = True
                 st.rerun()
         
@@ -1439,18 +1532,21 @@ elif st.session_state.perfil == "admin":
                 key=f"admin_selectbox_{st.session_state.admin_dropdown_key}"
             )
 
-            if st.button("Carregar documento", key="load_doc_admin"):
+            if st.button("Carregar documento", key="admin_carregar_doc"):
                 if not id_selecionado:
                     st.warning("Selecione um documento.")
                 else:
-                    st.session_state.doc_selecionado = id_selecionado                    
+                    st.session_state.doc_selecionado = id_selecionado
+                    trigger_scroll(id_selecionado)
                     st.rerun()
 
         if st.session_state.doc_selecionado:
             doc = obter_documento(st.session_state.doc_selecionado)
             if doc:
+                create_document_anchor(doc['id'])
+                
                 st.divider()
-                st.subheader(f"Documento ID {doc['id']}: {doc['titulo']} (Parceiro: {doc['parceiro_id']})")
+                st.subheader(f"📄 Documento ID {doc['id']}: {doc['titulo']} (Parceiro: {doc['parceiro_id']})")
                 st.write(f"Estado: **{doc['estado']}** | Versão: {doc['versao_atual']}")
 
                 dados = doc['dados']
@@ -1491,8 +1587,6 @@ elif st.session_state.perfil == "admin":
                 if doc['estado'] == "Submetido":
                     if st.button("Iniciar revisão", key="admin_iniciar_revisao"):
                         if iniciar_revisao(doc['id']):
-                            st.session_state.doc_selecionado = None
-                            st.success("Revisão iniciada.")
                             st.rerun()
                 elif doc['estado'] == "Em Revisão":
                     comentario = st.text_area("Comentário (obrigatório se pedir alterações)", key="admin_comentario")
@@ -1500,17 +1594,13 @@ elif st.session_state.perfil == "admin":
                     with col1:
                         if st.button("✅ Aprovar", key="admin_aprovar"):
                             if aprovar(doc['id']):
-                                st.session_state.doc_selecionado = None
-                                st.success("Documento aprovado.")
                                 st.rerun()
                     with col2:
-                        if st.button("🔄 Pedir alterações", key="admin_pedir_alt"):
+                        if st.button("🔄 Pedir alterações", key="admin_pedir_alteracoes"):
                             if not comentario.strip():
                                 st.error("É necessário um comentário para pedir alterações")
                             else:
                                 if pedir_alteracoes(doc['id'], comentario):
-                                    st.session_state.doc_selecionado = None
-                                    st.success("Pedido de alterações registado.")
                                     st.rerun()
                 elif doc['estado'] == "Aprovado":
                     st.success("Documento aprovado.")
@@ -1518,21 +1608,15 @@ elif st.session_state.perfil == "admin":
                     with col1:
                         if st.button("Reabrir para nova edição", key="admin_reabrir"):
                             if reabrir(doc['id']):
-                                st.session_state.doc_selecionado = None
-                                st.success("Documento reaberto.")
                                 st.rerun()
                     with col2:
                         if st.button("📁 Arquivar documento", key="admin_arquivar"):
                             if arquivar(doc['id']):
-                                st.session_state.doc_selecionado = None
-                                st.success("Documento arquivado.")
                                 st.rerun()
                 elif doc['estado'] == "Rascunho":
                     st.info("O parceiro ainda está a editar.")
-                    if st.button("📁 Arquivar documento (rascunho)", key="admin_arquivar_rasc"):
+                    if st.button("📁 Arquivar documento (rascunho)", key="admin_arquivar_rascunho"):
                         if arquivar(doc['id']):
-                            st.session_state.doc_selecionado = None
-                            st.success("Documento arquivado.")
                             st.rerun()
                 elif doc['estado'] == "Alterações":
                     st.warning("Aguardando o parceiro iniciar a edição.")
@@ -1540,7 +1624,7 @@ elif st.session_state.perfil == "admin":
                     st.warning("Documento arquivado (apenas consulta).")
 
                 with st.expander("📥 Exportar histórico"):
-                    if st.button("Exportar versões para Excel (completo)", key="admin_exportar"):
+                    if st.button("Exportar versões para Excel (completo)", key="admin_exportar_excel"):
                         conteudo = exportar_excel(doc['id'])
                         if conteudo:
                             st.download_button(
@@ -1557,6 +1641,15 @@ elif st.session_state.perfil == "admin":
                         if v['comentario']:
                             st.caption(f"  Comentário: {v['comentario']}")
 
-                if st.button("Fechar detalhes", key="admin_fechar"):
+                if st.button("Fechar detalhes", key="admin_fechar_detalhes"):
                     st.session_state.doc_selecionado = None
                     st.rerun()
+
+# ============================================================
+# GARANTIR QUE O CLOSE_DOC_AFTER_ACTION É PROCESSADO
+# ============================================================
+if st.session_state.get("close_doc_after_action", False):
+    if st.session_state.doc_selecionado is not None:
+        st.session_state.doc_selecionado = None
+        st.session_state.edit_data = None
+    st.session_state.close_doc_after_action = False

@@ -1,7 +1,26 @@
 import streamlit as st
 import requests
+import os
 
-API_URL = "http://127.0.0.1:8000"
+# ============================================================
+# CONFIGURAÇÃO DA API_URL
+# ============================================================
+def get_api_url():
+    try:
+        if hasattr(st, 'secrets') and st.secrets and 'API_URL' in st.secrets:
+            return st.secrets['API_URL']
+    except Exception:
+        pass
+    
+    api_url = os.getenv('API_URL')
+    if api_url:
+        return api_url
+    
+    return "http://127.0.0.1:8000"
+
+API_URL = get_api_url()
+
+# REMOVER st.set_page_config() - já é chamado na página principal
 
 def headers_auth():
     return {"Authorization": f"Bearer {st.session_state.token}"}

@@ -4,24 +4,45 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
+import os
 
-# Configuração da página - sidebar colapsada
+# ============================================================
+# CONFIGURAÇÃO DA API_URL
+# ============================================================
+def get_api_url():
+    try:
+        if hasattr(st, 'secrets') and st.secrets and 'API_URL' in st.secrets:
+            return st.secrets['API_URL']
+    except Exception:
+        pass
+    
+    api_url = os.getenv('API_URL')
+    if api_url:
+        return api_url
+    
+    return "http://127.0.0.1:8000"
+
+API_URL = get_api_url()
+
+# Configuração da página
 st.set_page_config(
     page_title="Dashboard",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
-# Ocultar a barra de navegação automática do Streamlit
+# Ocultar a barra de navegação automática
 st.markdown("""
 <style>
     [data-testid="stSidebarNav"] {
         display: none !important;
     }
+    [data-testid="stSidebar"] {
+        min-width: 300px !important;
+        width: 300px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
-
-API_URL = "http://127.0.0.1:8000"
 
 # Verificar autenticação
 if "token" not in st.session_state or st.session_state.token is None:
@@ -31,26 +52,26 @@ if "token" not in st.session_state or st.session_state.token is None:
 def headers_auth():
     return {"Authorization": f"Bearer {st.session_state.token}"}
 
-# Sidebar personalizada (igual à da página principal)
-st.sidebar.write(f"Logado como: **{st.session_state.username}** ({st.session_state.perfil})")
-
-# Botão para Voltar à página principal
-if st.sidebar.button("← Voltar", use_container_width=True):
-    st.switch_page("app.py")
-
-if st.sidebar.button("Logout"):
-    # Limpar estado da sessão
-    st.session_state.token = None
-    st.session_state.perfil = None
-    st.session_state.username = None
-    st.session_state.doc_selecionado = None
-    st.session_state.success_message = None
-    st.session_state.menu_parceiro_widget = "Meus Documentos"
-    st.session_state.redirect_to_docs = False
-    st.session_state.edit_data = None
-    st.session_state.new_data = None
-    st.session_state.refresh_counter = 0
-    st.rerun()
+# Sidebar personalizada
+with st.sidebar:
+    st.write(f"Logado como: **{st.session_state.username}** ({st.session_state.perfil})")
+    st.divider()
+    
+    if st.button("← Voltar", use_container_width=True, key="dashboard_sidebar_voltar"):
+        st.switch_page("app.py")
+    
+    if st.button("Logout", key="dashboard_sidebar_logout"):
+        st.session_state.token = None
+        st.session_state.perfil = None
+        st.session_state.username = None
+        st.session_state.doc_selecionado = None
+        st.session_state.success_message = None
+        st.session_state.menu_parceiro_widget = "Meus Documentos"
+        st.session_state.redirect_to_docs = False
+        st.session_state.edit_data = None
+        st.session_state.new_data = None
+        st.session_state.refresh_counter = 0
+        st.rerun()
 
 # Título
 st.title("📊 Dashboard")
@@ -108,7 +129,6 @@ try:
                 st.plotly_chart(fig_pizza, use_container_width=True)
             
             with col2:
-                # Gráfico de barras dos estados
                 fig_barras = px.bar(
                     df_estados,
                     x="Estado",
@@ -169,7 +189,6 @@ try:
         if dados:
             df_recentes = pd.DataFrame(dados)
             
-            # Definir cores por estado
             estado_cores = {
                 "Rascunho": "#FFB74D",
                 "Submetido": "#64B5F6",
@@ -180,7 +199,6 @@ try:
             }
             df_recentes["Cor"] = df_recentes["estado"].map(estado_cores)
             
-            # Mostrar tabela estilizada
             st.dataframe(
                 df_recentes[["id", "titulo", "estado", "parceiro_id", "created_at"]],
                 column_config={
@@ -191,7 +209,7 @@ try:
                     "created_at": "Criado em"
                 },
                 hide_index=True,
-                use_container_width=True  # CORRIGIDO
+                use_container_width=True
             )
         else:
             st.info("Sem documentos recentes")
@@ -200,7 +218,7 @@ try:
 except Exception as e:
     st.error(f"Erro ao carregar documentos recentes: {e}")
 
-# ---------- Top Parceiros (apenas empresa/admin) ----------
+# ---------- Top Parceiros ----------
 if st.session_state.perfil != "parceiro":
     st.divider()
     st.subheader("🏆 Top Parceiros")
@@ -245,7 +263,6 @@ try:
     if response.status_code == 200:
         dados = response.json()
         if dados:
-            # Filtrar estados com tempo > 0
             dados_filtrados = {k: v for k, v in dados.items() if v > 0}
             
             if dados_filtrados:
