@@ -616,10 +616,15 @@ def render_lca_inputs(data_key, prefix=""):
                 with col4:
                     item["distance"] = st.text_input("Distance (km)", item.get("distance",""), key=f"{prefix}lca_in_{proc}_dist_{i}")
                     item["country"] = st.text_input("Country", item.get("country",""), key=f"{prefix}lca_in_{proc}_country_{i}")
+                    current_value = item.get("datasource", "")
+                    if current_value in DATASOURCE_OPTIONS:
+                        index = DATASOURCE_OPTIONS.index(current_value)
+                    else:
+                        index = None
                     item["datasource"] = st.selectbox(
                         "Data Source", 
                         DATASOURCE_OPTIONS,
-                        index=DATASOURCE_OPTIONS.index(item.get("datasource", "")) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                        index=index,
                         key=f"{prefix}lca_in_{proc}_ds_{i}",
                         placeholder="Escolha uma destas opções"
                     )
@@ -666,10 +671,15 @@ def render_lca_processes(data_key, prefix=""):
                             item["description"] = st.text_area("Description", item.get("description",""), key=f"{prefix}lca_proc_{proc}_desc_{idx}")
                         with col3:
                             item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lca_proc_{proc}_comments_{idx}")
+                            current_value = item.get("datasource", "")
+                            if current_value in DATASOURCE_OPTIONS:
+                                index = DATASOURCE_OPTIONS.index(current_value)
+                            else:
+                                index = None
                             item["datasource"] = st.selectbox(
                                 "Data Source", 
                                 DATASOURCE_OPTIONS,
-                                index=DATASOURCE_OPTIONS.index(item.get("datasource", "")) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                                index=index,
                                 key=f"{prefix}lca_proc_{proc}_ds_{idx}",
                                 placeholder="Escolha uma destas opções"
                             )
@@ -714,10 +724,15 @@ def render_lca_outputs(data_key, prefix=""):
                     item["description"] = st.text_area("Material Description", item.get("description",""), key=f"{prefix}lca_out_{proc}_desc_{i}")
                 with col3:
                     item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lca_out_{proc}_comments_{i}")
+                    current_value = item.get("datasource", "")
+                    if current_value in DATASOURCE_OPTIONS:
+                        index = DATASOURCE_OPTIONS.index(current_value)
+                    else:
+                        index = None
                     item["datasource"] = st.selectbox(
                         "Data Source", 
                         DATASOURCE_OPTIONS,
-                        index=DATASOURCE_OPTIONS.index(item.get("datasource", "")) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                        index=index,
                         key=f"{prefix}lca_out_{proc}_ds_{i}",
                         placeholder="Escolha uma destas opções"
                     )
@@ -755,10 +770,15 @@ def render_lcc_materials(data_key, prefix=""):
                     item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lcc_mat_{proc}_comments_{i}")
                     item["distance"] = st.text_input("Distance (km)", item.get("distance",""), key=f"{prefix}lcc_mat_{proc}_dist_{i}")
                     item["country"] = st.text_input("Country", item.get("country",""), key=f"{prefix}lcc_mat_{proc}_country_{i}")
+                    current_value = item.get("datasource", "")
+                    if current_value in DATASOURCE_OPTIONS:
+                        index = DATASOURCE_OPTIONS.index(current_value)
+                    else:
+                        index = None
                     item["datasource"] = st.selectbox(
                         "Data Source", 
                         DATASOURCE_OPTIONS,
-                        index=DATASOURCE_OPTIONS.index(item.get("datasource", "")) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                        index=index,
                         key=f"{prefix}lcc_mat_{proc}_ds_{i}",
                         placeholder="Escolha uma destas opções"
                     )
@@ -795,10 +815,15 @@ def render_lcc_equipment(data_key, prefix=""):
                 with col3:
                     item["industrial_equiv"] = st.text_input("Industrial Equivalent", item.get("industrial_equiv",""), key=f"{prefix}lcc_eq_{proc}_ind_{i}")
                     item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lcc_eq_{proc}_comments_{i}")
+                    current_value = item.get("datasource", "")
+                    if current_value in DATASOURCE_OPTIONS:
+                        index = DATASOURCE_OPTIONS.index(current_value)
+                    else:
+                        index = None
                     item["datasource"] = st.selectbox(
                         "Data Source", 
                         DATASOURCE_OPTIONS,
-                        index=DATASOURCE_OPTIONS.index(item.get("datasource", "")) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                        index=index,
                         key=f"{prefix}lcc_eq_{proc}_ds_{i}",
                         placeholder="Escolha uma destas opções"
                     )
@@ -838,10 +863,15 @@ def render_lcc_labour(data_key, prefix=""):
                     item["moderate_rate"] = st.text_input("Rate - Moderated Skilled (€/h)", item.get("moderate_rate",""), key=f"{prefix}lcc_lab_{proc}_modrate_{i}")
                     item["unskilled_rate"] = st.text_input("Rate - Unskilled (€/h)", item.get("unskilled_rate",""), key=f"{prefix}lcc_lab_{proc}_unskrate_{i}")
                     item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lcc_lab_{proc}_comments_{i}")
+                    current_value = item.get("datasource", "")
+                    if current_value in DATASOURCE_OPTIONS:
+                        index = DATASOURCE_OPTIONS.index(current_value)
+                    else:
+                        index = None
                     item["datasource"] = st.selectbox(
                         "Data Source", 
                         DATASOURCE_OPTIONS,
-                        index=DATASOURCE_OPTIONS.index(item.get("datasource", "")) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                        index=index,
                         key=f"{prefix}lcc_lab_{proc}_ds_{i}",
                         placeholder="Escolha uma destas opções"
                     )
@@ -877,10 +907,15 @@ def render_lcc_outputs(data_key, prefix=""):
                 with col3:
                     item["amount_produced"] = st.text_input("Amount Of Product Produced", item.get("amount_produced",""), key=f"{prefix}lcc_out_{proc}_prod_{i}")
                     item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lcc_out_{proc}_comments_{i}")
+                    current_value = item.get("datasource", "")
+                    if current_value in DATASOURCE_OPTIONS:
+                        index = DATASOURCE_OPTIONS.index(current_value)
+                    else:
+                        index = None
                     item["datasource"] = st.selectbox(
                         "Data Source", 
                         DATASOURCE_OPTIONS,
-                        index=DATASOURCE_OPTIONS.index(item.get("datasource", "")) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                        index=index,
                         key=f"{prefix}lcc_out_{proc}_ds_{i}",
                         placeholder="Escolha uma destas opções"
                     )
