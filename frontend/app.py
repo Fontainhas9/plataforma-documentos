@@ -25,7 +25,7 @@ def get_api_url():
 API_URL = get_api_url()
 
 PROCESSOS = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
-DATASOURCE_OPTIONS = ["Medido", "Calculado", "Estimado", "Literatura"]
+DATASOURCE_OPTIONS = ["", "Medido", "Calculado", "Estimado", "Literatura"]
 
 # Configuração da página
 st.set_page_config(
@@ -619,7 +619,7 @@ def render_lca_inputs(data_key, prefix=""):
                     item["datasource"] = st.selectbox(
                         "Data Source", 
                         DATASOURCE_OPTIONS,
-                        index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                        index=DATASOURCE_OPTIONS.index(item.get("datasource", "")) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
                         key=f"{prefix}lca_in_{proc}_ds_{i}",
                         placeholder="Escolha uma destas opções"
                     )
@@ -669,7 +669,7 @@ def render_lca_processes(data_key, prefix=""):
                             item["datasource"] = st.selectbox(
                                 "Data Source", 
                                 DATASOURCE_OPTIONS,
-                                index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                                index=DATASOURCE_OPTIONS.index(item.get("datasource", "")) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
                                 key=f"{prefix}lca_proc_{proc}_ds_{idx}",
                                 placeholder="Escolha uma destas opções"
                             )
@@ -717,7 +717,7 @@ def render_lca_outputs(data_key, prefix=""):
                     item["datasource"] = st.selectbox(
                         "Data Source", 
                         DATASOURCE_OPTIONS,
-                        index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                        index=DATASOURCE_OPTIONS.index(item.get("datasource", "")) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
                         key=f"{prefix}lca_out_{proc}_ds_{i}",
                         placeholder="Escolha uma destas opções"
                     )
@@ -758,7 +758,7 @@ def render_lcc_materials(data_key, prefix=""):
                     item["datasource"] = st.selectbox(
                         "Data Source", 
                         DATASOURCE_OPTIONS,
-                        index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                        index=DATASOURCE_OPTIONS.index(item.get("datasource", "")) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
                         key=f"{prefix}lcc_mat_{proc}_ds_{i}",
                         placeholder="Escolha uma destas opções"
                     )
@@ -798,7 +798,7 @@ def render_lcc_equipment(data_key, prefix=""):
                     item["datasource"] = st.selectbox(
                         "Data Source", 
                         DATASOURCE_OPTIONS,
-                        index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                        index=DATASOURCE_OPTIONS.index(item.get("datasource", "")) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
                         key=f"{prefix}lcc_eq_{proc}_ds_{i}",
                         placeholder="Escolha uma destas opções"
                     )
@@ -841,7 +841,7 @@ def render_lcc_labour(data_key, prefix=""):
                     item["datasource"] = st.selectbox(
                         "Data Source", 
                         DATASOURCE_OPTIONS,
-                        index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                        index=DATASOURCE_OPTIONS.index(item.get("datasource", "")) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
                         key=f"{prefix}lcc_lab_{proc}_ds_{i}",
                         placeholder="Escolha uma destas opções"
                     )
@@ -880,7 +880,7 @@ def render_lcc_outputs(data_key, prefix=""):
                     item["datasource"] = st.selectbox(
                         "Data Source", 
                         DATASOURCE_OPTIONS,
-                        index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                        index=DATASOURCE_OPTIONS.index(item.get("datasource", "")) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
                         key=f"{prefix}lcc_out_{proc}_ds_{i}",
                         placeholder="Escolha uma destas opções"
                     )
