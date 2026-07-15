@@ -25,7 +25,7 @@ def get_api_url():
 API_URL = get_api_url()
 
 PROCESSOS = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
-DATASOURCE_OPTIONS = ["", "Medido", "Calculado", "Estimado", "Literatura"]
+DATASOURCE_OPTIONS = ["Medido", "Calculado", "Estimado", "Literatura"]
 
 # Configuração da página
 st.set_page_config(
