@@ -432,9 +432,7 @@ def exportar_excel(doc_id, titulo):
     resp = requests.get(f"{API_URL}/documentos/{doc_id}/exportar-excel", headers=headers_auth())
     if resp.status_code == 200:
         content = resp.content
-        # Usar o título do documento para o nome do ficheiro
         filename = f"{titulo}.xlsx"
-        # Remover caracteres inválidos para nome de ficheiro
         filename = "".join(c for c in filename if c.isalnum() or c in " ._-")
         return content, filename
     else:
@@ -552,7 +550,8 @@ def render_filtros():
                 options=list(ordem_campos.keys()),
                 format_func=lambda x: ordem_campos.get(x, x),
                 index=list(ordem_campos.keys()).index(st.session_state.filtros_temporarios.get("order_by", "id")),
-                key=f"filtro_order_by_{key_suffix}"
+                key=f"filtro_order_by_{key_suffix}",
+                placeholder="Escolha uma destas opções"
             )
             st.session_state.filtros_temporarios["order_by"] = order_by
         
@@ -562,7 +561,8 @@ def render_filtros():
                 options=["desc", "asc"],
                 format_func=lambda x: "Decrescente" if x == "desc" else "Crescente",
                 index=0 if st.session_state.filtros_temporarios.get("order_dir", "desc") == "desc" else 1,
-                key=f"filtro_order_dir_{key_suffix}"
+                key=f"filtro_order_dir_{key_suffix}",
+                placeholder="Escolha uma destas opções"
             )
             st.session_state.filtros_temporarios["order_dir"] = order_dir
         
@@ -616,9 +616,13 @@ def render_lca_inputs(data_key, prefix=""):
                 with col4:
                     item["distance"] = st.text_input("Distance (km)", item.get("distance",""), key=f"{prefix}lca_in_{proc}_dist_{i}")
                     item["country"] = st.text_input("Country", item.get("country",""), key=f"{prefix}lca_in_{proc}_country_{i}")
-                    item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
-                                                      index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
-                                                      key=f"{prefix}lca_in_{proc}_ds_{i}")
+                    item["datasource"] = st.selectbox(
+                        "Data Source", 
+                        DATASOURCE_OPTIONS,
+                        index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                        key=f"{prefix}lca_in_{proc}_ds_{i}",
+                        placeholder="Escolha uma destas opções"
+                    )
             
             col1, col2 = st.columns(2)
             with col1:
@@ -662,9 +666,13 @@ def render_lca_processes(data_key, prefix=""):
                             item["description"] = st.text_area("Description", item.get("description",""), key=f"{prefix}lca_proc_{proc}_desc_{idx}")
                         with col3:
                             item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lca_proc_{proc}_comments_{idx}")
-                            item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
-                                                              index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
-                                                              key=f"{prefix}lca_proc_{proc}_ds_{idx}")
+                            item["datasource"] = st.selectbox(
+                                "Data Source", 
+                                DATASOURCE_OPTIONS,
+                                index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                                key=f"{prefix}lca_proc_{proc}_ds_{idx}",
+                                placeholder="Escolha uma destas opções"
+                            )
                 
                 st.divider()
             
@@ -696,9 +704,13 @@ def render_lca_outputs(data_key, prefix=""):
                 col1, col2, col3 = st.columns(3)
                 with col1:
                     item["etapa"] = st.text_input("Etapa (ex: Demagnetisation)", item.get("etapa",""), key=f"{prefix}lca_out_{proc}_etapa_{i}")
-                    item["tipo"] = st.selectbox("Tipo", ["Subproduct", "Emissions", "Waste"],
-                                                index=["Subproduct","Emissions","Waste"].index(item.get("tipo","Subproduct")) if item.get("tipo") in ["Subproduct","Emissions","Waste"] else 0,
-                                                key=f"{prefix}lca_out_{proc}_tipo_{i}")
+                    item["tipo"] = st.selectbox(
+                        "Tipo", 
+                        ["Subproduct", "Emissions", "Waste"],
+                        index=["Subproduct","Emissions","Waste"].index(item.get("tipo","Subproduct")) if item.get("tipo") in ["Subproduct","Emissions","Waste"] else 0,
+                        key=f"{prefix}lca_out_{proc}_tipo_{i}",
+                        placeholder="Escolha uma destas opções"
+                    )
                     item["sub_tipo"] = st.text_input("Sub-tipo (ex: Name 1, Liquid 1, Solid 1, etc.)", item.get("sub_tipo",""), key=f"{prefix}lca_out_{proc}_sub_{i}")
                 with col2:
                     item["qty"] = st.text_input("QTY", item.get("qty",""), key=f"{prefix}lca_out_{proc}_qty_{i}")
@@ -706,9 +718,13 @@ def render_lca_outputs(data_key, prefix=""):
                     item["description"] = st.text_area("Material Description", item.get("description",""), key=f"{prefix}lca_out_{proc}_desc_{i}")
                 with col3:
                     item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lca_out_{proc}_comments_{i}")
-                    item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
-                                                      index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
-                                                      key=f"{prefix}lca_out_{proc}_ds_{i}")
+                    item["datasource"] = st.selectbox(
+                        "Data Source", 
+                        DATASOURCE_OPTIONS,
+                        index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                        key=f"{prefix}lca_out_{proc}_ds_{i}",
+                        placeholder="Escolha uma destas opções"
+                    )
             
             col1, col2 = st.columns(2)
             with col1:
@@ -743,9 +759,13 @@ def render_lcc_materials(data_key, prefix=""):
                     item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lcc_mat_{proc}_comments_{i}")
                     item["distance"] = st.text_input("Distance (km)", item.get("distance",""), key=f"{prefix}lcc_mat_{proc}_dist_{i}")
                     item["country"] = st.text_input("Country", item.get("country",""), key=f"{prefix}lcc_mat_{proc}_country_{i}")
-                    item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
-                                                      index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
-                                                      key=f"{prefix}lcc_mat_{proc}_ds_{i}")
+                    item["datasource"] = st.selectbox(
+                        "Data Source", 
+                        DATASOURCE_OPTIONS,
+                        index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                        key=f"{prefix}lcc_mat_{proc}_ds_{i}",
+                        placeholder="Escolha uma destas opções"
+                    )
             
             col1, col2 = st.columns(2)
             with col1:
@@ -779,9 +799,13 @@ def render_lcc_equipment(data_key, prefix=""):
                 with col3:
                     item["industrial_equiv"] = st.text_input("Industrial Equivalent", item.get("industrial_equiv",""), key=f"{prefix}lcc_eq_{proc}_ind_{i}")
                     item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lcc_eq_{proc}_comments_{i}")
-                    item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
-                                                      index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
-                                                      key=f"{prefix}lcc_eq_{proc}_ds_{i}")
+                    item["datasource"] = st.selectbox(
+                        "Data Source", 
+                        DATASOURCE_OPTIONS,
+                        index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                        key=f"{prefix}lcc_eq_{proc}_ds_{i}",
+                        placeholder="Escolha uma destas opções"
+                    )
             
             col1, col2 = st.columns(2)
             with col1:
@@ -818,9 +842,13 @@ def render_lcc_labour(data_key, prefix=""):
                     item["moderate_rate"] = st.text_input("Rate - Moderated Skilled (€/h)", item.get("moderate_rate",""), key=f"{prefix}lcc_lab_{proc}_modrate_{i}")
                     item["unskilled_rate"] = st.text_input("Rate - Unskilled (€/h)", item.get("unskilled_rate",""), key=f"{prefix}lcc_lab_{proc}_unskrate_{i}")
                     item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lcc_lab_{proc}_comments_{i}")
-                    item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
-                                                      index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
-                                                      key=f"{prefix}lcc_lab_{proc}_ds_{i}")
+                    item["datasource"] = st.selectbox(
+                        "Data Source", 
+                        DATASOURCE_OPTIONS,
+                        index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                        key=f"{prefix}lcc_lab_{proc}_ds_{i}",
+                        placeholder="Escolha uma destas opções"
+                    )
             
             col1, col2 = st.columns(2)
             with col1:
@@ -853,9 +881,13 @@ def render_lcc_outputs(data_key, prefix=""):
                 with col3:
                     item["amount_produced"] = st.text_input("Amount Of Product Produced", item.get("amount_produced",""), key=f"{prefix}lcc_out_{proc}_prod_{i}")
                     item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lcc_out_{proc}_comments_{i}")
-                    item["datasource"] = st.selectbox("Data Source", DATASOURCE_OPTIONS,
-                                                      index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
-                                                      key=f"{prefix}lcc_out_{proc}_ds_{i}")
+                    item["datasource"] = st.selectbox(
+                        "Data Source", 
+                        DATASOURCE_OPTIONS,
+                        index=DATASOURCE_OPTIONS.index(item.get("datasource", DATASOURCE_OPTIONS[0])) if item.get("datasource") in DATASOURCE_OPTIONS else 0,
+                        key=f"{prefix}lcc_out_{proc}_ds_{i}",
+                        placeholder="Escolha uma destas opções"
+                    )
             
             col1, col2 = st.columns(2)
             with col1:
@@ -1053,7 +1085,8 @@ if st.session_state.perfil == "parceiro":
                 "Seleciona um documento:",
                 ids,
                 format_func=lambda x: "Selecione um documento..." if x == "" else f"ID {x}",
-                key=f"parceiro_selectbox_{st.session_state.parceiro_dropdown_key}"
+                key=f"parceiro_selectbox_{st.session_state.parceiro_dropdown_key}",
+                placeholder="Escolha uma destas opções"
             )
 
             if st.button("Carregar documento", key="parceiro_carregar_doc"):
@@ -1074,7 +1107,8 @@ if st.session_state.perfil == "parceiro":
                 st.write(f"Estado: **{doc['estado']}** | Versão: {doc['versao_atual']}")
                 
                 dados = doc['dados']
-                with st.expander("Ver dados em tabelas", expanded=True):
+                
+                with st.expander("Ver dados em tabelas", expanded=False):
                     st.subheader("LCA")
                     lca = dados.get("lca", {})
                     for proc in PROCESSOS:
@@ -1105,7 +1139,7 @@ if st.session_state.perfil == "parceiro":
                             st.write("Outputs")
                             display_dataframe(pd.DataFrame(lcc["outputs"][proc]))
 
-                with st.expander("Ver JSON bruto"):
+                with st.expander("Ver JSON bruto", expanded=False):
                     st.json(dados)
 
                 if doc['estado'] == "Rascunho":
@@ -1209,7 +1243,8 @@ elif st.session_state.perfil == "empresa":
             "Seleciona um documento:",
             ids,
             format_func=lambda x: "Selecione um documento..." if x == "" else f"ID {x}",
-            key=f"empresa_selectbox_{st.session_state.empresa_dropdown_key}"
+            key=f"empresa_selectbox_{st.session_state.empresa_dropdown_key}",
+            placeholder="Escolha uma destas opções"
         )
 
         if st.button("Carregar documento", key="empresa_carregar_doc"):
@@ -1230,7 +1265,8 @@ elif st.session_state.perfil == "empresa":
             st.write(f"Estado: **{doc['estado']}** | Versão: {doc['versao_atual']}")
 
             dados = doc['dados']
-            with st.expander("Ver dados do documento", expanded=True):
+            
+            with st.expander("Ver dados do documento", expanded=False):
                 st.subheader("LCA")
                 lca = dados.get("lca", {})
                 for proc in PROCESSOS:
@@ -1261,7 +1297,7 @@ elif st.session_state.perfil == "empresa":
                         st.write("Outputs")
                         display_dataframe(pd.DataFrame(lcc["outputs"][proc]))
 
-            with st.expander("Ver JSON bruto"):
+            with st.expander("Ver JSON bruto", expanded=False):
                 st.json(dados)
 
             if doc['estado'] == "Submetido":
@@ -1371,7 +1407,8 @@ elif st.session_state.perfil == "admin":
                     "Selecionar utilizador para gerir",
                     usernames,
                     format_func=lambda x: "Selecione um utilizador..." if x == "" else x,
-                    key=f"admin_user_selectbox_{st.session_state.admin_user_dropdown_key}"
+                    key=f"admin_user_selectbox_{st.session_state.admin_user_dropdown_key}",
+                    placeholder="Escolha uma destas opções"
                 )
 
                 if sel_user:
@@ -1455,7 +1492,8 @@ elif st.session_state.perfil == "admin":
                                 "parceiro": "🤝 Parceiro",
                                 "empresa": "🏢 Empresa",
                                 "admin": "🔧 Admin"
-                            }.get(x, x)
+                            }.get(x, x),
+                            placeholder="Escolha uma destas opções"
                         )
                         
                         col1, col2, col3 = st.columns([1, 1, 2])
@@ -1541,7 +1579,8 @@ elif st.session_state.perfil == "admin":
                 "Seleciona um documento:",
                 ids,
                 format_func=lambda x: "Selecione um documento..." if x == "" else f"ID {x}",
-                key=f"admin_selectbox_{st.session_state.admin_dropdown_key}"
+                key=f"admin_selectbox_{st.session_state.admin_dropdown_key}",
+                placeholder="Escolha uma destas opções"
             )
 
             if st.button("Carregar documento", key="admin_carregar_doc"):
@@ -1562,7 +1601,8 @@ elif st.session_state.perfil == "admin":
                 st.write(f"Estado: **{doc['estado']}** | Versão: {doc['versao_atual']}")
 
                 dados = doc['dados']
-                with st.expander("Ver dados do documento", expanded=True):
+                
+                with st.expander("Ver dados do documento", expanded=False):
                     st.subheader("LCA")
                     lca = dados.get("lca", {})
                     for proc in PROCESSOS:
@@ -1593,7 +1633,7 @@ elif st.session_state.perfil == "admin":
                             st.write("Outputs")
                             display_dataframe(pd.DataFrame(lcc["outputs"][proc]))
 
-                with st.expander("Ver JSON bruto"):
+                with st.expander("Ver JSON bruto", expanded=False):
                     st.json(dados)
 
                 if doc['estado'] == "Submetido":

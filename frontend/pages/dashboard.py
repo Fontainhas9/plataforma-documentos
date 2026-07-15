@@ -155,7 +155,8 @@ try:
         dados = response.json()
         if dados:
             df_evolucao = pd.DataFrame(dados)
-            df_evolucao["mes"] = pd.to_datetime(df_evolucao["mes"] + "-01")
+            # CORREÇÃO: Converter para data sem hora
+            df_evolucao["mes"] = pd.to_datetime(df_evolucao["mes"] + "-01").dt.strftime("%b %Y")  # Ex: "Jan 2025"
             df_evolucao = df_evolucao.sort_values("mes")
             
             fig_evolucao = px.line(
@@ -177,7 +178,7 @@ try:
         st.error("Erro ao carregar evolução mensal")
 except Exception as e:
     st.error(f"Erro ao carregar evolução: {e}")
-
+    
 # ---------- Documentos Recentes ----------
 st.divider()
 st.subheader("📋 Documentos Recentes")
