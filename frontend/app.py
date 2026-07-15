@@ -550,7 +550,8 @@ def render_filtros():
                 options=list(ordem_campos.keys()),
                 format_func=lambda x: ordem_campos.get(x, x),
                 index=list(ordem_campos.keys()).index(st.session_state.filtros_temporarios.get("order_by", "id")),
-                key=f"filtro_order_by_{key_suffix}"
+                key=f"filtro_order_by_{key_suffix}",
+                placeholder="Escolha uma destas opções"
             )
             st.session_state.filtros_temporarios["order_by"] = order_by
         
@@ -560,7 +561,8 @@ def render_filtros():
                 options=["desc", "asc"],
                 format_func=lambda x: "Decrescente" if x == "desc" else "Crescente",
                 index=0 if st.session_state.filtros_temporarios.get("order_dir", "desc") == "desc" else 1,
-                key=f"filtro_order_dir_{key_suffix}"
+                key=f"filtro_order_dir_{key_suffix}",
+                placeholder="Escolha uma destas opções"
             )
             st.session_state.filtros_temporarios["order_dir"] = order_dir
         
@@ -702,13 +704,9 @@ def render_lca_outputs(data_key, prefix=""):
                 col1, col2, col3 = st.columns(3)
                 with col1:
                     item["etapa"] = st.text_input("Etapa (ex: Demagnetisation)", item.get("etapa",""), key=f"{prefix}lca_out_{proc}_etapa_{i}")
-                    item["tipo"] = st.selectbox(
-                        "Tipo", 
-                        ["Subproduct", "Emissions", "Waste"],
-                        index=["Subproduct","Emissions","Waste"].index(item.get("tipo","Subproduct")) if item.get("tipo") in ["Subproduct","Emissions","Waste"] else 0,
-                        key=f"{prefix}lca_out_{proc}_tipo_{i}",
-                        placeholder="Escolha uma destas opções"
-                    )
+                    item["tipo"] = st.selectbox("Tipo", ["Subproduct", "Emissions", "Waste"],
+                                                index=["Subproduct","Emissions","Waste"].index(item.get("tipo","Subproduct")) if item.get("tipo") in ["Subproduct","Emissions","Waste"] else 0,
+                                                key=f"{prefix}lca_out_{proc}_tipo_{i}")
                     item["sub_tipo"] = st.text_input("Sub-tipo (ex: Name 1, Liquid 1, Solid 1, etc.)", item.get("sub_tipo",""), key=f"{prefix}lca_out_{proc}_sub_{i}")
                 with col2:
                     item["qty"] = st.text_input("QTY", item.get("qty",""), key=f"{prefix}lca_out_{proc}_qty_{i}")
@@ -1083,7 +1081,8 @@ if st.session_state.perfil == "parceiro":
                 "Seleciona um documento:",
                 ids,
                 format_func=lambda x: "Selecione um documento..." if x == "" else f"ID {x}",
-                key=f"parceiro_selectbox_{st.session_state.parceiro_dropdown_key}"
+                key=f"parceiro_selectbox_{st.session_state.parceiro_dropdown_key}",
+                placeholder="Escolha uma destas opções"
             )
 
             if st.button("Carregar documento", key="parceiro_carregar_doc"):
@@ -1240,7 +1239,8 @@ elif st.session_state.perfil == "empresa":
             "Seleciona um documento:",
             ids,
             format_func=lambda x: "Selecione um documento..." if x == "" else f"ID {x}",
-            key=f"empresa_selectbox_{st.session_state.empresa_dropdown_key}"
+            key=f"empresa_selectbox_{st.session_state.empresa_dropdown_key}",
+            placeholder="Escolha uma destas opções"
         )
 
         if st.button("Carregar documento", key="empresa_carregar_doc"):
@@ -1403,7 +1403,8 @@ elif st.session_state.perfil == "admin":
                     "Selecionar utilizador para gerir",
                     usernames,
                     format_func=lambda x: "Selecione um utilizador..." if x == "" else x,
-                    key=f"admin_user_selectbox_{st.session_state.admin_user_dropdown_key}"
+                    key=f"admin_user_selectbox_{st.session_state.admin_user_dropdown_key}",
+                    placeholder="Escolha uma destas opções"
                 )
 
                 if sel_user:
@@ -1487,7 +1488,8 @@ elif st.session_state.perfil == "admin":
                                 "parceiro": "🤝 Parceiro",
                                 "empresa": "🏢 Empresa",
                                 "admin": "🔧 Admin"
-                            }.get(x, x)
+                            }.get(x, x),
+                            placeholder="Escolha uma destas opções"
                         )
                         
                         col1, col2, col3 = st.columns([1, 1, 2])
@@ -1573,7 +1575,8 @@ elif st.session_state.perfil == "admin":
                 "Seleciona um documento:",
                 ids,
                 format_func=lambda x: "Selecione um documento..." if x == "" else f"ID {x}",
-                key=f"admin_selectbox_{st.session_state.admin_dropdown_key}"
+                key=f"admin_selectbox_{st.session_state.admin_dropdown_key}",
+                placeholder="Escolha uma destas opções"
             )
 
             if st.button("Carregar documento", key="admin_carregar_doc"):
