@@ -721,14 +721,14 @@ def exportar_versoes_excel(
         for proc in processos:
             for item in dados.get("lca", {}).get("inputs", {}).get(proc, []):
                 ws_lca.cell(row=row, column=1, value=proc)
-                ws_lca.cell(row=row, column=2, value=item.get("Material", ""))
-                ws_lca.cell(row=row, column=3, value=item.get("QTY", ""))
-                ws_lca.cell(row=row, column=4, value=item.get("Unit", ""))
-                ws_lca.cell(row=row, column=5, value=item.get("Material Description", ""))
-                ws_lca.cell(row=row, column=6, value=item.get("CAS/Comments", ""))
-                ws_lca.cell(row=row, column=7, value=item.get("Distance (km)", ""))
-                ws_lca.cell(row=row, column=8, value=item.get("Country", ""))
-                ws_lca.cell(row=row, column=9, value=item.get("Data Source", ""))
+                ws_lca.cell(row=row, column=2, value=item.get("material", ""))
+                ws_lca.cell(row=row, column=3, value=item.get("qty", ""))
+                ws_lca.cell(row=row, column=4, value=item.get("unit", ""))
+                ws_lca.cell(row=row, column=5, value=item.get("description", ""))
+                ws_lca.cell(row=row, column=6, value=item.get("cas", ""))
+                ws_lca.cell(row=row, column=7, value=item.get("distance", ""))
+                ws_lca.cell(row=row, column=8, value=item.get("country", ""))
+                ws_lca.cell(row=row, column=9, value=item.get("datasource", ""))
                 row += 1
         row += 1
 
@@ -742,16 +742,16 @@ def exportar_versoes_excel(
         for proc in processos:
             for item in dados.get("lca", {}).get("processes", {}).get(proc, []):
                 ws_lca.cell(row=row, column=1, value=proc)
-                ws_lca.cell(row=row, column=2, value=item.get("Tipo", ""))
-                ws_lca.cell(row=row, column=3, value=item.get("QTY", ""))
-                ws_lca.cell(row=row, column=4, value=item.get("Unit", ""))
-                ws_lca.cell(row=row, column=5, value=item.get("Description", ""))
-                ws_lca.cell(row=row, column=6, value=item.get("Comments", ""))
-                ws_lca.cell(row=row, column=7, value=item.get("Data Source", ""))
+                ws_lca.cell(row=row, column=2, value=item.get("tipo", ""))
+                ws_lca.cell(row=row, column=3, value=item.get("qty", ""))
+                ws_lca.cell(row=row, column=4, value=item.get("unit", ""))
+                ws_lca.cell(row=row, column=5, value=item.get("description", ""))
+                ws_lca.cell(row=row, column=6, value=item.get("comments", ""))
+                ws_lca.cell(row=row, column=7, value=item.get("datasource", ""))
                 row += 1
         row += 1
 
-        # OUTPUTS
+        # OUTPUTS LCA
         ws_lca.cell(row=row, column=1, value="OUTPUTS").font = Font(bold=True, size=12)
         row += 1
         cab_out = ["Processo", "Etapa", "Tipo", "Sub-tipo", "QTY", "Unit", "Material description", "Comments", "Data Source"]
@@ -761,14 +761,14 @@ def exportar_versoes_excel(
         for proc in processos:
             for item in dados.get("lca", {}).get("outputs", {}).get(proc, []):
                 ws_lca.cell(row=row, column=1, value=proc)
-                ws_lca.cell(row=row, column=2, value=item.get("Etapa", ""))
-                ws_lca.cell(row=row, column=3, value=item.get("Tipo", ""))
-                ws_lca.cell(row=row, column=4, value=item.get("Sub-tipo", ""))
-                ws_lca.cell(row=row, column=5, value=item.get("QTY", ""))
-                ws_lca.cell(row=row, column=6, value=item.get("Unit", ""))
-                ws_lca.cell(row=row, column=7, value=item.get("Material Description", ""))
-                ws_lca.cell(row=row, column=8, value=item.get("Comments", ""))
-                ws_lca.cell(row=row, column=9, value=item.get("Data Source", ""))
+                ws_lca.cell(row=row, column=2, value=item.get("etapa", ""))
+                ws_lca.cell(row=row, column=3, value=item.get("tipo", ""))
+                ws_lca.cell(row=row, column=4, value=item.get("sub_tipo", ""))
+                ws_lca.cell(row=row, column=5, value=item.get("qty", ""))
+                ws_lca.cell(row=row, column=6, value=item.get("unit", ""))
+                ws_lca.cell(row=row, column=7, value=item.get("description", ""))
+                ws_lca.cell(row=row, column=8, value=item.get("comments", ""))
+                ws_lca.cell(row=row, column=9, value=item.get("datasource", ""))
                 row += 1
 
         # Ajustar colunas LCA
@@ -794,15 +794,15 @@ def exportar_versoes_excel(
         for proc in processos:
             for item in dados.get("lcc", {}).get("materials", {}).get(proc, []):
                 ws_lcc.cell(row=row, column=1, value=proc)
-                ws_lcc.cell(row=row, column=2, value=item.get("Material", ""))
-                ws_lcc.cell(row=row, column=3, value=item.get("Price €", ""))
-                ws_lcc.cell(row=row, column=4, value=item.get("Qty", ""))
-                ws_lcc.cell(row=row, column=5, value=item.get("Unit", ""))
-                ws_lcc.cell(row=row, column=6, value=item.get("Material Description", ""))
-                ws_lcc.cell(row=row, column=7, value=item.get("Comments", ""))
-                ws_lcc.cell(row=row, column=8, value=item.get("Distance (km)", ""))
-                ws_lcc.cell(row=row, column=9, value=item.get("Country", ""))
-                ws_lcc.cell(row=row, column=10, value=item.get("Data Source", ""))
+                ws_lcc.cell(row=row, column=2, value=item.get("material", ""))
+                ws_lcc.cell(row=row, column=3, value=item.get("price", ""))
+                ws_lcc.cell(row=row, column=4, value=item.get("qty", ""))
+                ws_lcc.cell(row=row, column=5, value=item.get("unit", ""))
+                ws_lcc.cell(row=row, column=6, value=item.get("description", ""))
+                ws_lcc.cell(row=row, column=7, value=item.get("comments", ""))
+                ws_lcc.cell(row=row, column=8, value=item.get("distance", ""))
+                ws_lcc.cell(row=row, column=9, value=item.get("country", ""))
+                ws_lcc.cell(row=row, column=10, value=item.get("datasource", ""))
                 row += 1
         row += 1
 
@@ -816,14 +816,14 @@ def exportar_versoes_excel(
         for proc in processos:
             for item in dados.get("lcc", {}).get("equipment", {}).get(proc, []):
                 ws_lcc.cell(row=row, column=1, value=proc)
-                ws_lcc.cell(row=row, column=2, value=item.get("Equipment", ""))
-                ws_lcc.cell(row=row, column=3, value=item.get("Process", ""))
-                ws_lcc.cell(row=row, column=4, value=item.get("Unit Cost (€)", ""))
-                ws_lcc.cell(row=row, column=5, value=item.get("Lifespan (Years)", ""))
-                ws_lcc.cell(row=row, column=6, value=item.get("Maintenance €/Year", ""))
-                ws_lcc.cell(row=row, column=7, value=item.get("Industrial Equivalent", ""))
-                ws_lcc.cell(row=row, column=8, value=item.get("Comments", ""))
-                ws_lcc.cell(row=row, column=9, value=item.get("Data Source", ""))
+                ws_lcc.cell(row=row, column=2, value=item.get("equipment", ""))
+                ws_lcc.cell(row=row, column=3, value=item.get("process", ""))
+                ws_lcc.cell(row=row, column=4, value=item.get("unit_cost", ""))
+                ws_lcc.cell(row=row, column=5, value=item.get("lifespan", ""))
+                ws_lcc.cell(row=row, column=6, value=item.get("maintenance", ""))
+                ws_lcc.cell(row=row, column=7, value=item.get("industrial_equiv", ""))
+                ws_lcc.cell(row=row, column=8, value=item.get("comments", ""))
+                ws_lcc.cell(row=row, column=9, value=item.get("datasource", ""))
                 row += 1
         row += 1
 
@@ -840,17 +840,17 @@ def exportar_versoes_excel(
         for proc in processos:
             for item in dados.get("lcc", {}).get("labour", {}).get(proc, []):
                 ws_lcc.cell(row=row, column=1, value=proc)
-                ws_lcc.cell(row=row, column=2, value=item.get("Process", ""))
-                ws_lcc.cell(row=row, column=3, value=item.get("Total Labour - Number", ""))
-                ws_lcc.cell(row=row, column=4, value=item.get("Total Labour - Cost €", ""))
-                ws_lcc.cell(row=row, column=5, value=item.get("Number - High Skilled", ""))
-                ws_lcc.cell(row=row, column=6, value=item.get("Number - Moderated skilled", ""))
-                ws_lcc.cell(row=row, column=7, value=item.get("Number - Unskilled", ""))
-                ws_lcc.cell(row=row, column=8, value=item.get("Rate - High Skilled (€/h)", ""))
-                ws_lcc.cell(row=row, column=9, value=item.get("Rate - Moderated skilled (€/h)", ""))
-                ws_lcc.cell(row=row, column=10, value=item.get("Rate - Unskilled (€/h)", ""))
-                ws_lcc.cell(row=row, column=11, value=item.get("Comments", ""))
-                ws_lcc.cell(row=row, column=12, value=item.get("Data Source", ""))
+                ws_lcc.cell(row=row, column=2, value=item.get("process", ""))
+                ws_lcc.cell(row=row, column=3, value=item.get("total_number", ""))
+                ws_lcc.cell(row=row, column=4, value=item.get("total_cost", ""))
+                ws_lcc.cell(row=row, column=5, value=item.get("high_skilled", ""))
+                ws_lcc.cell(row=row, column=6, value=item.get("moderate_skilled", ""))
+                ws_lcc.cell(row=row, column=7, value=item.get("unskilled", ""))
+                ws_lcc.cell(row=row, column=8, value=item.get("high_rate", ""))
+                ws_lcc.cell(row=row, column=9, value=item.get("moderate_rate", ""))
+                ws_lcc.cell(row=row, column=10, value=item.get("unskilled_rate", ""))
+                ws_lcc.cell(row=row, column=11, value=item.get("comments", ""))
+                ws_lcc.cell(row=row, column=12, value=item.get("datasource", ""))
                 row += 1
         row += 1
 
@@ -864,13 +864,13 @@ def exportar_versoes_excel(
         for proc in processos:
             for item in dados.get("lcc", {}).get("outputs", {}).get(proc, []):
                 ws_lcc.cell(row=row, column=1, value=proc)
-                ws_lcc.cell(row=row, column=2, value=item.get("Material", ""))
-                ws_lcc.cell(row=row, column=3, value=item.get("Market Price €", ""))
-                ws_lcc.cell(row=row, column=4, value=item.get("Quantity", ""))
-                ws_lcc.cell(row=row, column=5, value=item.get("Unit", ""))
-                ws_lcc.cell(row=row, column=6, value=item.get("Amount of product produced", ""))
-                ws_lcc.cell(row=row, column=7, value=item.get("Comments", ""))
-                ws_lcc.cell(row=row, column=8, value=item.get("Data Source", ""))
+                ws_lcc.cell(row=row, column=2, value=item.get("material", ""))
+                ws_lcc.cell(row=row, column=3, value=item.get("market_price", ""))
+                ws_lcc.cell(row=row, column=4, value=item.get("quantity", ""))
+                ws_lcc.cell(row=row, column=5, value=item.get("unit", ""))
+                ws_lcc.cell(row=row, column=6, value=item.get("amount_produced", ""))
+                ws_lcc.cell(row=row, column=7, value=item.get("comments", ""))
+                ws_lcc.cell(row=row, column=8, value=item.get("datasource", ""))
                 row += 1
 
         for col in ws_lcc.columns:
