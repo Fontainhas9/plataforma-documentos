@@ -432,9 +432,7 @@ def exportar_excel(doc_id, titulo):
     resp = requests.get(f"{API_URL}/documentos/{doc_id}/exportar-excel", headers=headers_auth())
     if resp.status_code == 200:
         content = resp.content
-        # Usar o título do documento para o nome do ficheiro
         filename = f"{titulo}.xlsx"
-        # Remover caracteres inválidos para nome de ficheiro
         filename = "".join(c for c in filename if c.isalnum() or c in " ._-")
         return content, filename
     else:
@@ -1074,7 +1072,9 @@ if st.session_state.perfil == "parceiro":
                 st.write(f"Estado: **{doc['estado']}** | Versão: {doc['versao_atual']}")
                 
                 dados = doc['dados']
-                with st.expander("Ver dados em tabelas", expanded=True):
+                
+                # ---------- CORREÇÃO: FECHAR O EXPANDER DE VISUALIZAÇÃO ----------
+                with st.expander("Ver dados em tabelas", expanded=False):
                     st.subheader("LCA")
                     lca = dados.get("lca", {})
                     for proc in PROCESSOS:
@@ -1105,9 +1105,10 @@ if st.session_state.perfil == "parceiro":
                             st.write("Outputs")
                             display_dataframe(pd.DataFrame(lcc["outputs"][proc]))
 
-                with st.expander("Ver JSON bruto"):
+                with st.expander("Ver JSON bruto", expanded=False):
                     st.json(dados)
 
+                # ---------- CORREÇÃO: SE FOR RASCUNHO, ABRIR O FORMULÁRIO DE EDIÇÃO ----------
                 if doc['estado'] == "Rascunho":
                     st.subheader("✏️ Editar documento")
                     if st.session_state.edit_data is None:
@@ -1230,7 +1231,9 @@ elif st.session_state.perfil == "empresa":
             st.write(f"Estado: **{doc['estado']}** | Versão: {doc['versao_atual']}")
 
             dados = doc['dados']
-            with st.expander("Ver dados do documento", expanded=True):
+            
+            # ---------- CORREÇÃO: FECHAR O EXPANDER DE VISUALIZAÇÃO ----------
+            with st.expander("Ver dados do documento", expanded=False):
                 st.subheader("LCA")
                 lca = dados.get("lca", {})
                 for proc in PROCESSOS:
@@ -1261,9 +1264,10 @@ elif st.session_state.perfil == "empresa":
                         st.write("Outputs")
                         display_dataframe(pd.DataFrame(lcc["outputs"][proc]))
 
-            with st.expander("Ver JSON bruto"):
+            with st.expander("Ver JSON bruto", expanded=False):
                 st.json(dados)
 
+            # ---------- CORREÇÃO: BOTÕES DE AÇÃO JÁ ESTÃO VISÍVEIS ----------
             if doc['estado'] == "Submetido":
                 if st.button("Iniciar revisão", key="empresa_iniciar_revisao"):
                     if iniciar_revisao(doc['id']):
@@ -1562,7 +1566,9 @@ elif st.session_state.perfil == "admin":
                 st.write(f"Estado: **{doc['estado']}** | Versão: {doc['versao_atual']}")
 
                 dados = doc['dados']
-                with st.expander("Ver dados do documento", expanded=True):
+                
+                # ---------- CORREÇÃO: FECHAR O EXPANDER DE VISUALIZAÇÃO ----------
+                with st.expander("Ver dados do documento", expanded=False):
                     st.subheader("LCA")
                     lca = dados.get("lca", {})
                     for proc in PROCESSOS:
@@ -1593,9 +1599,10 @@ elif st.session_state.perfil == "admin":
                             st.write("Outputs")
                             display_dataframe(pd.DataFrame(lcc["outputs"][proc]))
 
-                with st.expander("Ver JSON bruto"):
+                with st.expander("Ver JSON bruto", expanded=False):
                     st.json(dados)
 
+                # ---------- CORREÇÃO: BOTÕES DE AÇÃO JÁ ESTÃO VISÍVEIS ----------
                 if doc['estado'] == "Submetido":
                     if st.button("Iniciar revisão", key="admin_iniciar_revisao"):
                         if iniciar_revisao(doc['id']):
