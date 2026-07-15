@@ -550,8 +550,7 @@ def render_filtros():
                 options=list(ordem_campos.keys()),
                 format_func=lambda x: ordem_campos.get(x, x),
                 index=list(ordem_campos.keys()).index(st.session_state.filtros_temporarios.get("order_by", "id")),
-                key=f"filtro_order_by_{key_suffix}",
-                placeholder="Escolha uma destas opções"
+                key=f"filtro_order_by_{key_suffix}"
             )
             st.session_state.filtros_temporarios["order_by"] = order_by
         
@@ -561,8 +560,7 @@ def render_filtros():
                 options=["desc", "asc"],
                 format_func=lambda x: "Decrescente" if x == "desc" else "Crescente",
                 index=0 if st.session_state.filtros_temporarios.get("order_dir", "desc") == "desc" else 1,
-                key=f"filtro_order_dir_{key_suffix}",
-                placeholder="Escolha uma destas opções"
+                key=f"filtro_order_dir_{key_suffix}"
             )
             st.session_state.filtros_temporarios["order_dir"] = order_dir
         
@@ -1085,8 +1083,7 @@ if st.session_state.perfil == "parceiro":
                 "Seleciona um documento:",
                 ids,
                 format_func=lambda x: "Selecione um documento..." if x == "" else f"ID {x}",
-                key=f"parceiro_selectbox_{st.session_state.parceiro_dropdown_key}",
-                placeholder="Escolha uma destas opções"
+                key=f"parceiro_selectbox_{st.session_state.parceiro_dropdown_key}"
             )
 
             if st.button("Carregar documento", key="parceiro_carregar_doc"):
@@ -1243,8 +1240,7 @@ elif st.session_state.perfil == "empresa":
             "Seleciona um documento:",
             ids,
             format_func=lambda x: "Selecione um documento..." if x == "" else f"ID {x}",
-            key=f"empresa_selectbox_{st.session_state.empresa_dropdown_key}",
-            placeholder="Escolha uma destas opções"
+            key=f"empresa_selectbox_{st.session_state.empresa_dropdown_key}"
         )
 
         if st.button("Carregar documento", key="empresa_carregar_doc"):
@@ -1407,8 +1403,7 @@ elif st.session_state.perfil == "admin":
                     "Selecionar utilizador para gerir",
                     usernames,
                     format_func=lambda x: "Selecione um utilizador..." if x == "" else x,
-                    key=f"admin_user_selectbox_{st.session_state.admin_user_dropdown_key}",
-                    placeholder="Escolha uma destas opções"
+                    key=f"admin_user_selectbox_{st.session_state.admin_user_dropdown_key}"
                 )
 
                 if sel_user:
@@ -1492,8 +1487,7 @@ elif st.session_state.perfil == "admin":
                                 "parceiro": "🤝 Parceiro",
                                 "empresa": "🏢 Empresa",
                                 "admin": "🔧 Admin"
-                            }.get(x, x),
-                            placeholder="Escolha uma destas opções"
+                            }.get(x, x)
                         )
                         
                         col1, col2, col3 = st.columns([1, 1, 2])
@@ -1579,8 +1573,7 @@ elif st.session_state.perfil == "admin":
                 "Seleciona um documento:",
                 ids,
                 format_func=lambda x: "Selecione um documento..." if x == "" else f"ID {x}",
-                key=f"admin_selectbox_{st.session_state.admin_dropdown_key}",
-                placeholder="Escolha uma destas opções"
+                key=f"admin_selectbox_{st.session_state.admin_dropdown_key}"
             )
 
             if st.button("Carregar documento", key="admin_carregar_doc"):
