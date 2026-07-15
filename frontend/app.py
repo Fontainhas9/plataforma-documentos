@@ -10,21 +10,16 @@ import os
 # ============================================================
 def get_api_url():
     """Retorna a URL da API consoante o ambiente (local ou produção)."""
-    # Primeiro: verificar se estamos no Streamlit Cloud com secrets
     try:
-        # Tentar aceder aos secrets (se existirem)
         if hasattr(st, 'secrets') and st.secrets and 'API_URL' in st.secrets:
             return st.secrets['API_URL']
     except Exception:
-        # Se falhar (não há secrets), continua
         pass
     
-    # Segundo: verificar variável de ambiente
     api_url = os.getenv('API_URL')
     if api_url:
         return api_url
     
-    # Terceiro: fallback para local
     return "http://127.0.0.1:8000"
 
 API_URL = get_api_url()
@@ -432,17 +427,23 @@ def listar_versoes(doc_id):
         return resp.json()
     return []
 
-def exportar_excel(doc_id):
+def exportar_excel(doc_id, titulo):
+    """Exporta o documento para Excel com o nome do documento."""
     resp = requests.get(f"{API_URL}/documentos/{doc_id}/exportar-excel", headers=headers_auth())
     if resp.status_code == 200:
-        return resp.content
+        content = resp.content
+        # Usar o título do documento para o nome do ficheiro
+        filename = f"{titulo}.xlsx"
+        # Remover caracteres inválidos para nome de ficheiro
+        filename = "".join(c for c in filename if c.isalnum() or c in " ._-")
+        return content, filename
     else:
         try:
             erro = resp.json().get("detail", "Erro desconhecido")
         except:
             erro = "Erro ao exportar"
         st.error(f"Falha na exportação: {erro}")
-        return None
+        return None, None
 
 # ---------- Função para obter notificações ----------
 def get_notificacoes_nao_lidas():
@@ -1159,6 +1160,17 @@ if st.session_state.perfil == "parceiro":
                         if v['comentario']:
                             st.caption(f"  Comentário: {v['comentario']}")
 
+                with st.expander("📥 Exportar histórico"):
+                    if st.button("Exportar versões para Excel (completo)", key="parceiro_exportar_excel"):
+                        conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
+                        if conteudo:
+                            st.download_button(
+                                label="Clique para descarregar o ficheiro",
+                                data=conteudo,
+                                file_name=filename,
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            )
+
                 if st.button("Fechar detalhes", key="parceiro_fechar_detalhes"):
                     st.session_state.doc_selecionado = None
                     st.session_state.edit_data = None
@@ -1293,12 +1305,12 @@ elif st.session_state.perfil == "empresa":
 
             with st.expander("📥 Exportar histórico"):
                 if st.button("Exportar versões para Excel (completo)", key="empresa_exportar_excel"):
-                    conteudo = exportar_excel(doc['id'])
+                    conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
                     if conteudo:
                         st.download_button(
                             label="Clique para descarregar o ficheiro",
                             data=conteudo,
-                            file_name=f"documento_{doc['id']}_completo.xlsx",
+                            file_name=filename,
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                         )
 
@@ -1625,12 +1637,12 @@ elif st.session_state.perfil == "admin":
 
                 with st.expander("📥 Exportar histórico"):
                     if st.button("Exportar versões para Excel (completo)", key="admin_exportar_excel"):
-                        conteudo = exportar_excel(doc['id'])
+                        conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
                         if conteudo:
                             st.download_button(
                                 label="Clique para descarregar o ficheiro",
                                 data=conteudo,
-                                file_name=f"documento_{doc['id']}_completo.xlsx",
+                                file_name=filename,
                                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                             )
 

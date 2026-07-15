@@ -751,7 +751,7 @@ def exportar_versoes_excel(
                 row += 1
         row += 1
 
-        # OUTPUTS LCA
+        # OUTPUTS
         ws_lca.cell(row=row, column=1, value="OUTPUTS").font = Font(bold=True, size=12)
         row += 1
         cab_out = ["Processo", "Etapa", "Tipo", "Sub-tipo", "QTY", "Unit", "Material description", "Comments", "Data Source"]
@@ -905,7 +905,12 @@ def exportar_versoes_excel(
         wb.save(output)
         output.seek(0)
 
-        headers = {"Content-Disposition": f"attachment; filename=documento_{doc_id}_completo.xlsx"}
+        # Usar o título do documento para o nome do ficheiro
+        filename = f"{doc.titulo}.xlsx"
+        # Remover caracteres inválidos
+        filename = "".join(c for c in filename if c.isalnum() or c in " ._-")
+        
+        headers = {"Content-Disposition": f"attachment; filename={filename}"}
         return StreamingResponse(output, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers=headers)
 
     except Exception as e:
