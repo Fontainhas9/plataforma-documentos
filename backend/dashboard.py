@@ -70,34 +70,6 @@ def get_dashboard_kpis(db: Session, current_user_username: str, perfil: str) -> 
         "tempo_medio_revisao": round(tempo_medio_revisao, 1)
     }
 
-def get_evolucao_mensal(db: Session, current_user_username: str, perfil: str, meses: int = 12) -> List[Dict]:
-    """
-    Obtém a evolução mensal de documentos criados.
-    """
-    query = db.query(
-        func.date_trunc('month', Documento.created_at).label('mes'),
-        func.count(Documento.id).label('total')
-    )
-    
-    if perfil == PerfilUtilizador.PARCEIRO:
-        query = query.filter(Documento.parceiro_id == current_user_username)
-    
-    # Últimos N meses
-    data_limite = datetime.now() - timedelta(days=meses * 30)
-    query = query.filter(Documento.created_at >= data_limite)
-    
-    query = query.group_by(func.date_trunc('month', Documento.created_at))
-    query = query.order_by(func.date_trunc('month', Documento.created_at).asc())
-    
-    resultados = query.all()
-    
-    return [
-        {
-            "mes": r[0].strftime("%Y-%m") if r[0] else "",
-            "total": r[1]
-        }
-        for r in resultados
-    ]
 
 def get_top_parceiros(db: Session, limit: int = 10) -> List[Dict]:
     """
@@ -117,37 +89,6 @@ def get_top_parceiros(db: Session, limit: int = 10) -> List[Dict]:
         }
         for r in resultados
     ]
-
-def get_tempo_medio_por_estado(db: Session, current_user_username: str, perfil: str) -> Dict[str, float]:
-    """
-    Calcula o tempo médio (em dias) que os documentos passam em cada estado.
-    """
-    # Query base
-    query = db.query(Documento)
-    if perfil == PerfilUtilizador.PARCEIRO:
-        query = query.filter(Documento.parceiro_id == current_user_username)
-    
-    documentos = query.all()
-    
-    # Dicionário para armazenar tempos por estado
-    tempos = {estado.value: [] for estado in EstadoDocumento}
-    
-    for doc in documentos:
-        versoes = db.query(VersaoDocumento).filter(
-            VersaoDocumento.documento_id == doc.id
-        ).order_by(VersaoDocumento.numero_versao).all()
-        
-        for i in range(len(versoes) - 1):
-            estado_atual = versoes[i].estado.value
-            tempo_estado = (versoes[i+1].created_at - versoes[i].created_at).total_seconds() / 86400
-            tempos[estado_atual].append(tempo_estado)
-    
-    # Calcular médias
-    medias = {}
-    for estado, valores in tempos.items():
-        medias[estado] = round(sum(valores) / len(valores), 1) if valores else 0
-    
-    return medias
 
 def get_documentos_recentes(db: Session, current_user_username: str, perfil: str, limit: int = 10) -> List[Dict]:
     """

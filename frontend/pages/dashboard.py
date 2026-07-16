@@ -145,40 +145,6 @@ try:
 except Exception as e:
     st.error(f"Erro ao carregar dados: {e}")
 
-# ---------- Evolução Mensal ----------
-st.divider()
-st.subheader("📅 Evolução Mensal")
-
-try:
-    response = requests.get(f"{API_URL}/dashboard/evolucao?meses=12", headers=headers_auth())
-    if response.status_code == 200:
-        dados = response.json()
-        if dados:
-            df_evolucao = pd.DataFrame(dados)
-            # CORREÇÃO: Converter para data sem hora
-            df_evolucao["mes"] = pd.to_datetime(df_evolucao["mes"] + "-01").dt.strftime("%b %Y")  # Ex: "Jan 2025"
-            df_evolucao = df_evolucao.sort_values("mes")
-            
-            fig_evolucao = px.line(
-                df_evolucao,
-                x="mes",
-                y="total",
-                title="Evolução de Documentos Criados (Últimos 12 Meses)",
-                markers=True,
-                labels={"mes": "Mês", "total": "Documentos"}
-            )
-            fig_evolucao.update_layout(
-                xaxis_title="Mês",
-                yaxis_title="Documentos"
-            )
-            st.plotly_chart(fig_evolucao, use_container_width=True)
-        else:
-            st.info("Sem dados para evolução mensal")
-    else:
-        st.error("Erro ao carregar evolução mensal")
-except Exception as e:
-    st.error(f"Erro ao carregar evolução: {e}")
-    
 # ---------- Documentos Recentes ----------
 st.divider()
 st.subheader("📋 Documentos Recentes")
@@ -254,39 +220,3 @@ if st.session_state.perfil != "parceiro":
             st.error("Erro ao carregar top parceiros")
     except Exception as e:
         st.error(f"Erro ao carregar top parceiros: {e}")
-
-# ---------- Tempo Médio por Estado ----------
-st.divider()
-st.subheader("⏱️ Tempo Médio por Estado (dias)")
-
-try:
-    response = requests.get(f"{API_URL}/dashboard/tempo-medio-estado", headers=headers_auth())
-    if response.status_code == 200:
-        dados = response.json()
-        if dados:
-            dados_filtrados = {k: v for k, v in dados.items() if v > 0}
-            
-            if dados_filtrados:
-                df_tempo = pd.DataFrame({
-                    "Estado": list(dados_filtrados.keys()),
-                    "Dias": list(dados_filtrados.values())
-                })
-                
-                fig_tempo = px.bar(
-                    df_tempo,
-                    x="Estado",
-                    y="Dias",
-                    title="Tempo Médio por Estado (dias)",
-                    color="Estado",
-                    color_discrete_sequence=px.colors.qualitative.Pastel
-                )
-                fig_tempo.update_layout(showlegend=False)
-                st.plotly_chart(fig_tempo, use_container_width=True)
-            else:
-                st.info("Sem dados de tempo médio por estado")
-        else:
-            st.info("Sem dados de tempo médio")
-    else:
-        st.error("Erro ao carregar tempo médio por estado")
-except Exception as e:
-    st.error(f"Erro ao carregar tempo médio: {e}")
