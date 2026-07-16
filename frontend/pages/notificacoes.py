@@ -117,7 +117,11 @@ try:
     if resp.status_code == 200:
         count = resp.json().get("count", 0)
         if count > 0:
-            st.info(f"📌 Você tem {count} notificação(ões) não lida(s).")
+            # ---------- CORREÇÃO: Texto com plural ----------
+            if count == 1:
+                st.info(f"📌 Você tem {count} notificação não lida.")
+            else:
+                st.info(f"📌 Você tem {count} notificações não lidas.")
         else:
             st.info("📌 Todas as notificações estão lidas.")
 except:

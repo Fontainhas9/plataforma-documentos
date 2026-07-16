@@ -45,6 +45,11 @@ def render_notificacoes_badge():
     
     count = get_notificacoes_nao_lidas()
     
+    if count == 1:
+        badge_text = f"{count} notificação não lida"
+    else:
+        badge_text = f"{count} notificações não lidas"    
+    
     # CSS para posicionar o badge
     st.markdown("""
     <style>

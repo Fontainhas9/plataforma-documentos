@@ -1032,13 +1032,20 @@ with st.sidebar:
     if st.session_state.token is not None:
         try:
             count = get_notificacoes_nao_lidas()
+            
+            # ---------- CORREÇÃO: Texto com plural ----------
             if count > 0:
-                st.warning(f"🔔 {count} notificação(ões) não lida(s)")
+                if count == 1:
+                    notif_text = f"🔔 {count} notificação não lida"
+                else:
+                    notif_text = f"🔔 {count} notificações não lidas"
+                st.warning(notif_text)
             else:
                 st.info("🔔 Sem notificações")
         except:
             pass
     
+    st.divider()
     st.divider()
     
     if st.button("📊 Dashboard", use_container_width=True, key="app_dashboard"):
