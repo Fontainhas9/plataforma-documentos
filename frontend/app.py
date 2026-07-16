@@ -1331,7 +1331,7 @@ if st.session_state.perfil == "parceiro":
                     st.info("Documento em análise pela empresa.")
                     col_btn1, col_btn2, col_btn3 = st.columns(3)
                     with col_btn1:
-                        st.info("Em análise, aguarde feedback da empresa.")
+                        pass
                     with col_btn2:
                         if st.button("Exportar Histórico", key="parceiro_exportar_historico", use_container_width=True):
                             conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
