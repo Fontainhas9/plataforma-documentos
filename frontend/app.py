@@ -755,9 +755,22 @@ def render_lca_outputs(data_key, prefix=""):
                 col1, col2, col3 = st.columns(3)
                 with col1:
                     item["etapa"] = st.text_input("Etapa (ex: Demagnetisation)", item.get("etapa",""), key=f"{prefix}lca_out_{proc}_etapa_{i}")
-                    item["tipo"] = st.selectbox("Tipo", ["Subproduct", "Emissions", "Waste"],
-                                                index=["Subproduct","Emissions","Waste"].index(item.get("tipo","Subproduct")) if item.get("tipo") in ["Subproduct","Emissions","Waste"] else 0,
-                                                key=f"{prefix}lca_out_{proc}_tipo_{i}")
+                    
+                    # ---------- CORREÇÃO: Tipo com placeholder ----------
+                    tipo_atual = item.get("tipo", "")
+                    if tipo_atual in ["Subproduct", "Emissions", "Waste"]:
+                        tipo_index = ["Subproduct", "Emissions", "Waste"].index(tipo_atual)
+                    else:
+                        tipo_index = None
+                    
+                    item["tipo"] = st.selectbox(
+                        "Tipo", 
+                        ["Subproduct", "Emissions", "Waste"],
+                        index=tipo_index,
+                        key=f"{prefix}lca_out_{proc}_tipo_{i}",
+                        placeholder="Escolha uma destas opções"
+                    )
+                    
                     item["sub_tipo"] = st.text_input("Sub-tipo (ex: Name 1, Liquid 1, Solid 1, etc.)", item.get("sub_tipo",""), key=f"{prefix}lca_out_{proc}_sub_{i}")
                 with col2:
                     item["qty"] = st.text_input("QTY", item.get("qty",""), key=f"{prefix}lca_out_{proc}_qty_{i}")
@@ -970,7 +983,7 @@ def render_lcc_outputs(data_key, prefix=""):
                 if items and st.button(f"🗑️ Remover último output LCC - {proc}", key=f"{prefix}rem_lcc_out_{proc}"):
                     items.pop()
                     st.rerun()
-
+                    
 def render_full_form(data_key, prefix=""):
     if st.session_state[data_key] is None:
         st.session_state[data_key] = {
