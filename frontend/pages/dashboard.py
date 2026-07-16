@@ -100,11 +100,7 @@ try:
                 label="📊 Taxa Aprovação",
                 value=f"{kpis.get('taxa_aprovacao', 0)}%"
             )
-        with col4:
-            st.metric(
-                label="⏱️ Tempo Médio Revisão",
-                value=f"{kpis.get('tempo_medio_revisao', 0)} dias"
-            )
+
         
         # Distribuição por estado (gráfico de pizza)
         estados = kpis.get("documentos_por_estado", {})
