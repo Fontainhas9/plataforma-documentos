@@ -1420,6 +1420,15 @@ elif st.session_state.perfil == "admin":
         if resp.status_code == 200:
             users = resp.json()
             if users:
+                # ---------- CORREÇÃO: Capitalizar os perfis ----------
+                for user in users:
+                    if user["perfil"] == "empresa":
+                        user["perfil"] = "Empresa"
+                    elif user["perfil"] == "parceiro":
+                        user["perfil"] = "Parceiro"
+                    elif user["perfil"] == "admin":
+                        user["perfil"] = "Admin"
+                
                 df = pd.DataFrame(users)
                 if "created_at" in df.columns:
                     df["created_at"] = pd.to_datetime(df["created_at"]).dt.strftime("%d/%m/%Y %H:%M")
@@ -1729,7 +1738,6 @@ elif st.session_state.perfil == "admin":
                 if st.button("Fechar detalhes", key="admin_fechar_detalhes"):
                     st.session_state.doc_selecionado = None
                     st.rerun()
-
 # ============================================================
 # GARANTIR QUE O CLOSE_DOC_AFTER_ACTION É PROCESSADO
 # ============================================================
