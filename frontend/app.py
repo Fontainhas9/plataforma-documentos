@@ -1820,9 +1820,6 @@ elif st.session_state.perfil == "admin":
                             st.write("Outputs")
                             display_dataframe(pd.DataFrame(lcc["outputs"][proc]))
 
-                with st.expander("Ver JSON bruto", expanded=False):
-                    st.json(dados)
-
                 # ---------- BOTÕES DE AÇÃO (lado a lado) ----------
                 col_btn1, col_btn2, col_btn3 = st.columns(3)
 
@@ -1886,6 +1883,9 @@ elif st.session_state.perfil == "admin":
                         st.rerun()
 
 
+                with st.expander("Ver JSON bruto", expanded=False):
+                    st.json(dados)
+                    
                 # ---------- HISTÓRICO DE VERSÕES (expander, antes dos botões) ----------
                 with st.expander("Histórico de versões", expanded=False):
                     versoes = listar_versoes(doc['id'])
