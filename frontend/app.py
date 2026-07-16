@@ -1227,13 +1227,6 @@ if st.session_state.perfil == "parceiro":
                 elif doc['estado'] == "Arquivado":
                     st.warning("Documento arquivado (apenas consulta).")
 
-                with st.expander("Histórico de versões"):
-                    versoes = listar_versoes(doc['id'])
-                    for v in versoes:
-                        st.write(f"v{v['numero_versao']} - {v['estado']} por {v['criado_por']} em {v['created_at']}")
-                        if v['comentario']:
-                            st.caption(f"  Comentário: {v['comentario']}")
-
                 with st.expander("📥 Exportar histórico"):
                     if st.button("Exportar versões para Excel (completo)", key="parceiro_exportar_excel"):
                         conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
@@ -1244,6 +1237,13 @@ if st.session_state.perfil == "parceiro":
                                 file_name=filename,
                                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                             )
+
+                with st.expander("Histórico de versões"):
+                    versoes = listar_versoes(doc['id'])
+                    for v in versoes:
+                        st.write(f"v{v['numero_versao']} - {v['estado']} por {v['criado_por']} em {v['created_at']}")
+                        if v['comentario']:
+                            st.caption(f"  Comentário: {v['comentario']}")
 
                 if st.button("Fechar detalhes", key="parceiro_fechar_detalhes"):
                     st.session_state.doc_selecionado = None
