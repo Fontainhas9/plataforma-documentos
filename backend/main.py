@@ -31,9 +31,7 @@ from auth import (
 # Importar funções do dashboard
 from dashboard import (
     get_dashboard_kpis,
-    get_evolucao_mensal,
     get_top_parceiros,
-    get_tempo_medio_por_estado,
     get_documentos_recentes
 )
 
