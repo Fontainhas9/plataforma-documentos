@@ -1823,20 +1823,6 @@ elif st.session_state.perfil == "admin":
                 with st.expander("Ver JSON bruto", expanded=False):
                     st.json(dados)
 
-                # ---------- HISTÓRICO DE VERSÕES (expander, antes dos botões) ----------
-                with st.expander("📜 Histórico de versões", expanded=False):
-                    versoes = listar_versoes(doc['id'])
-                    if versoes:
-                        for v in versoes:
-                            data_formatada = formatar_data_hora(v['created_at'])
-                            st.write(f"v{v['numero_versao']} - {v['estado']} ({v['criado_por']}) em {data_formatada}")
-                            if v['comentario']:
-                                st.caption(f"  Comentário: {v['comentario']}")
-                    else:
-                        st.info("Sem histórico disponível.")
-
-                st.markdown("---")
-
                 # ---------- BOTÕES DE AÇÃO (lado a lado) ----------
                 col_btn1, col_btn2, col_btn3 = st.columns(3)
 
@@ -1898,6 +1884,21 @@ elif st.session_state.perfil == "admin":
                     if st.button("❌ Fechar detalhes", key="admin_fechar_detalhes", use_container_width=True):
                         st.session_state.doc_selecionado = None
                         st.rerun()
+
+
+                # ---------- HISTÓRICO DE VERSÕES (expander, antes dos botões) ----------
+                with st.expander("Histórico de versões", expanded=False):
+                    versoes = listar_versoes(doc['id'])
+                    if versoes:
+                        for v in versoes:
+                            data_formatada = formatar_data_hora(v['created_at'])
+                            st.write(f"v{v['numero_versao']} - {v['estado']} ({v['criado_por']}) em {data_formatada}")
+                            if v['comentario']:
+                                st.caption(f"  Comentário: {v['comentario']}")
+                    else:
+                        st.info("Sem histórico disponível.")
+
+                st.markdown("---")
 
 # ============================================================
 # GARANTIR QUE O CLOSE_DOC_AFTER_ACTION É PROCESSADO
