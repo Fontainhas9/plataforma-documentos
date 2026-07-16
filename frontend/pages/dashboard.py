@@ -84,7 +84,7 @@ try:
     if response.status_code == 200:
         kpis = response.json()
         
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3 = st.columns(3)
         with col1:
             st.metric(
                 label="📄 Total Documentos",
