@@ -1243,8 +1243,6 @@ if st.session_state.perfil == "parceiro":
                     else:
                         st.info("Sem histórico disponível.")
 
-                st.markdown("---")
-
                 if doc['estado'] == "Rascunho":
                     st.subheader("✏️ Editar documento")
                     if st.session_state.edit_data is None:
@@ -1463,7 +1461,7 @@ elif st.session_state.perfil == "empresa":
                 st.json(dados)
 
             # ---------- HISTÓRICO DE VERSÕES (expander, antes dos botões) ----------
-            with st.expander("📜 Histórico de versões", expanded=False):
+            with st.expander("Histórico de versões", expanded=False):
                 versoes = listar_versoes(doc['id'])
                 if versoes:
                     for v in versoes:
@@ -1473,8 +1471,6 @@ elif st.session_state.perfil == "empresa":
                             st.caption(f"  Comentário: {v['comentario']}")
                 else:
                     st.info("Sem histórico disponível.")
-
-            st.markdown("---")
 
             # ---------- BOTÕES DE AÇÃO (lado a lado) ----------
             col_btn1, col_btn2, col_btn3 = st.columns(3)
@@ -1885,7 +1881,7 @@ elif st.session_state.perfil == "admin":
 
                 with st.expander("Ver JSON bruto", expanded=False):
                     st.json(dados)
-                    
+
                 # ---------- HISTÓRICO DE VERSÕES (expander, antes dos botões) ----------
                 with st.expander("Histórico de versões", expanded=False):
                     versoes = listar_versoes(doc['id'])
