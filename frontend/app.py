@@ -27,6 +27,35 @@ API_URL = get_api_url()
 PROCESSOS = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
 DATASOURCE_OPTIONS = ["Medido", "Calculado", "Estimado", "Literatura"]
 
+# ============================================================
+# FUNÇÃO PARA FORMATAR DATA/HORA
+# ============================================================
+def formatar_data_hora(data_str):
+    """
+    Converte uma string de data/hora para formato DD/MM/AAAA HH:MM.
+    Exemplo: "2026-07-16 14:30:45" -> "16/07/2026 14:30"
+    """
+    if not data_str:
+        return ""
+    try:
+        # Se já for um objeto datetime
+        if isinstance(data_str, datetime):
+            return data_str.strftime("%d/%m/%Y %H:%M")
+        
+        # Tentar diferentes formatos
+        formatos = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"]
+        for fmt in formatos:
+            try:
+                dt = datetime.strptime(str(data_str), fmt)
+                return dt.strftime("%d/%m/%Y %H:%M")
+            except ValueError:
+                continue
+        
+        # Se nenhum formato funcionar, devolver a string original
+        return str(data_str)
+    except Exception:
+        return str(data_str)
+
 # Configuração da página
 st.set_page_config(
     page_title="Plataforma Documentos",
@@ -645,7 +674,6 @@ def render_lca_processes(data_key, prefix=""):
         items = st.session_state[data_key]["lca"]["processes"][proc]
         
         if not items:
-            # CORRIGIDO: datasource começa vazio para mostrar placeholder
             items.append({"tipo": "Energy Consumption (kWh)", "qty": "", "unit": "", "description": "", "comments": "", "datasource": ""})
             items.append({"tipo": "Rate Power of the Equipment (W)", "qty": "", "unit": "", "description": "", "comments": "", "datasource": ""})
             items.append({"tipo": "Operating Time (h)", "qty": "", "unit": "", "description": "", "comments": "", "datasource": ""})
@@ -690,7 +718,6 @@ def render_lca_processes(data_key, prefix=""):
             col1, col2 = st.columns(2)
             with col1:
                 if st.button(f"➕ Adicionar processo (3 linhas) - {proc}", key=f"{prefix}add_lca_proc_{proc}"):
-                    # CORRIGIDO: datasource começa vazio
                     items.append({"tipo": "Energy Consumption (kWh)", "qty": "", "unit": "", "description": "", "comments": "", "datasource": ""})
                     items.append({"tipo": "Rate Power of the Equipment (W)", "qty": "", "unit": "", "description": "", "comments": "", "datasource": ""})
                     items.append({"tipo": "Operating Time (h)", "qty": "", "unit": "", "description": "", "comments": "", "datasource": ""})
@@ -1032,20 +1059,16 @@ with st.sidebar:
     if st.session_state.token is not None:
         try:
             count = get_notificacoes_nao_lidas()
-            
-            # ---------- CORREÇÃO: Texto com plural ----------
             if count > 0:
                 if count == 1:
-                    notif_text = f"🔔 {count} notificação não lida"
+                    st.warning(f"🔔 {count} notificação não lida")
                 else:
-                    notif_text = f"🔔 {count} notificações não lidas"
-                st.warning(notif_text)
+                    st.warning(f"🔔 {count} notificações não lidas")
             else:
                 st.info("🔔 Sem notificações")
         except:
             pass
     
-    st.divider()
     st.divider()
     
     if st.button("📊 Dashboard", use_container_width=True, key="app_dashboard"):
@@ -1227,6 +1250,14 @@ if st.session_state.perfil == "parceiro":
                 elif doc['estado'] == "Arquivado":
                     st.warning("Documento arquivado (apenas consulta).")
 
+                with st.expander("Histórico de versões"):
+                    versoes = listar_versoes(doc['id'])
+                    for v in versoes:
+                        data_formatada = formatar_data_hora(v['created_at'])
+                        st.write(f"v{v['numero_versao']} - {v['estado']} por {v['criado_por']} em {data_formatada}")
+                        if v['comentario']:
+                            st.caption(f"  Comentário: {v['comentario']}")
+
                 with st.expander("📥 Exportar histórico"):
                     if st.button("Exportar versões para Excel (completo)", key="parceiro_exportar_excel"):
                         conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
@@ -1237,13 +1268,6 @@ if st.session_state.perfil == "parceiro":
                                 file_name=filename,
                                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                             )
-
-                with st.expander("Histórico de versões"):
-                    versoes = listar_versoes(doc['id'])
-                    for v in versoes:
-                        st.write(f"v{v['numero_versao']} - {v['estado']} por {v['criado_por']} em {v['created_at']}")
-                        if v['comentario']:
-                            st.caption(f"  Comentário: {v['comentario']}")
 
                 if st.button("Fechar detalhes", key="parceiro_fechar_detalhes"):
                     st.session_state.doc_selecionado = None
@@ -1393,7 +1417,8 @@ elif st.session_state.perfil == "empresa":
             with st.expander("Histórico de versões"):
                 versoes = listar_versoes(doc['id'])
                 for v in versoes:
-                    st.write(f"v{v['numero_versao']} - {v['estado']} ({v['criado_por']})")
+                    data_formatada = formatar_data_hora(v['created_at'])
+                    st.write(f"v{v['numero_versao']} - {v['estado']} ({v['criado_por']}) em {data_formatada}")
                     if v['comentario']:
                         st.caption(f"  Comentário: {v['comentario']}")
 
@@ -1427,7 +1452,7 @@ elif st.session_state.perfil == "admin":
         if resp.status_code == 200:
             users = resp.json()
             if users:
-                # ---------- CORREÇÃO: Capitalizar os perfis ----------
+                # Capitalizar os perfis
                 for user in users:
                     if user["perfil"] == "empresa":
                         user["perfil"] = "Empresa"
@@ -1738,13 +1763,15 @@ elif st.session_state.perfil == "admin":
                 with st.expander("Histórico de versões"):
                     versoes = listar_versoes(doc['id'])
                     for v in versoes:
-                        st.write(f"v{v['numero_versao']} - {v['estado']} ({v['criado_por']})")
+                        data_formatada = formatar_data_hora(v['created_at'])
+                        st.write(f"v{v['numero_versao']} - {v['estado']} ({v['criado_por']}) em {data_formatada}")
                         if v['comentario']:
                             st.caption(f"  Comentário: {v['comentario']}")
 
                 if st.button("Fechar detalhes", key="admin_fechar_detalhes"):
                     st.session_state.doc_selecionado = None
                     st.rerun()
+
 # ============================================================
 # GARANTIR QUE O CLOSE_DOC_AFTER_ACTION É PROCESSADO
 # ============================================================
