@@ -33,7 +33,7 @@ DATASOURCE_OPTIONS = ["Medido", "Calculado", "Estimado", "Literatura"]
 def formatar_data_hora(data_str):
     """
     Converte uma string de data/hora para formato DD/MM/AAAA HH:MM.
-    Exemplo: "2026-07-16 14:30:45" -> "16/07/2026 14:30"
+    Exemplo: "2026-07-16T14:30:45.856282Z" -> "16/07/2026 14:30"
     """
     if not data_str:
         return ""
@@ -42,20 +42,32 @@ def formatar_data_hora(data_str):
         if isinstance(data_str, datetime):
             return data_str.strftime("%d/%m/%Y %H:%M")
         
-        # Tentar diferentes formatos
-        formatos = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"]
+        # Converter para string se necessário
+        data_str = str(data_str)
+        
+        # Remover o sufixo Z (UTC) e substituir T por espaço
+        data_str = data_str.replace('Z', '').replace('T', ' ')
+        
+        # Tentar diferentes formatos (com e sem microssegundos)
+        formatos = [
+            "%Y-%m-%d %H:%M:%S.%f",  # com microssegundos
+            "%Y-%m-%d %H:%M:%S",      # sem microssegundos
+            "%Y-%m-%d %H:%M",         # sem segundos
+            "%Y-%m-%d"                # só data
+        ]
+        
         for fmt in formatos:
             try:
-                dt = datetime.strptime(str(data_str), fmt)
+                dt = datetime.strptime(data_str, fmt)
                 return dt.strftime("%d/%m/%Y %H:%M")
             except ValueError:
                 continue
         
         # Se nenhum formato funcionar, devolver a string original
-        return str(data_str)
+        return data_str
     except Exception:
         return str(data_str)
-
+    
 # Configuração da página
 st.set_page_config(
     page_title="Plataforma Documentos",
