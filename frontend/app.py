@@ -28,11 +28,12 @@ PROCESSOS = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave dig
 DATASOURCE_OPTIONS = ["Medido", "Calculado", "Estimado", "Literatura"]
 
 # ============================================================
-# FUNÇÃO PARA FORMATAR DATA/HORA
+# FUNÇÃO PARA FORMATAR DATA/HORA - CORRIGIDA PARA ISO 8601
 # ============================================================
 def formatar_data_hora(data_str):
     """
     Converte uma string de data/hora para formato DD/MM/AAAA HH:MM.
+    Suporta formatos ISO 8601 com T e Z.
     Exemplo: "2026-07-16T14:30:45.856282Z" -> "16/07/2026 14:30"
     """
     if not data_str:
@@ -67,7 +68,7 @@ def formatar_data_hora(data_str):
         return data_str
     except Exception:
         return str(data_str)
-    
+
 # Configuração da página
 st.set_page_config(
     page_title="Plataforma Documentos",
@@ -756,7 +757,7 @@ def render_lca_outputs(data_key, prefix=""):
                 with col1:
                     item["etapa"] = st.text_input("Etapa (ex: Demagnetisation)", item.get("etapa",""), key=f"{prefix}lca_out_{proc}_etapa_{i}")
                     
-                    # ---------- CORREÇÃO: Tipo com placeholder ----------
+                    # Tipo com placeholder
                     tipo_atual = item.get("tipo", "")
                     if tipo_atual in ["Subproduct", "Emissions", "Waste"]:
                         tipo_index = ["Subproduct", "Emissions", "Waste"].index(tipo_atual)
@@ -983,7 +984,7 @@ def render_lcc_outputs(data_key, prefix=""):
                 if items and st.button(f"🗑️ Remover último output LCC - {proc}", key=f"{prefix}rem_lcc_out_{proc}"):
                     items.pop()
                     st.rerun()
-                    
+
 def render_full_form(data_key, prefix=""):
     if st.session_state[data_key] is None:
         st.session_state[data_key] = {
@@ -1235,9 +1236,10 @@ if st.session_state.perfil == "parceiro":
                     if st.session_state.edit_data is None:
                         st.session_state.edit_data = ensure_new_structure(safe_copy(dados))
                     render_full_form("edit_data", prefix="edit_")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        if st.button("💾 Guardar alterações", key="parceiro_save_edit"):
+                    
+                    col_btn1, col_btn2, col_btn3 = st.columns(3)
+                    with col_btn1:
+                        if st.button("💾 Guardar", key="parceiro_save_edit", use_container_width=True):
                             novos_dados = st.session_state.edit_data
                             resultado = editar_documento(doc['id'], novos_dados)
                             if resultado:
@@ -1246,8 +1248,8 @@ if st.session_state.perfil == "parceiro":
                                 st.session_state.close_doc_after_action = True
                                 st.success("Documento atualizado com sucesso!")
                                 st.rerun()
-                    with col2:
-                        if st.button("📤 Submeter para validação", key="parceiro_submeter"):
+                    with col_btn2:
+                        if st.button("📤 Submeter", key="parceiro_submeter", use_container_width=True):
                             novos_dados = st.session_state.edit_data
                             resultado_edicao = editar_documento(doc['id'], novos_dados)
                             if resultado_edicao:
@@ -1258,6 +1260,11 @@ if st.session_state.perfil == "parceiro":
                                     st.session_state.close_doc_after_action = True
                                     st.success("Documento submetido!")
                                     st.rerun()
+                    with col_btn3:
+                        if st.button("❌ Fechar", key="parceiro_fechar_detalhes", use_container_width=True):
+                            st.session_state.doc_selecionado = None
+                            st.session_state.edit_data = None
+                            st.rerun()
                 elif doc['estado'] == "Alterações":
                     st.warning("A empresa pediu alterações. Vê os comentários abaixo.")
                     versoes = listar_versoes(doc['id'])
@@ -1275,29 +1282,39 @@ if st.session_state.perfil == "parceiro":
                 elif doc['estado'] == "Arquivado":
                     st.warning("Documento arquivado (apenas consulta).")
 
-                with st.expander("Histórico de versões"):
-                    versoes = listar_versoes(doc['id'])
+                # Botões de ação para estados que não são Rascunho
+                if doc['estado'] != "Rascunho":
+                    col_btn1, col_btn2, col_btn3 = st.columns(3)
+                    with col_btn2:
+                        if st.button("📥 Exportar Histórico", key="parceiro_exportar_historico", use_container_width=True):
+                            conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
+                            if conteudo:
+                                st.download_button(
+                                    label="Descarregar Excel",
+                                    data=conteudo,
+                                    file_name=filename,
+                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                    key="parceiro_download_excel"
+                                )
+                    with col_btn3:
+                        if st.button("❌ Fechar", key="parceiro_fechar_detalhes", use_container_width=True):
+                            st.session_state.doc_selecionado = None
+                            st.session_state.edit_data = None
+                            st.rerun()
+
+                st.markdown("---")
+
+                # ---------- HISTÓRICO DE VERSÕES (sempre visível) ----------
+                st.subheader("📜 Histórico de versões")
+                versoes = listar_versoes(doc['id'])
+                if versoes:
                     for v in versoes:
                         data_formatada = formatar_data_hora(v['created_at'])
                         st.write(f"v{v['numero_versao']} - {v['estado']} por {v['criado_por']} em {data_formatada}")
                         if v['comentario']:
                             st.caption(f"  Comentário: {v['comentario']}")
-
-                with st.expander("📥 Exportar histórico"):
-                    if st.button("Exportar versões para Excel (completo)", key="parceiro_exportar_excel"):
-                        conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
-                        if conteudo:
-                            st.download_button(
-                                label="Clique para descarregar o ficheiro",
-                                data=conteudo,
-                                file_name=filename,
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                            )
-
-                if st.button("Fechar detalhes", key="parceiro_fechar_detalhes"):
-                    st.session_state.doc_selecionado = None
-                    st.session_state.edit_data = None
-                    st.rerun()
+                else:
+                    st.info("Sem histórico disponível.")
 
 # ---------- Área da Empresa ----------
 elif st.session_state.perfil == "empresa":
@@ -1389,67 +1406,82 @@ elif st.session_state.perfil == "empresa":
             with st.expander("Ver JSON bruto", expanded=False):
                 st.json(dados)
 
+            # ---------- BOTÕES DE AÇÃO (lado a lado) ----------
+            col_btn1, col_btn2, col_btn3 = st.columns(3)
+
+            # Botão 1: Ação principal (depende do estado)
             if doc['estado'] == "Submetido":
-                if st.button("Iniciar revisão", key="empresa_iniciar_revisao"):
-                    if iniciar_revisao(doc['id']):
-                        st.rerun()
+                with col_btn1:
+                    if st.button("📋 Iniciar revisão", key="empresa_iniciar_revisao", use_container_width=True):
+                        if iniciar_revisao(doc['id']):
+                            st.rerun()
             elif doc['estado'] == "Em Revisão":
                 comentario = st.text_area("Comentário (obrigatório se pedir alterações)", key="empresa_comentario")
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button("✅ Aprovar", key="empresa_aprovar"):
+                col_aprov, col_alt = st.columns(2)
+                with col_aprov:
+                    if st.button("✅ Aprovar", key="empresa_aprovar", use_container_width=True):
                         if aprovar(doc['id']):
                             st.rerun()
-                with col2:
-                    if st.button("🔄 Pedir alterações", key="empresa_pedir_alteracoes"):
+                with col_alt:
+                    if st.button("🔄 Pedir alterações", key="empresa_pedir_alteracoes", use_container_width=True):
                         if not comentario.strip():
                             st.error("É necessário um comentário para pedir alterações")
                         else:
                             if pedir_alteracoes(doc['id'], comentario):
                                 st.rerun()
             elif doc['estado'] == "Aprovado":
-                st.success("Documento aprovado.")
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button("Reabrir para nova edição", key="empresa_reabrir"):
+                with col_btn1:
+                    if st.button("📂 Reabrir", key="empresa_reabrir", use_container_width=True):
                         if reabrir(doc['id']):
                             st.rerun()
-                with col2:
-                    if st.button("📁 Arquivar documento", key="empresa_arquivar"):
+                with col_btn2:
+                    if st.button("📁 Arquivar", key="empresa_arquivar", use_container_width=True):
                         if arquivar(doc['id']):
                             st.rerun()
             elif doc['estado'] == "Rascunho":
-                st.info("O parceiro ainda está a editar.")
-                if st.button("📁 Arquivar documento (rascunho)", key="empresa_arquivar_rascunho"):
-                    if arquivar(doc['id']):
-                        st.rerun()
+                with col_btn1:
+                    if st.button("📁 Arquivar (rascunho)", key="empresa_arquivar_rascunho", use_container_width=True):
+                        if arquivar(doc['id']):
+                            st.rerun()
             elif doc['estado'] == "Alterações":
-                st.warning("Aguardando o parceiro iniciar a edição.")
+                with col_btn1:
+                    st.info("Aguardando o parceiro editar novamente.")
             elif doc['estado'] == "Arquivado":
-                st.warning("Documento arquivado (apenas consulta).")
+                with col_btn1:
+                    st.warning("Documento arquivado (apenas consulta).")
 
-            with st.expander("📥 Exportar histórico"):
-                if st.button("Exportar versões para Excel (completo)", key="empresa_exportar_excel"):
+            # Botão 2: Exportar Histórico (sempre visível)
+            with col_btn2:
+                if st.button("📥 Exportar Histórico", key="empresa_exportar_historico", use_container_width=True):
                     conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
                     if conteudo:
                         st.download_button(
-                            label="Clique para descarregar o ficheiro",
+                            label="Descarregar Excel",
                             data=conteudo,
                             file_name=filename,
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            key="empresa_download_excel"
                         )
 
-            with st.expander("Histórico de versões"):
-                versoes = listar_versoes(doc['id'])
+            # Botão 3: Fechar detalhes (sempre visível)
+            with col_btn3:
+                if st.button("❌ Fechar detalhes", key="empresa_fechar_detalhes", use_container_width=True):
+                    st.session_state.doc_selecionado = None
+                    st.rerun()
+
+            st.markdown("---")
+
+            # ---------- HISTÓRICO DE VERSÕES (sempre visível) ----------
+            st.subheader("📜 Histórico de versões")
+            versoes = listar_versoes(doc['id'])
+            if versoes:
                 for v in versoes:
                     data_formatada = formatar_data_hora(v['created_at'])
                     st.write(f"v{v['numero_versao']} - {v['estado']} ({v['criado_por']}) em {data_formatada}")
                     if v['comentario']:
                         st.caption(f"  Comentário: {v['comentario']}")
-
-            if st.button("Fechar detalhes", key="empresa_fechar_detalhes"):
-                st.session_state.doc_selecionado = None
-                st.rerun()
+            else:
+                st.info("Sem histórico disponível.")
 
 # ---------- Área do Admin ----------
 elif st.session_state.perfil == "admin":
@@ -1735,67 +1767,82 @@ elif st.session_state.perfil == "admin":
                 with st.expander("Ver JSON bruto", expanded=False):
                     st.json(dados)
 
+                # ---------- BOTÕES DE AÇÃO (lado a lado) - Admin ----------
+                col_btn1, col_btn2, col_btn3 = st.columns(3)
+
+                # Botão 1: Ação principal (depende do estado)
                 if doc['estado'] == "Submetido":
-                    if st.button("Iniciar revisão", key="admin_iniciar_revisao"):
-                        if iniciar_revisao(doc['id']):
-                            st.rerun()
+                    with col_btn1:
+                        if st.button("📋 Iniciar revisão", key="admin_iniciar_revisao", use_container_width=True):
+                            if iniciar_revisao(doc['id']):
+                                st.rerun()
                 elif doc['estado'] == "Em Revisão":
                     comentario = st.text_area("Comentário (obrigatório se pedir alterações)", key="admin_comentario")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        if st.button("✅ Aprovar", key="admin_aprovar"):
+                    col_aprov, col_alt = st.columns(2)
+                    with col_aprov:
+                        if st.button("✅ Aprovar", key="admin_aprovar", use_container_width=True):
                             if aprovar(doc['id']):
                                 st.rerun()
-                    with col2:
-                        if st.button("🔄 Pedir alterações", key="admin_pedir_alteracoes"):
+                    with col_alt:
+                        if st.button("🔄 Pedir alterações", key="admin_pedir_alteracoes", use_container_width=True):
                             if not comentario.strip():
                                 st.error("É necessário um comentário para pedir alterações")
                             else:
                                 if pedir_alteracoes(doc['id'], comentario):
                                     st.rerun()
                 elif doc['estado'] == "Aprovado":
-                    st.success("Documento aprovado.")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        if st.button("Reabrir para nova edição", key="admin_reabrir"):
+                    with col_btn1:
+                        if st.button("📂 Reabrir", key="admin_reabrir", use_container_width=True):
                             if reabrir(doc['id']):
                                 st.rerun()
-                    with col2:
-                        if st.button("📁 Arquivar documento", key="admin_arquivar"):
+                    with col_btn2:
+                        if st.button("📁 Arquivar", key="admin_arquivar", use_container_width=True):
                             if arquivar(doc['id']):
                                 st.rerun()
                 elif doc['estado'] == "Rascunho":
-                    st.info("O parceiro ainda está a editar.")
-                    if st.button("📁 Arquivar documento (rascunho)", key="admin_arquivar_rascunho"):
-                        if arquivar(doc['id']):
-                            st.rerun()
+                    with col_btn1:
+                        if st.button("📁 Arquivar (rascunho)", key="admin_arquivar_rascunho", use_container_width=True):
+                            if arquivar(doc['id']):
+                                st.rerun()
                 elif doc['estado'] == "Alterações":
-                    st.warning("Aguardando o parceiro iniciar a edição.")
+                    with col_btn1:
+                        st.info("Aguardando o parceiro editar novamente.")
                 elif doc['estado'] == "Arquivado":
-                    st.warning("Documento arquivado (apenas consulta).")
+                    with col_btn1:
+                        st.warning("Documento arquivado (apenas consulta).")
 
-                with st.expander("📥 Exportar histórico"):
-                    if st.button("Exportar versões para Excel (completo)", key="admin_exportar_excel"):
+                # Botão 2: Exportar Histórico (sempre visível)
+                with col_btn2:
+                    if st.button("📥 Exportar Histórico", key="admin_exportar_historico", use_container_width=True):
                         conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
                         if conteudo:
                             st.download_button(
-                                label="Clique para descarregar o ficheiro",
+                                label="Descarregar Excel",
                                 data=conteudo,
                                 file_name=filename,
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                key="admin_download_excel"
                             )
 
-                with st.expander("Histórico de versões"):
-                    versoes = listar_versoes(doc['id'])
+                # Botão 3: Fechar detalhes (sempre visível)
+                with col_btn3:
+                    if st.button("❌ Fechar detalhes", key="admin_fechar_detalhes", use_container_width=True):
+                        st.session_state.doc_selecionado = None
+                        st.rerun()
+
+                st.markdown("---")
+
+                # ---------- HISTÓRICO DE VERSÕES (sempre visível) ----------
+                st.subheader("📜 Histórico de versões")
+                versoes = listar_versoes(doc['id'])
+                if versoes:
                     for v in versoes:
                         data_formatada = formatar_data_hora(v['created_at'])
                         st.write(f"v{v['numero_versao']} - {v['estado']} ({v['criado_por']}) em {data_formatada}")
                         if v['comentario']:
                             st.caption(f"  Comentário: {v['comentario']}")
-
-                if st.button("Fechar detalhes", key="admin_fechar_detalhes"):
-                    st.session_state.doc_selecionado = None
-                    st.rerun()
+                else:
+                    st.info("Sem histórico disponível.")
 
 # ============================================================
 # GARANTIR QUE O CLOSE_DOC_AFTER_ACTION É PROCESSADO
