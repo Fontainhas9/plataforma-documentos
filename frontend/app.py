@@ -463,8 +463,9 @@ def listar_versoes(doc_id):
         return resp.json()
     return []
 
+# ---------- FUNÇÃO DE EXPORTAÇÃO CORRIGIDA ----------
 def exportar_excel(doc_id, titulo):
-    """Exporta o documento para Excel com o nome do documento."""
+    """Exporta o documento para Excel e retorna o conteúdo e nome do ficheiro."""
     resp = requests.get(f"{API_URL}/documentos/{doc_id}/exportar-excel", headers=headers_auth())
     if resp.status_code == 200:
         content = resp.content
@@ -1263,7 +1264,7 @@ if st.session_state.perfil == "parceiro":
                             st.rerun()
 
                 else:
-                    # Para os outros estados (Submetido, Em Revisão, Alterações, Aprovado, Arquivado)
+                    # Para os outros estados
                     col_btn1, col_btn2, col_btn3 = st.columns(3)
                     
                     if doc['estado'] == "Alterações":
@@ -1287,17 +1288,18 @@ if st.session_state.perfil == "parceiro":
                         with col_btn1:
                             st.warning("Documento arquivado (apenas consulta).")
                     
+                    # ---------- EXPORTAR HISTÓRICO COM DOWNLOAD AUTOMÁTICO ----------
                     with col_btn2:
-                        if st.button("Exportar Histórico", key="parceiro_exportar_historico", use_container_width=True):
-                            conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
-                            if conteudo:
-                                st.download_button(
-                                    label="Descarregar Excel",
-                                    data=conteudo,
-                                    file_name=filename,
-                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                    key="parceiro_download_excel"
-                                )
+                        conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
+                        if conteudo:
+                            st.download_button(
+                                label="Exportar Histórico",
+                                data=conteudo,
+                                file_name=filename,
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                key=f"download_parceiro_{doc['id']}_{st.session_state.refresh_counter}",
+                                use_container_width=True
+                            )
                     
                     with col_btn3:
                         if st.button("Fechar", key="parceiro_fechar_detalhes", use_container_width=True):
@@ -1307,7 +1309,7 @@ if st.session_state.perfil == "parceiro":
 
                 st.markdown("---")
 
-                # ---------- HISTÓRICO DE VERSÕES (depois dos botões) ----------
+                # ---------- HISTÓRICO DE VERSÕES ----------
                 with st.expander("Histórico de versões", expanded=False):
                     versoes = listar_versoes(doc['id'])
                     if versoes:
@@ -1454,17 +1456,18 @@ elif st.session_state.perfil == "empresa":
                 with col_btn1:
                     st.warning("Documento arquivado (apenas consulta).")
 
+            # ---------- EXPORTAR HISTÓRICO COM DOWNLOAD AUTOMÁTICO ----------
             with col_btn2:
-                if st.button("Exportar Histórico", key="empresa_exportar_historico", use_container_width=True):
-                    conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
-                    if conteudo:
-                        st.download_button(
-                            label="Descarregar Excel",
-                            data=conteudo,
-                            file_name=filename,
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            key="empresa_download_excel"
-                        )
+                conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
+                if conteudo:
+                    st.download_button(
+                        label="Exportar Histórico",
+                        data=conteudo,
+                        file_name=filename,
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        key=f"download_empresa_{doc['id']}_{st.session_state.refresh_counter}",
+                        use_container_width=True
+                    )
 
             with col_btn3:
                 if st.button("Fechar detalhes", key="empresa_fechar_detalhes", use_container_width=True):
@@ -1473,7 +1476,7 @@ elif st.session_state.perfil == "empresa":
 
             st.markdown("---")
 
-            # ---------- HISTÓRICO DE VERSÕES (depois dos botões) ----------
+            # ---------- HISTÓRICO DE VERSÕES ----------
             with st.expander("Histórico de versões", expanded=False):
                 versoes = listar_versoes(doc['id'])
                 if versoes:
@@ -1511,7 +1514,6 @@ elif st.session_state.perfil == "admin":
         if resp.status_code == 200:
             users = resp.json()
             if users:
-                # Capitalizar os perfis
                 for user in users:
                     if user["perfil"] == "empresa":
                         user["perfil"] = "Empresa"
@@ -1814,17 +1816,18 @@ elif st.session_state.perfil == "admin":
                     with col_btn1:
                         st.warning("Documento arquivado (apenas consulta).")
 
+                # ---------- EXPORTAR HISTÓRICO COM DOWNLOAD AUTOMÁTICO ----------
                 with col_btn2:
-                    if st.button("Exportar Histórico", key="admin_exportar_historico", use_container_width=True):
-                        conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
-                        if conteudo:
-                            st.download_button(
-                                label="Descarregar Excel",
-                                data=conteudo,
-                                file_name=filename,
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                key="admin_download_excel"
-                            )
+                    conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
+                    if conteudo:
+                        st.download_button(
+                            label="Exportar Histórico",
+                            data=conteudo,
+                            file_name=filename,
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            key=f"download_admin_{doc['id']}_{st.session_state.refresh_counter}",
+                            use_container_width=True
+                        )
 
                 with col_btn3:
                     if st.button("Fechar detalhes", key="admin_fechar_detalhes", use_container_width=True):
@@ -1833,7 +1836,7 @@ elif st.session_state.perfil == "admin":
 
                 st.markdown("---")
 
-                # ---------- HISTÓRICO DE VERSÕES (depois dos botões) ----------
+                # ---------- HISTÓRICO DE VERSÕES ----------
                 with st.expander("Histórico de versões", expanded=False):
                     versoes = listar_versoes(doc['id'])
                     if versoes:
