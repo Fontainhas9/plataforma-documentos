@@ -1898,8 +1898,6 @@ elif st.session_state.perfil == "admin":
                     else:
                         st.info("Sem histórico disponível.")
 
-                st.markdown("---")
-
 # ============================================================
 # GARANTIR QUE O CLOSE_DOC_AFTER_ACTION É PROCESSADO
 # ============================================================
