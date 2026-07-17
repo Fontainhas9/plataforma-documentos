@@ -1905,13 +1905,28 @@ elif st.session_state.perfil == "admin":
                 df = pd.DataFrame(users)
                 if "created_at" in df.columns:
                     df["created_at"] = pd.to_datetime(df["created_at"]).dt.strftime("%d/%m/%Y %H:%M")
-                cols_disponiveis = df.columns.tolist()
+                
+                # Definir as colunas que queremos mostrar
                 colunas_desejadas = ["username", "perfil", "nome_completo", "idioma", "created_at"]
-                colunas_existentes = [col for col in colunas_desejadas if col in cols_disponiveis]
-                df = df[colunas_existentes]
-                df.columns = [t("username"), t("profile"), t("full_name"), t("language"), t("created_at")]
-                st.dataframe(df, use_container_width=True, hide_index=True)
-
+                # Verificar quais colunas existem no DataFrame
+                colunas_existentes = [col for col in colunas_desejadas if col in df.columns]
+                
+                if colunas_existentes:
+                    df = df[colunas_existentes]
+                    # Criar mapping para os nomes das colunas
+                    column_mapping = {
+                        "username": t("username"),
+                        "perfil": t("profile"),
+                        "nome_completo": t("full_name"),
+                        "idioma": t("language"),
+                        "created_at": t("created_at")
+                    }
+                    # Renomear apenas as colunas que existem
+                    df = df.rename(columns={col: column_mapping[col] for col in colunas_existentes if col in column_mapping})
+                    st.dataframe(df, use_container_width=True, hide_index=True)
+                else:
+                    st.info(t("no_documents"))
+                
                 st.divider()
                 
                 st.subheader(t("manage_user"))
@@ -1929,7 +1944,8 @@ elif st.session_state.perfil == "admin":
                 if sel_user:
                     user_data = next((u for u in users if u["username"] == sel_user), None)
                     if user_data:
-                        st.info(f"**{t('username')}:** {user_data['username']} | **{t('profile')}:** {user_data['perfil']} | **{t('full_name')}:** {user_data['nome_completo']} | **{t('language')}:** {user_data.get('idioma', 'pt')}")
+                        idioma_display = "Português" if user_data.get("idioma") == "pt" else "Inglês" if user_data.get("idioma") == "en" else user_data.get("idioma", "pt")
+                        st.info(f"**{t('username')}:** {user_data['username']} | **{t('profile')}:** {user_data['perfil']} | **{t('full_name')}:** {user_data['nome_completo']} | **{t('language')}:** {idioma_display}")
                     
                     st.subheader(t("change_password"))
                     pw_key = f"admin_pw_input_{st.session_state.pw_input_counter}"
