@@ -44,7 +44,7 @@ from notificacoes import (
 )
 
 # Importar traduções
-from translations import TRANSLATIONS, get_translation, get_datasource_options
+from frontend.translations import TRANSLATIONS, get_translation, get_datasource_options
 
 # Criar tabelas (se não existirem)
 Base.metadata.create_all(bind=engine)
