@@ -1553,8 +1553,10 @@ elif st.session_state.perfil == "admin":
                         placeholder="Insira a nova password..."
                     )
                     
-                    col1, col2 = st.columns(2)
-                    with col1:
+                    # ---------- CORREÇÃO: 3 botões na mesma linha ----------
+                    col_btn1, col_btn2, col_btn3 = st.columns(3)
+                    
+                    with col_btn1:
                         if st.button("Alterar password", key="btn_alterar_pw", use_container_width=True):
                             if not sel_user:
                                 st.warning("Selecione um utilizador.")
@@ -1579,8 +1581,7 @@ elif st.session_state.perfil == "admin":
                                         erro = resp_pw.text
                                     st.error(f"Erro ao alterar password: {erro}")
                     
-                    
-                    with col2:
+                    with col_btn2:
                         if st.button("Eliminar utilizador", key="btn_eliminar_user", use_container_width=True):
                             if not sel_user:
                                 st.warning("Selecione um utilizador.")
@@ -1601,6 +1602,11 @@ elif st.session_state.perfil == "admin":
                                         except:
                                             erro = resp_del.text
                                         st.error(f"Erro ao eliminar: {erro}")
+                    
+                    with col_btn3:
+                        if st.button("Fechar", key="admin_fechar_gerir_user", use_container_width=True):
+                            st.session_state.doc_selecionado = None
+                            st.rerun()
                 
                 if st.session_state.show_create_user_form:
                     st.divider()
@@ -1834,7 +1840,7 @@ elif st.session_state.perfil == "admin":
                                 st.caption(f"  Comentário: {v['comentario']}")
                     else:
                         st.info("Sem histórico disponível.")
-
+                        
 # ============================================================
 # GARANTIR QUE O CLOSE_DOC_AFTER_ACTION É PROCESSADO
 # ============================================================
