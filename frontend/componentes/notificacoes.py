@@ -1,11 +1,19 @@
+# frontend/componentes/notificacoes.py
 import streamlit as st
 import requests
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from app import get_text, get_language, get_api_url, headers_auth
+from translations import get_text, get_language, get_api_url
 
 API_URL = get_api_url()
+
+def headers_auth():
+    """Obtém os headers de autenticação."""
+    token = st.session_state.get("token")
+    if token:
+        return {"Authorization": f"Bearer {token}"}
+    return {}
 
 def get_notificacoes_nao_lidas():
     """Obtém o número de notificações não lidas."""
@@ -25,11 +33,6 @@ def render_notificacoes_badge():
         return
     
     count = get_notificacoes_nao_lidas()
-    
-    if count == 1:
-        badge_text = f"{count} {get_text('unread_notifications_sidebar')}"
-    else:
-        badge_text = f"{count} {get_text('unread_notifications_sidebar')}"    
     
     st.markdown("""
     <style>

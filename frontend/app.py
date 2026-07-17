@@ -1,3 +1,4 @@
+# frontend/app.py
 import streamlit as st
 import requests
 import pandas as pd
@@ -7,133 +8,15 @@ import os
 import json
 
 # ============================================================
-# CONFIGURAÇÃO DA API_URL - FUNCIONA EM LOCAL E PRODUÇÃO
+# IMPORTAR TRADUÇÕES
 # ============================================================
-def get_api_url():
-    """Retorna a URL da API consoante o ambiente (local ou produção)."""
-    try:
-        if hasattr(st, 'secrets') and st.secrets and 'API_URL' in st.secrets:
-            return st.secrets['API_URL']
-    except Exception:
-        pass
-    
-    api_url = os.getenv('API_URL')
-    if api_url:
-        return api_url
-    
-    return "http://127.0.0.1:8000"
+from translations import (
+    get_text, get_language, set_language, get_api_url, 
+    get_datasource_options, translate_estado, translate_perfil,
+    load_translations
+)
 
 API_URL = get_api_url()
-
-# ============================================================
-# CONFIGURAÇÃO DE IDIOMA
-# ============================================================
-def get_available_languages():
-    return {
-        "pt": {"flag": "🇵🇹", "name": "Português"},
-        "en": {"flag": "🇬🇧", "name": "English"}
-    }
-
-def get_language():
-    """Obtém o idioma atual da sessão."""
-    if "language" not in st.session_state:
-        try:
-            browser_lang = st.query_params.get("lang", "pt")
-            if browser_lang in ["pt", "en"]:
-                st.session_state.language = browser_lang
-            else:
-                st.session_state.language = "pt"
-        except:
-            st.session_state.language = "pt"
-    return st.session_state.language
-
-def set_language(lang):
-    """Define o idioma e recarrega a página."""
-    if lang in ["pt", "en"]:
-        st.session_state.language = lang
-        st.query_params["lang"] = lang
-        st.rerun()
-
-def load_translations():
-    """Carrega as traduções da API."""
-    lang = get_language()
-    try:
-        response = requests.get(f"{API_URL}/translations?lang={lang}")
-        if response.status_code == 200:
-            return response.json()
-    except Exception as e:
-        print(f"Erro ao carregar traduções: {e}")
-    
-    # Fallback básico
-    if lang == "en":
-        return {
-            "app_title": "Document Management Platform",
-            "login": "Login",
-            "username": "Username",
-            "password": "Password",
-            "login_button": "Login",
-            "logout": "Logout",
-            "dashboard": "Dashboard",
-            "notifications": "Notifications",
-            "back": "← Back",
-            "parceiro": "Partner",
-            "empresa": "Company",
-            "admin": "Administrator",
-        }
-    else:
-        return {
-            "app_title": "Plataforma de Gestão de Documentos",
-            "login": "Login",
-            "username": "Utilizador",
-            "password": "Palavra-passe",
-            "login_button": "Entrar",
-            "logout": "Sair",
-            "dashboard": "Painel de Controlo",
-            "notifications": "Notificações",
-            "back": "← Voltar",
-            "parceiro": "Parceiro",
-            "empresa": "Empresa",
-            "admin": "Administrador",
-        }
-
-def get_text(key, default=None):
-    """Obtém um texto traduzido."""
-    if "translations" not in st.session_state:
-        st.session_state.translations = load_translations()
-    
-    if key in st.session_state.translations:
-        return st.session_state.translations[key]
-    
-    return default or key
-
-def get_datasource_options():
-    """Obtém as opções de fonte de dados no idioma atual."""
-    lang = get_language()
-    try:
-        response = requests.get(f"{API_URL}/datasource-options?lang={lang}")
-        if response.status_code == 200:
-            return response.json()
-    except:
-        pass
-    
-    if lang == "en":
-        return ["Measured", "Calculated", "Estimated", "Literature"]
-    return ["Medido", "Calculado", "Estimado", "Literatura"]
-
-def translate_estado(estado):
-    """Traduz um estado de documento."""
-    return get_text(estado, estado)
-
-def translate_perfil(perfil):
-    """Traduz um perfil de utilizador."""
-    return get_text(perfil, perfil)
-
-# Carregar traduções
-if "translations" not in st.session_state:
-    st.session_state.translations = load_translations()
-
-PROCESSOS = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
-DATASOURCE_OPTIONS = get_datasource_options()
 
 # ============================================================
 # FUNÇÃO PARA FORMATAR DATA/HORA
@@ -167,6 +50,13 @@ def formatar_data_hora(data_str):
     except Exception:
         return str(data_str)
 
+# Carregar traduções
+if "translations" not in st.session_state:
+    st.session_state.translations = load_translations()
+
+PROCESSOS = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
+DATASOURCE_OPTIONS = get_datasource_options()
+
 # Configuração da página
 st.set_page_config(
     page_title=get_text("app_title"),
@@ -182,8 +72,6 @@ from componentes.notificacoes import render_notificacoes_badge, get_notificacoes
 # ============================================================
 def render_language_selector():
     """Renderiza o seletor de idioma."""
-    current_lang = get_language()
-    
     st.markdown("""
     <style>
     .language-selector {
@@ -431,6 +319,9 @@ def ensure_new_structure(data):
     return new_data
 
 # ---------- Funções da API ----------
+def headers_auth():
+    return {"Authorization": f"Bearer {st.session_state.token}"}
+
 def login(username, password):
     resp = requests.post(f"{API_URL}/login", data={"username": username, "password": password})
     if resp.status_code == 200:
@@ -459,9 +350,6 @@ def logout():
     st.session_state.new_data = None
     st.session_state.refresh_counter = 0
     st.session_state.ultimo_count = 0
-
-def headers_auth():
-    return {"Authorization": f"Bearer {st.session_state.token}"}
 
 def listar_documentos(estado=None):
     params = {}
@@ -631,16 +519,6 @@ def exportar_excel(doc_id, titulo):
         st.error(f"{get_text('error_exporting')}: {erro}")
         return None, None
 
-# ---------- Função para obter notificações ----------
-def get_notificacoes_nao_lidas():
-    try:
-        resp = requests.get(f"{API_URL}/notificacoes/nao-lidas", headers=headers_auth())
-        if resp.status_code == 200:
-            return resp.json().get("count", 0)
-    except Exception as e:
-        print(f"Erro ao obter notificações: {e}")
-    return 0
-
 def verificar_novas_notificacoes():
     if st.session_state.token is None:
         return
@@ -648,7 +526,7 @@ def verificar_novas_notificacoes():
     try:
         count = get_notificacoes_nao_lidas()
         if count > st.session_state.ultimo_count:
-            st.toast(f"🔔 {count - st.session_state.ultimo_count} {get_text('unread_notifications_count')}!", icon="🔔")
+            st.toast(f"🔔 {count - st.session_state.ultimo_count} {get_text('unread_notifications')}!", icon="🔔")
         st.session_state.ultimo_count = count
     except:
         pass
@@ -697,7 +575,6 @@ def render_filtros():
             st.session_state.filtros_temporarios["q"] = q
             
             estados_disponiveis = ["Rascunho", "Submetido", "Em Revisão", "Alterações", "Aprovado", "Arquivado"]
-            estados_labels = [get_text(e, e) for e in estados_disponiveis]
             estados_selecionados = st.multiselect(
                 get_text("status"),
                 options=estados_disponiveis,
@@ -731,8 +608,8 @@ def render_filtros():
                 "titulo": get_text("title"),
                 "parceiro_id": get_text("partner"),
                 "estado": get_text("state"),
-                "created_at": get_text("created_at_table"),
-                "updated_at": get_text("updated_at_table"),
+                "created_at": get_text("created_at"),
+                "updated_at": get_text("updated_at"),
                 "versao_atual": get_text("version")
             }
             order_by = st.selectbox(
@@ -1166,11 +1043,9 @@ def render_full_form(data_key, prefix=""):
 # FUNÇÃO PARA CRIAR ÂNCORA E TRIGGER SCROLL
 # ============================================================
 def create_document_anchor(doc_id):
-    """Cria uma âncora invisível para o documento."""
     st.markdown(f'<div id="doc-{doc_id}" class="doc-anchor"></div>', unsafe_allow_html=True)
 
 def trigger_scroll(doc_id):
-    """Adiciona parâmetro à URL para forçar scroll após recarregar."""
     st.query_params["scroll_to"] = str(doc_id)
 
 # ============================================================
@@ -1215,13 +1090,11 @@ if st.session_state.redirect_to_docs:
     st.session_state.menu_parceiro_widget = get_text("my_documents")
     st.session_state.redirect_to_docs = False
 
-# Se close_doc_after_action estiver ativo, fechar o documento
 if st.session_state.get("close_doc_after_action", False):
     st.session_state.doc_selecionado = None
     st.session_state.edit_data = None
     st.session_state.close_doc_after_action = False
 
-# Renderizar badge de notificações
 if st.session_state.token is not None:
     render_notificacoes_badge()
     verificar_novas_notificacoes()
@@ -1238,11 +1111,11 @@ with st.sidebar:
             count = get_notificacoes_nao_lidas()
             if count > 0:
                 if count == 1:
-                    st.warning(f"🔔 {count} {get_text('unread_notifications_sidebar')}")
+                    st.warning(f"🔔 {count} {get_text('unread_notifications')}")
                 else:
-                    st.warning(f"🔔 {count} {get_text('unread_notifications_sidebar')}")
+                    st.warning(f"🔔 {count} {get_text('unread_notifications')}")
             else:
-                st.info(f"🔔 {get_text('no_notifications_text_sidebar')}")
+                st.info(f"🔔 {get_text('no_notifications_text')}")
         except:
             pass
     
@@ -1286,7 +1159,7 @@ if st.session_state.perfil == "parceiro":
         render_full_form("new_data", prefix="new_")
         if st.button(get_text("create_document"), key="create_doc_btn"):
             if not titulo.strip():
-                st.error(get_text("document_title") + " " + get_text("is_required"))
+                st.error(f"{get_text('document_title')} é obrigatório")
             else:
                 dados = st.session_state.new_data
                 novo = criar_documento(titulo, dados)
@@ -1316,7 +1189,7 @@ if st.session_state.perfil == "parceiro":
             if "updated_at" in df.columns:
                 df["updated_at"] = pd.to_datetime(df["updated_at"]).dt.strftime("%d/%m/%Y %H:%M")
             df = df[["id", "titulo", "estado", "versao_atual", "updated_at"]]
-            df.columns = [get_text("id"), get_text("title"), get_text("state"), get_text("version"), get_text("updated_at_table")]
+            df.columns = [get_text("id"), get_text("title"), get_text("state"), get_text("version"), get_text("updated_at")]
             st.dataframe(df, use_container_width=True, hide_index=True)
 
             ids = [""] + [doc["id"] for doc in documentos]
@@ -1499,7 +1372,7 @@ elif st.session_state.perfil == "empresa":
         if "created_at" in df.columns:
             df["created_at"] = pd.to_datetime(df["created_at"]).dt.strftime("%d/%m/%Y %H:%M")
         df = df[["id", "titulo", "parceiro_id", "estado", "versao_atual", "updated_at"]]
-        df.columns = [get_text("id"), get_text("title"), get_text("partner"), get_text("state"), get_text("version"), get_text("updated_at_table")]
+        df.columns = [get_text("id"), get_text("title"), get_text("partner"), get_text("state"), get_text("version"), get_text("updated_at")]
         st.dataframe(df, use_container_width=True, hide_index=True)
 
         ids = [""] + [doc["id"] for doc in documentos]
@@ -1680,7 +1553,7 @@ elif st.session_state.perfil == "admin":
                 colunas_desejadas = ["username", "perfil", "nome_completo", "created_at"]
                 colunas_existentes = [col for col in colunas_desejadas if col in cols_disponiveis]
                 df = df[colunas_existentes]
-                df.columns = [get_text("username"), get_text("profile"), get_text("full_name"), get_text("created_at_table")]
+                df.columns = [get_text("username"), get_text("profile"), get_text("full_name"), get_text("created_at")]
                 st.dataframe(df, use_container_width=True, hide_index=True)
 
                 st.divider()
@@ -1859,7 +1732,7 @@ elif st.session_state.perfil == "admin":
             if "created_at" in df.columns:
                 df["created_at"] = pd.to_datetime(df["created_at"]).dt.strftime("%d/%m/%Y %H:%M")
             df = df[["id", "titulo", "parceiro_id", "estado", "versao_atual", "updated_at"]]
-            df.columns = [get_text("id"), get_text("title"), get_text("partner"), get_text("state"), get_text("version"), get_text("updated_at_table")]
+            df.columns = [get_text("id"), get_text("title"), get_text("partner"), get_text("state"), get_text("version"), get_text("updated_at")]
             st.dataframe(df, use_container_width=True, hide_index=True)
 
             ids = [""] + [doc["id"] for doc in documentos]
