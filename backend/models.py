@@ -30,7 +30,7 @@ class Utilizador(Base):
     password_hash = Column(String, nullable=False)
     perfil = Column(Enum(PerfilUtilizador), nullable=False)
     nome_completo = Column(String)
-    idioma = Column(Enum(Idioma), default=Idioma.PT)  # <-- NOVO CAMPO
+    idioma = Column(Enum(Idioma), default=Idioma.PT)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Documento(Base):

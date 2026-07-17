@@ -75,7 +75,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS - sidebar 270px
 st.markdown("""
 <style>
     [data-testid="stSidebarNav"] {
@@ -88,7 +87,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Verificar autenticação
 if "token" not in st.session_state or st.session_state.token is None:
     st.warning("Por favor, faça login primeiro.")
     st.stop()
@@ -135,7 +133,6 @@ def marcar_como_lida(notificacao_id):
         st.error(f"Erro ao marcar como lida: {e}")
         return False
 
-# Sidebar personalizada
 with st.sidebar:
     st.write(f"{t('logged_as')} **{st.session_state.username}**")
     st.divider()
@@ -156,10 +153,8 @@ with st.sidebar:
         st.session_state.refresh_counter = 0
         st.rerun()
 
-# Título
 st.title(t("notifications"))
 
-# Contador de não lidas
 try:
     resp = requests.get(f"{API_URL}/notificacoes/nao-lidas", headers=headers_auth())
     if resp.status_code == 200:
@@ -174,7 +169,6 @@ try:
 except:
     pass
 
-# Botões de ação
 col1, col2 = st.columns([1, 5])
 with col1:
     if st.button(t("back"), use_container_width=True, key="notificacoes_voltar_principal"):
@@ -186,7 +180,6 @@ with col2:
 
 st.divider()
 
-# Listar notificações
 notificacoes = get_notificacoes(100)
 
 if not notificacoes:
@@ -212,7 +205,6 @@ else:
                 else:
                     st.write(t("read"))
             
-            # Link para o documento
             if notif.get("link"):
                 link = notif['link'].replace("/documentos?doc_id=", "")
                 if link:

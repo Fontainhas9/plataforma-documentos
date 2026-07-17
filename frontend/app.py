@@ -31,7 +31,6 @@ DATASOURCE_OPTIONS = ["Medido", "Calculado", "Estimado", "Literatura"]
 # ============================================================
 TRADUCOES = {
     "pt": {
-        # Interface Geral
         "app_title": "Plataforma de Gestão de Documentos",
         "login": "Login",
         "username": "Utilizador",
@@ -61,43 +60,7 @@ TRADUCOES = {
         "version": "v{numero} - {estado} por {criado_por} em {data}",
         "comment": "Comentário: {comentario}",
         "export_history": "Exportar Histórico",
-        
-        # Login/Registo
-        "register": "Registar",
-        "register_title": "Criar Conta",
-        "full_name": "Nome Completo",
-        "profile": "Perfil",
-        "profile_parceiro": "Parceiro",
-        "profile_empresa": "Empresa",
-        "profile_admin": "Admin",
-        "language": "Idioma",
-        "language_pt": "Português",
-        "language_en": "Inglês",
-        "choose_language": "Escolha o idioma",
-        "already_have_account": "Já tem conta? Faça login",
-        "register_success": "Conta criada com sucesso!",
-        "register_error": "Erro ao criar conta.",
-        "username_exists": "Utilizador já existe.",
-        "password_required": "A palavra-passe deve ter pelo menos 3 caracteres.",
-        "username_required": "O utilizador é obrigatório.",
-        "profile_required": "O perfil é obrigatório.",
-        
-        # Dashboard
-        "dashboard": "Dashboard",
-        "notifications": "Notificações",
-        "kpi_total": "Total Documentos",
-        "kpi_approved": "Aprovados",
-        "kpi_approval_rate": "Taxa Aprovação",
-        "kpi_avg_review_time": "Tempo Médio Revisão",
-        "distribution_by_state": "Distribuição de Documentos por Estado",
-        "docs_by_state_bar": "Documentos por Estado (Barras)",
-        "recent_documents": "Documentos Recentes",
-        "top_partners": "Top Parceiros",
-        "partners_with_more_docs": "Parceiros com Mais Documentos",
-        "no_recent_docs": "Sem documentos recentes",
-        "no_top_partners": "Sem dados de top parceiros",
-        
-        # Documentos
+        "login_error": "Credenciais inválidas",
         "documents": "Documentos",
         "my_documents": "Meus Documentos",
         "create_document": "Criar Documento",
@@ -115,16 +78,12 @@ TRADUCOES = {
         "document_review_started": "Revisão iniciada com sucesso!",
         "document_changes_requested": "Alterações solicitadas com sucesso!",
         "document_edited_again": "Documento reaberto para edição!",
-        
-        # Estados
         "status_draft": "Rascunho",
         "status_submitted": "Submetido",
         "status_review": "Em Revisão",
         "status_changes": "Alterações",
         "status_approved": "Aprovado",
         "status_archived": "Arquivado",
-        
-        # Ações
         "action_submit": "Submeter",
         "action_edit": "Editar",
         "action_edit_again": "Editar novamente",
@@ -135,16 +94,12 @@ TRADUCOES = {
         "action_start_review": "Iniciar revisão",
         "action_archive_draft": "Arquivar (rascunho)",
         "action_comment_required": "É necessário um comentário para pedir alterações",
-        
-        # Mensagens de estado
         "msg_awaiting_partner": "Aguardando o parceiro editar novamente.",
         "msg_approved_readonly": "Documento aprovado. Não pode ser editado.",
         "msg_under_review": "Documento em análise pela empresa.",
         "msg_archived_readonly": "Documento arquivado (apenas consulta).",
         "msg_changes_requested": "A empresa pediu alterações.",
         "msg_reason": "Motivo: {motivo}",
-        
-        # Notificações
         "no_notifications_found": "Nenhuma notificação encontrada.",
         "all_notifications_read": "📌 Todas as notificações estão lidas.",
         "unread_notifications": "📌 Você tem {count} notificação(ões) não lida(s).",
@@ -152,8 +107,6 @@ TRADUCOES = {
         "mark_read": "✓ Marcar lida",
         "read": "✅ Lida",
         "view_document": "Ver Documento",
-        
-        # Admin
         "admin_panel": "Painel Administrativo",
         "admin_users": "Utilizadores",
         "admin_documents": "Documentos (empresa)",
@@ -166,15 +119,17 @@ TRADUCOES = {
         "new_password": "Nova password (deixar vazio para não alterar)",
         "change_password_btn": "Alterar password",
         "delete_user": "Eliminar utilizador",
-        "close_details": "Fechar Detalhes",
         "create_new_user": "Criar Novo Utilizador",
         "create_user_btn": "Criar Utilizador",
         "user_created": "Utilizador '{username}' criado com sucesso!",
         "user_deleted": "Utilizador '{username}' eliminado com sucesso!",
         "password_changed": "Password de '{username}' alterada com sucesso!",
         "cannot_delete_self": "Não pode eliminar a si próprio",
-        
-        # Filtros
+        "username_required": "O utilizador é obrigatório.",
+        "password_required": "A palavra-passe deve ter pelo menos 3 caracteres.",
+        "profile_required": "O perfil é obrigatório.",
+        "username_exists": "Utilizador já existe.",
+        "register_error": "Erro ao criar conta.",
         "filters": "Filtros de Pesquisa",
         "search": "Pesquisar",
         "search_placeholder": "Título, parceiro ou ID...",
@@ -192,10 +147,19 @@ TRADUCOES = {
         "partner": "Parceiro",
         "created_at": "Data Criação",
         "updated_at": "Data Atualização",
-        "version": "Versão"
+        "version": "Versão",
+        "profile_parceiro": "Parceiro",
+        "profile_empresa": "Empresa",
+        "profile_admin": "Admin",
+        "language": "Idioma",
+        "language_pt": "Português",
+        "language_en": "Inglês",
+        "choose_language": "Escolha uma opção",
+        "notifications": "Notificações",
+        "dashboard": "Dashboard",
+        "full_name": "Nome Completo"
     },
     "en": {
-        # Interface Geral
         "app_title": "Document Management Platform",
         "login": "Login",
         "username": "Username",
@@ -225,43 +189,7 @@ TRADUCOES = {
         "version": "v{numero} - {estado} by {criado_por} on {data}",
         "comment": "Comment: {comentario}",
         "export_history": "Export History",
-        
-        # Login/Registo
-        "register": "Register",
-        "register_title": "Create Account",
-        "full_name": "Full Name",
-        "profile": "Profile",
-        "profile_parceiro": "Partner",
-        "profile_empresa": "Company",
-        "profile_admin": "Admin",
-        "language": "Language",
-        "language_pt": "Portuguese",
-        "language_en": "English",
-        "choose_language": "Choose your language",
-        "already_have_account": "Already have an account? Login",
-        "register_success": "Account created successfully!",
-        "register_error": "Error creating account.",
-        "username_exists": "Username already exists.",
-        "password_required": "Password must be at least 3 characters.",
-        "username_required": "Username is required.",
-        "profile_required": "Profile is required.",
-        
-        # Dashboard
-        "dashboard": "Dashboard",
-        "notifications": "Notifications",
-        "kpi_total": "Total Documents",
-        "kpi_approved": "Approved",
-        "kpi_approval_rate": "Approval Rate",
-        "kpi_avg_review_time": "Avg Review Time",
-        "distribution_by_state": "Document Distribution by Status",
-        "docs_by_state_bar": "Documents by Status (Bar)",
-        "recent_documents": "Recent Documents",
-        "top_partners": "Top Partners",
-        "partners_with_more_docs": "Partners with Most Documents",
-        "no_recent_docs": "No recent documents",
-        "no_top_partners": "No top partners data",
-        
-        # Documentos
+        "login_error": "Invalid credentials",
         "documents": "Documents",
         "my_documents": "My Documents",
         "create_document": "Create Document",
@@ -279,16 +207,12 @@ TRADUCOES = {
         "document_review_started": "Review started successfully!",
         "document_changes_requested": "Changes requested successfully!",
         "document_edited_again": "Document reopened for editing!",
-        
-        # Estados
         "status_draft": "Draft",
         "status_submitted": "Submitted",
         "status_review": "In Review",
         "status_changes": "Changes",
         "status_approved": "Approved",
         "status_archived": "Archived",
-        
-        # Ações
         "action_submit": "Submit",
         "action_edit": "Edit",
         "action_edit_again": "Edit again",
@@ -299,16 +223,12 @@ TRADUCOES = {
         "action_start_review": "Start review",
         "action_archive_draft": "Archive (draft)",
         "action_comment_required": "A comment is required to request changes",
-        
-        # Mensagens de estado
         "msg_awaiting_partner": "Waiting for partner to edit again.",
         "msg_approved_readonly": "Document approved. Cannot be edited.",
         "msg_under_review": "Document under review by the company.",
         "msg_archived_readonly": "Document archived (read only).",
         "msg_changes_requested": "The company requested changes.",
         "msg_reason": "Reason: {motivo}",
-        
-        # Notificações
         "no_notifications_found": "No notifications found.",
         "all_notifications_read": "📌 All notifications are read.",
         "unread_notifications": "📌 You have {count} unread notification(s).",
@@ -316,8 +236,6 @@ TRADUCOES = {
         "mark_read": "✓ Mark as read",
         "read": "✅ Read",
         "view_document": "View Document",
-        
-        # Admin
         "admin_panel": "Admin Panel",
         "admin_users": "Users",
         "admin_documents": "Documents (company)",
@@ -330,15 +248,17 @@ TRADUCOES = {
         "new_password": "New password (leave empty to keep current)",
         "change_password_btn": "Change password",
         "delete_user": "Delete user",
-        "close_details": "Close Details",
         "create_new_user": "Create New User",
         "create_user_btn": "Create User",
         "user_created": "User '{username}' created successfully!",
         "user_deleted": "User '{username}' deleted successfully!",
         "password_changed": "Password for '{username}' changed successfully!",
         "cannot_delete_self": "Cannot delete yourself",
-        
-        # Filtros
+        "username_required": "Username is required.",
+        "password_required": "Password must be at least 3 characters.",
+        "profile_required": "Profile is required.",
+        "username_exists": "Username already exists.",
+        "register_error": "Error creating account.",
         "filters": "Search Filters",
         "search": "Search",
         "search_placeholder": "Title, partner or ID...",
@@ -356,7 +276,17 @@ TRADUCOES = {
         "partner": "Partner",
         "created_at": "Created At",
         "updated_at": "Updated At",
-        "version": "Version"
+        "version": "Version",
+        "profile_parceiro": "Partner",
+        "profile_empresa": "Company",
+        "profile_admin": "Admin",
+        "language": "Language",
+        "language_pt": "Portuguese",
+        "language_en": "English",
+        "choose_language": "Choose an option",
+        "notifications": "Notifications",
+        "dashboard": "Dashboard",
+        "full_name": "Full Name"
     }
 }
 
@@ -636,7 +566,7 @@ def login(username, password):
             st.session_state.idioma = user_info.get("idioma", "pt")
         return True
     else:
-        st.error(t("login_error") if hasattr(st.session_state, 'idioma') else "Credenciais inválidas")
+        st.error(t("login_error"))
         return False
 
 def logout():
@@ -1379,88 +1309,17 @@ def trigger_scroll(doc_id):
 
 # Verificar se o utilizador está autenticado
 if st.session_state.token is None:
-    # Tela de Login/Registo com suporte a idioma
     st.title(t("app_title"))
     
-    # Seletor de idioma na página de login
-    idioma_selecionado = st.selectbox(
-        t("language"),
-        options=["pt", "en"],
-        format_func=lambda x: t("language_pt") if x == "pt" else t("language_en"),
-        key="login_idioma"
-    )
-    
-    tab1, tab2 = st.tabs([t("login"), t("register")])
-    
-    with tab1:
-        with st.form("login_form"):
-            username = st.text_input(t("username"))
-            password = st.text_input(t("password"), type="password")
-            submitted = st.form_submit_button(t("enter"))
-            if submitted:
-                # Guardar idioma selecionado para usar na tradução de erros
-                st.session_state.idioma = idioma_selecionado
-                if login(username, password):
-                    st.session_state.success_message = t("login_success") if hasattr(st.session_state, 'idioma') else "Login efetuado com sucesso!"
-                    st.rerun()
-    
-    with tab2:
-        with st.form("register_form"):
-            reg_username = st.text_input(t("username"))
-            reg_password = st.text_input(t("password"), type="password")
-            reg_nome = st.text_input(t("full_name"))
-            reg_perfil = st.selectbox(
-                t("profile"),
-                options=["parceiro", "empresa", "admin"],
-                format_func=lambda x: {
-                    "parceiro": t("profile_parceiro"),
-                    "empresa": t("profile_empresa"),
-                    "admin": t("profile_admin")
-                }.get(x, x),
-                placeholder=t("choose_language")
-            )
-            reg_idioma = st.selectbox(
-                t("language"),
-                options=["pt", "en"],
-                format_func=lambda x: t("language_pt") if x == "pt" else t("language_en"),
-                key="register_idioma"
-            )
-            
-            submitted_reg = st.form_submit_button(t("register"))
-            if submitted_reg:
-                if not reg_username.strip():
-                    st.error(t("username_required"))
-                elif not reg_password.strip() or len(reg_password.strip()) < 3:
-                    st.error(t("password_required"))
-                elif not reg_perfil:
-                    st.error(t("profile_required"))
-                else:
-                    try:
-                        resp = requests.post(
-                            f"{API_URL}/registar",
-                            json={
-                                "username": reg_username.strip(),
-                                "password": reg_password.strip(),
-                                "perfil": reg_perfil,
-                                "nome_completo": reg_nome.strip() if reg_nome.strip() else reg_username.strip(),
-                                "idioma": reg_idioma
-                            }
-                        )
-                        if resp.status_code == 200:
-                            st.session_state.idioma = reg_idioma
-                            st.success(t("register_success"))
-                            # Fazer login automático
-                            if login(reg_username.strip(), reg_password.strip()):
-                                st.session_state.success_message = t("register_success")
-                                st.rerun()
-                        else:
-                            try:
-                                erro = resp.json().get("detail", "Erro desconhecido")
-                            except:
-                                erro = resp.text
-                            st.error(f"{t('register_error')} {erro}")
-                    except Exception as e:
-                        st.error(f"{t('register_error')} {str(e)}")
+    # APENAS LOGIN - SEM REGISTO
+    with st.form("login_form"):
+        username = st.text_input(t("username"))
+        password = st.text_input(t("password"), type="password")
+        submitted = st.form_submit_button(t("enter"))
+        if submitted:
+            if login(username, password):
+                st.session_state.success_message = "Login efetuado com sucesso!"
+                st.rerun()
     st.stop()
 
 # ============================================================
@@ -1482,7 +1341,7 @@ if "doc_id" in st.query_params and st.query_params["doc_id"]:
         pass
 
 if st.session_state.redirect_to_docs:
-    st.session_state.menu_parceiro_widget = t("my_documents") if hasattr(st.session_state, 'idioma') else "Meus Documentos"
+    st.session_state.menu_parceiro_widget = t("my_documents")
     st.session_state.redirect_to_docs = False
 
 # Se close_doc_after_action estiver ativo, fechar o documento
@@ -1906,14 +1765,11 @@ elif st.session_state.perfil == "admin":
                 if "created_at" in df.columns:
                     df["created_at"] = pd.to_datetime(df["created_at"]).dt.strftime("%d/%m/%Y %H:%M")
                 
-                # Definir as colunas que queremos mostrar
                 colunas_desejadas = ["username", "perfil", "nome_completo", "idioma", "created_at"]
-                # Verificar quais colunas existem no DataFrame
                 colunas_existentes = [col for col in colunas_desejadas if col in df.columns]
                 
                 if colunas_existentes:
                     df = df[colunas_existentes]
-                    # Criar mapping para os nomes das colunas
                     column_mapping = {
                         "username": t("username"),
                         "perfil": t("profile"),
@@ -1921,7 +1777,6 @@ elif st.session_state.perfil == "admin":
                         "idioma": t("language"),
                         "created_at": t("created_at")
                     }
-                    # Renomear apenas as colunas que existem
                     df = df.rename(columns={col: column_mapping[col] for col in colunas_existentes if col in column_mapping})
                     st.dataframe(df, use_container_width=True, hide_index=True)
                 else:

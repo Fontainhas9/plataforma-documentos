@@ -9,7 +9,7 @@ class UtilizadorCreate(BaseModel):
     password: str
     perfil: PerfilUtilizador
     nome_completo: Optional[str] = ""
-    idioma: Idioma = Idioma.PT  # <-- NOVO CAMPO
+    idioma: Idioma = Idioma.PT
 
 class PasswordUpdate(BaseModel):
     nova_password: str
@@ -21,7 +21,7 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Optional[str] = None
 
-class UtilizadorOut(BaseModel):  # <-- NOVO SCHEMA PARA RESPOSTA
+class UtilizadorOut(BaseModel):
     username: str
     perfil: PerfilUtilizador
     nome_completo: Optional[str]

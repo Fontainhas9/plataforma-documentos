@@ -24,7 +24,7 @@ def get_api_url():
 API_URL = get_api_url()
 
 # ============================================================
-# TRADUÇÕES (copiadas do app.py para o dashboard)
+# TRADUÇÕES
 # ============================================================
 TRADUCOES = {
     "pt": {
@@ -90,7 +90,6 @@ TRADUCOES = {
 }
 
 def t(key: str, **kwargs) -> str:
-    """Retorna a tradução para a chave com formatação."""
     lang = st.session_state.get("idioma", "pt")
     texto = TRADUCOES.get(lang, TRADUCOES["pt"]).get(key, key)
     if kwargs:
@@ -107,7 +106,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS - sidebar 270px
 st.markdown("""
 <style>
     [data-testid="stSidebarNav"] {
@@ -120,7 +118,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Verificar autenticação
 if "token" not in st.session_state or st.session_state.token is None:
     st.warning("Por favor, faça login primeiro.")
     st.stop()
@@ -128,7 +125,6 @@ if "token" not in st.session_state or st.session_state.token is None:
 def headers_auth():
     return {"Authorization": f"Bearer {st.session_state.token}"}
 
-# Sidebar personalizada
 with st.sidebar:
     st.write(f"{t('logged_as')} **{st.session_state.username}**")
     st.divider()
@@ -149,10 +145,8 @@ with st.sidebar:
         st.session_state.refresh_counter = 0
         st.rerun()
 
-# Título
 st.title(t("app_title"))
 
-# ---------- KPIs ----------
 st.subheader(t("kpi_total") + " / " + t("kpi_approved"))
 
 try:
@@ -160,7 +154,6 @@ try:
     if response.status_code == 200:
         kpis = response.json()
         
-        # Mapeamento de estados para tradução
         estado_map = {
             "Rascunho": t("status_draft"),
             "Submetido": t("status_submitted"),
@@ -192,10 +185,8 @@ try:
                 value=f"{kpis.get('tempo_medio_revisao', 0)} dias"
             )
         
-        # Distribuição por estado (gráfico de pizza)
         estados = kpis.get("documentos_por_estado", {})
         if estados and sum(estados.values()) > 0:
-            # Traduzir os estados para o gráfico
             estados_traduzidos = {}
             for k, v in estados.items():
                 estados_traduzidos[estado_map.get(k, k)] = v
@@ -236,7 +227,6 @@ try:
 except Exception as e:
     st.error(f"Erro ao carregar dados: {e}")
 
-# ---------- Documentos Recentes ----------
 st.divider()
 st.subheader(t("recent_documents"))
 
@@ -247,7 +237,6 @@ try:
         if dados:
             df_recentes = pd.DataFrame(dados)
             
-            # Traduzir estados
             estado_map = {
                 "Rascunho": t("status_draft"),
                 "Submetido": t("status_submitted"),
@@ -277,7 +266,6 @@ try:
 except Exception as e:
     st.error(f"Erro ao carregar documentos recentes: {e}")
 
-# ---------- Top Parceiros ----------
 if st.session_state.perfil != "parceiro":
     st.divider()
     st.subheader(t("top_partners"))

@@ -88,7 +88,7 @@ def registar(utilizador: UtilizadorCreate, db: Session = Depends(get_db)):
         password_hash=hash_password(utilizador.password),
         perfil=utilizador.perfil,
         nome_completo=utilizador.nome_completo,
-        idioma=utilizador.idioma  # <-- NOVO CAMPO
+        idioma=utilizador.idioma
     )
     db.add(user)
     db.commit()
@@ -112,13 +112,13 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-@app.get("/me", response_model=UtilizadorOut)  # <-- USAR O NOVO SCHEMA
+@app.get("/me", response_model=UtilizadorOut)
 def quem_sou_eu(current_user: Utilizador = Depends(get_current_user)):
     return {
         "username": current_user.username,
         "perfil": current_user.perfil,
         "nome_completo": current_user.nome_completo,
-        "idioma": current_user.idioma,  # <-- NOVO CAMPO
+        "idioma": current_user.idioma,
         "created_at": current_user.created_at
     }
 
