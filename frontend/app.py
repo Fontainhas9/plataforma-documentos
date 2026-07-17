@@ -74,7 +74,7 @@ st.set_page_config(
 from componentes.notificacoes import render_notificacoes_badge, get_notificacoes_nao_lidas
 
 # ============================================================
-# CSS e JavaScript para scroll automático - SIDEBAR 250px
+# CSS e JavaScript para scroll automático - SIDEBAR 270px
 # ============================================================
 st.markdown("""
 <style>
@@ -86,8 +86,8 @@ st.markdown("""
         visibility: visible !important;
         opacity: 1 !important;
         width: auto !important;
-        min-width: 250px !important;
-        max-width: 250px !important;
+        min-width: 270px !important;
+        max-width: 270px !important;
         overflow: auto !important;
         pointer-events: auto !important;
     }
@@ -1069,7 +1069,7 @@ if st.session_state.token is not None:
     verificar_novas_notificacoes()
 
 # ============================================================
-# SIDEBAR - VISÍVEL APÓS LOGIN - 250px
+# SIDEBAR - VISÍVEL APÓS LOGIN - 270px
 # ============================================================
 with st.sidebar:
     st.write(f"Logado como: **{st.session_state.username}** ({st.session_state.perfil})")

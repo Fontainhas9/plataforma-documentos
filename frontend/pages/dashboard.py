@@ -31,15 +31,15 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS - sidebar 250px
+# CSS - sidebar 270px
 st.markdown("""
 <style>
     [data-testid="stSidebarNav"] {
         display: none !important;
     }
     [data-testid="stSidebar"] {
-        min-width: 250px !important;
-        width: 250px !important;
+        min-width: 270px !important;
+        width: 270px !important;
     }
 </style>
 """, unsafe_allow_html=True)
