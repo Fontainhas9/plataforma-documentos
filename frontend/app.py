@@ -1072,7 +1072,7 @@ if st.session_state.token is not None:
 # SIDEBAR - VISÍVEL APÓS LOGIN - 270px
 # ============================================================
 with st.sidebar:
-    st.write(f"Logado como: **{st.session_state.username}** ({st.session_state.perfil})")
+    st.write(f"Logado como: **{st.session_state.username}**")
     st.divider()
     
     if st.session_state.token is not None:

@@ -89,7 +89,7 @@ def marcar_como_lida(notificacao_id):
 
 # Sidebar personalizada
 with st.sidebar:
-    st.write(f"Logado como: **{st.session_state.username}** ({st.session_state.perfil})")
+    st.write(f"Logado como: **{st.session_state.username}**")
     st.divider()
     
     if st.button("← Voltar", use_container_width=True, key="notificacoes_sidebar_voltar"):

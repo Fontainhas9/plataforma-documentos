@@ -54,7 +54,7 @@ def headers_auth():
 
 # Sidebar personalizada
 with st.sidebar:
-    st.write(f"Logado como: **{st.session_state.username}** ({st.session_state.perfil})")
+    st.write(f"Logado como: **{st.session_state.username}**")
     st.divider()
     
     if st.button("← Voltar", use_container_width=True, key="dashboard_sidebar_voltar"):
