@@ -1580,8 +1580,6 @@ elif st.session_state.perfil == "admin":
                                     st.error(f"Erro ao alterar password: {erro}")
                     
                     st.divider()
-                    st.subheader("Eliminar Utilizador")
-                    st.warning("⚠️ Esta ação é irreversível!")
                     
                     with col2:
                         if st.button("Eliminar utilizador", key="btn_eliminar_user", use_container_width=True):
