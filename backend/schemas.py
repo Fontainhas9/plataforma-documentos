@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from datetime import datetime
-from models import EstadoDocumento, PerfilUtilizador
+from models import EstadoDocumento, PerfilUtilizador, Idioma
 
 # ---------- Autenticação ----------
 class UtilizadorCreate(BaseModel):
@@ -9,6 +9,10 @@ class UtilizadorCreate(BaseModel):
     password: str
     perfil: PerfilUtilizador
     nome_completo: Optional[str] = ""
+    idioma: Optional[Idioma] = Idioma.PORTUGUES  # NOVO
+
+class UtilizadorUpdateIdioma(BaseModel):
+    idioma: Idioma  # NOVO
 
 class PasswordUpdate(BaseModel):
     nova_password: str

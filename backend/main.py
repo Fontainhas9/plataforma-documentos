@@ -14,11 +14,11 @@ import json
 import traceback
 
 from database import SessionLocal, engine
-from models import Base, Documento, VersaoDocumento, EstadoDocumento, Utilizador, PerfilUtilizador, Notificacao  # <-- ADICIONAR Notificacao
+from models import Base, Documento, VersaoDocumento, EstadoDocumento, Utilizador, PerfilUtilizador, Notificacao, Idioma
 from schemas import (
     DocumentoCreate, DocumentoUpdate, DocumentoOut,
     VersaoOut, MudancaEstado, UtilizadorCreate, Token,
-    PasswordUpdate
+    PasswordUpdate, UtilizadorUpdateIdioma
 )
 from auth import (
     hash_password,
@@ -42,9 +42,6 @@ from notificacoes import (
     get_notificacoes_utilizador,
     get_notificacoes_nao_lidas_count
 )
-
-# EMAIL DESATIVADO - manter para futuro
-# from email_utils import enviar_email, DESTINATARIO_PADRAO
 
 # Criar tabelas (se não existirem)
 Base.metadata.create_all(bind=engine)
@@ -90,7 +87,8 @@ def registar(utilizador: UtilizadorCreate, db: Session = Depends(get_db)):
         username=utilizador.username,
         password_hash=hash_password(utilizador.password),
         perfil=utilizador.perfil,
-        nome_completo=utilizador.nome_completo
+        nome_completo=utilizador.nome_completo,
+        idioma=utilizador.idioma or Idioma.PORTUGUES  # NOVO
     )
     db.add(user)
     db.commit()
@@ -119,8 +117,28 @@ def quem_sou_eu(current_user: Utilizador = Depends(get_current_user)):
     return {
         "username": current_user.username,
         "perfil": current_user.perfil.value,
-        "nome_completo": current_user.nome_completo
+        "nome_completo": current_user.nome_completo,
+        "idioma": current_user.idioma.value  # NOVO
     }
+
+# -------------------- Gestão de Idioma --------------------
+@app.get("/me/idioma")
+def obter_idioma(current_user: Utilizador = Depends(get_current_user)):
+    """Retorna o idioma do utilizador atual."""
+    return {"idioma": current_user.idioma.value}
+
+@app.put("/me/idioma")
+def atualizar_idioma(
+    dados: UtilizadorUpdateIdioma,
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    """Atualiza o idioma do utilizador atual."""
+    current_user.idioma = dados.idioma
+    db.commit()
+    db.refresh(current_user)
+    return {"idioma": current_user.idioma.value}
+
 
 # -------------------- Documentos --------------------
 @app.get("/documentos", response_model=List[DocumentoOut])
