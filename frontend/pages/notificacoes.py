@@ -27,15 +27,15 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Ocultar APENAS a barra de navegação automática do Streamlit
+# CSS - sidebar 220px
 st.markdown("""
 <style>
     [data-testid="stSidebarNav"] {
         display: none !important;
     }
     [data-testid="stSidebar"] {
-        min-width: 300px !important;
-        width: 300px !important;
+        min-width: 220px !important;
+        width: 220px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -87,7 +87,7 @@ def marcar_como_lida(notificacao_id):
         st.error(f"Erro ao marcar como lida: {e}")
         return False
 
-# Sidebar personalizada com largura normal
+# Sidebar personalizada
 with st.sidebar:
     st.write(f"Logado como: **{st.session_state.username}** ({st.session_state.perfil})")
     st.divider()
@@ -109,7 +109,7 @@ with st.sidebar:
         st.rerun()
 
 # Título
-st.title("🔔 Notificações")
+st.title("Notificações")
 
 # Contador de não lidas
 try:
@@ -117,7 +117,6 @@ try:
     if resp.status_code == 200:
         count = resp.json().get("count", 0)
         if count > 0:
-            # ---------- CORREÇÃO: Texto com plural ----------
             if count == 1:
                 st.info(f"📌 Você tem {count} notificação não lida.")
             else:
@@ -133,7 +132,7 @@ with col1:
     if st.button("← Voltar", use_container_width=True, key="notificacoes_voltar_principal"):
         st.switch_page("app.py")
 with col2:
-    if st.button("📌 Marcar todas como lidas", use_container_width=True, key="notificacoes_marcar_todas"):
+    if st.button("Marcar todas como lidas", use_container_width=True, key="notificacoes_marcar_todas"):
         if marcar_todas_lidas():
             st.rerun()
 
@@ -143,7 +142,7 @@ st.divider()
 notificacoes = get_notificacoes(100)
 
 if not notificacoes:
-    st.info("📭 Nenhuma notificação encontrada.")
+    st.info("Nenhuma notificação encontrada.")
 else:
     for notif in notificacoes:
         with st.container():
@@ -171,7 +170,7 @@ else:
                 if link:
                     try:
                         doc_id = int(link)
-                        if st.button("📄 Ver Documento", key=f"notificacao_ver_doc_{notif['id']}"):
+                        if st.button("Ver Documento", key=f"notificacao_ver_doc_{notif['id']}"):
                             st.session_state.doc_selecionado = doc_id
                             st.query_params["doc_id"] = str(doc_id)
                             st.query_params["from_notification"] = "true"

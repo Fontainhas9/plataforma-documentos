@@ -74,7 +74,7 @@ st.set_page_config(
 from componentes.notificacoes import render_notificacoes_badge, get_notificacoes_nao_lidas
 
 # ============================================================
-# CSS e JavaScript para scroll automático
+# CSS e JavaScript para scroll automático - SIDEBAR 220px
 # ============================================================
 st.markdown("""
 <style>
@@ -86,8 +86,8 @@ st.markdown("""
         visibility: visible !important;
         opacity: 1 !important;
         width: auto !important;
-        min-width: 300px !important;
-        max-width: 300px !important;
+        min-width: 220px !important;
+        max-width: 220px !important;
         overflow: auto !important;
         pointer-events: auto !important;
     }
@@ -463,7 +463,6 @@ def listar_versoes(doc_id):
         return resp.json()
     return []
 
-# ---------- FUNÇÃO DE EXPORTAÇÃO CORRIGIDA ----------
 def exportar_excel(doc_id, titulo):
     """Exporta o documento para Excel e retorna o conteúdo e nome do ficheiro."""
     resp = requests.get(f"{API_URL}/documentos/{doc_id}/exportar-excel", headers=headers_auth())
@@ -1070,7 +1069,7 @@ if st.session_state.token is not None:
     verificar_novas_notificacoes()
 
 # ============================================================
-# SIDEBAR - VISÍVEL APÓS LOGIN
+# SIDEBAR - VISÍVEL APÓS LOGIN - 220px
 # ============================================================
 with st.sidebar:
     st.write(f"Logado como: **{st.session_state.username}** ({st.session_state.perfil})")
@@ -1264,7 +1263,6 @@ if st.session_state.perfil == "parceiro":
                             st.rerun()
 
                 else:
-                    # Para os outros estados
                     col_btn1, col_btn2, col_btn3 = st.columns(3)
                     
                     if doc['estado'] == "Alterações":
@@ -1288,7 +1286,6 @@ if st.session_state.perfil == "parceiro":
                         with col_btn1:
                             st.warning("Documento arquivado (apenas consulta).")
                     
-                    # ---------- EXPORTAR HISTÓRICO COM DOWNLOAD AUTOMÁTICO ----------
                     with col_btn2:
                         conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
                         if conteudo:
@@ -1309,7 +1306,6 @@ if st.session_state.perfil == "parceiro":
 
                 st.markdown("---")
 
-                # ---------- HISTÓRICO DE VERSÕES ----------
                 with st.expander("Histórico de versões", expanded=False):
                     versoes = listar_versoes(doc['id'])
                     if versoes:
@@ -1413,7 +1409,6 @@ elif st.session_state.perfil == "empresa":
 
             st.markdown("---")
 
-            # ---------- BOTÕES DE AÇÃO ----------
             col_btn1, col_btn2, col_btn3 = st.columns(3)
 
             if doc['estado'] == "Submetido":
@@ -1456,7 +1451,6 @@ elif st.session_state.perfil == "empresa":
                 with col_btn1:
                     st.warning("Documento arquivado (apenas consulta).")
 
-            # ---------- EXPORTAR HISTÓRICO COM DOWNLOAD AUTOMÁTICO ----------
             with col_btn2:
                 conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
                 if conteudo:
@@ -1476,7 +1470,6 @@ elif st.session_state.perfil == "empresa":
 
             st.markdown("---")
 
-            # ---------- HISTÓRICO DE VERSÕES ----------
             with st.expander("Histórico de versões", expanded=False):
                 versoes = listar_versoes(doc['id'])
                 if versoes:
@@ -1773,7 +1766,6 @@ elif st.session_state.perfil == "admin":
 
                 st.markdown("---")
 
-                # ---------- BOTÕES DE AÇÃO ----------
                 col_btn1, col_btn2, col_btn3 = st.columns(3)
 
                 if doc['estado'] == "Submetido":
@@ -1816,7 +1808,6 @@ elif st.session_state.perfil == "admin":
                     with col_btn1:
                         st.warning("Documento arquivado (apenas consulta).")
 
-                # ---------- EXPORTAR HISTÓRICO COM DOWNLOAD AUTOMÁTICO ----------
                 with col_btn2:
                     conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
                     if conteudo:
@@ -1836,7 +1827,6 @@ elif st.session_state.perfil == "admin":
 
                 st.markdown("---")
 
-                # ---------- HISTÓRICO DE VERSÕES ----------
                 with st.expander("Histórico de versões", expanded=False):
                     versoes = listar_versoes(doc['id'])
                     if versoes:

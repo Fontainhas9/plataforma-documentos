@@ -31,15 +31,15 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Ocultar a barra de navegação automática
+# CSS - sidebar 220px
 st.markdown("""
 <style>
     [data-testid="stSidebarNav"] {
         display: none !important;
     }
     [data-testid="stSidebar"] {
-        min-width: 300px !important;
-        width: 300px !important;
+        min-width: 220px !important;
+        width: 220px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -74,33 +74,37 @@ with st.sidebar:
         st.rerun()
 
 # Título
-st.title("📊 Dashboard")
+st.title("Dashboard")
 
 # ---------- KPIs ----------
-st.subheader("📈 Indicadores Chave")
+st.subheader("Indicadores Chave")
 
 try:
     response = requests.get(f"{API_URL}/dashboard/kpis", headers=headers_auth())
     if response.status_code == 200:
         kpis = response.json()
         
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric(
-                label="📄 Total Documentos",
+                label="Total Documentos",
                 value=kpis.get("total_documentos", 0)
             )
         with col2:
             st.metric(
-                label="✅ Aprovados",
+                label="Aprovados",
                 value=kpis.get("aprovados", 0)
             )
         with col3:
             st.metric(
-                label="📊 Taxa Aprovação",
+                label="Taxa Aprovação",
                 value=f"{kpis.get('taxa_aprovacao', 0)}%"
             )
-
+        with col4:
+            st.metric(
+                label="Tempo Médio Revisão",
+                value=f"{kpis.get('tempo_medio_revisao', 0)} dias"
+            )
         
         # Distribuição por estado (gráfico de pizza)
         estados = kpis.get("documentos_por_estado", {})
@@ -143,7 +147,7 @@ except Exception as e:
 
 # ---------- Documentos Recentes ----------
 st.divider()
-st.subheader("📋 Documentos Recentes")
+st.subheader("Documentos Recentes")
 
 try:
     response = requests.get(f"{API_URL}/dashboard/documentos-recentes?limit=10", headers=headers_auth())
@@ -184,7 +188,7 @@ except Exception as e:
 # ---------- Top Parceiros ----------
 if st.session_state.perfil != "parceiro":
     st.divider()
-    st.subheader("🏆 Top Parceiros")
+    st.subheader("Top Parceiros")
     
     try:
         response = requests.get(f"{API_URL}/dashboard/top-parceiros?limit=10", headers=headers_auth())
