@@ -10,10 +10,6 @@ class PerfilUtilizador(str, enum.Enum):
     EMPRESA = "empresa"
     ADMIN = "admin"
 
-class Idioma(str, enum.Enum):
-    PORTUGUES = "pt"
-    INGLES = "en"
-
 class EstadoDocumento(str, enum.Enum):
     RASCUNHO = "Rascunho"
     SUBMETIDO = "Submetido"
@@ -30,7 +26,6 @@ class Utilizador(Base):
     password_hash = Column(String, nullable=False)
     perfil = Column(Enum(PerfilUtilizador), nullable=False)
     nome_completo = Column(String)
-    idioma = Column(Enum(Idioma), default=Idioma.PORTUGUES)  # NOVO
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Documento(Base):
@@ -66,12 +61,12 @@ class Notificacao(Base):
     __tablename__ = "notificacoes"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String, nullable=False)
+    username = Column(String, nullable=False)  # destinatário
     titulo = Column(String, nullable=False)
     mensagem = Column(Text, nullable=False)
     lida = Column(Boolean, default=False)
-    link = Column(String, nullable=True)
-    icone = Column(String, nullable=True)
+    link = Column(String, nullable=True)  # link para o documento (ex: "/documento/1")
+    icone = Column(String, nullable=True)  # emoji para a notificação
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     def to_dict(self):
