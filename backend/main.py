@@ -14,7 +14,7 @@ import json
 import traceback
 
 from database import SessionLocal, engine
-from models import Base, Documento, VersaoDocumento, EstadoDocumento, Utilizador, PerfilUtilizador, Notificacao, Idioma
+from models import Base, Documento, VersaoDocumento, EstadoDocumento, Utilizador, PerfilUtilizador, Notificacao  # <-- ADICIONAR Notificacao
 from schemas import (
     DocumentoCreate, DocumentoUpdate, DocumentoOut,
     VersaoOut, MudancaEstado, UtilizadorCreate, Token,
@@ -90,8 +90,7 @@ def registar(utilizador: UtilizadorCreate, db: Session = Depends(get_db)):
         username=utilizador.username,
         password_hash=hash_password(utilizador.password),
         perfil=utilizador.perfil,
-        nome_completo=utilizador.nome_completo,
-        idioma=utilizador.idioma  # NOVO CAMPO
+        nome_completo=utilizador.nome_completo
     )
     db.add(user)
     db.commit()
@@ -120,8 +119,7 @@ def quem_sou_eu(current_user: Utilizador = Depends(get_current_user)):
     return {
         "username": current_user.username,
         "perfil": current_user.perfil.value,
-        "nome_completo": current_user.nome_completo,
-        "idioma": current_user.idioma.value  # NOVO CAMPO
+        "nome_completo": current_user.nome_completo
     }
 
 # -------------------- Documentos --------------------
@@ -522,7 +520,6 @@ def listar_utilizadores(
             "username": u.username,
             "perfil": u.perfil.value,
             "nome_completo": u.nome_completo,
-            "idioma": u.idioma.value,  # NOVO CAMPO
             "created_at": u.created_at
         }
         for u in users
@@ -581,7 +578,6 @@ def dashboard_evolucao(
     """
     Obtém a evolução mensal de documentos.
     """
-    from dashboard import get_evolucao_mensal
     return get_evolucao_mensal(db, current_user.username, current_user.perfil, meses)
 
 @app.get("/dashboard/top-parceiros")
@@ -605,7 +601,6 @@ def dashboard_tempo_medio_estado(
     """
     Obtém o tempo médio em cada estado.
     """
-    from dashboard import get_tempo_medio_por_estado
     return get_tempo_medio_por_estado(db, current_user.username, current_user.perfil)
 
 @app.get("/dashboard/documentos-recentes")
