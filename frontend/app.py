@@ -1553,7 +1553,6 @@ elif st.session_state.perfil == "admin":
                         placeholder="Insira a nova password..."
                     )
                     
-                    # ---------- CORREÇÃO: 3 botões na mesma linha ----------
                     col_btn1, col_btn2, col_btn3 = st.columns(3)
                     
                     with col_btn1:
@@ -1603,8 +1602,12 @@ elif st.session_state.perfil == "admin":
                                             erro = resp_del.text
                                         st.error(f"Erro ao eliminar: {erro}")
                     
+                    # ---------- CORREÇÃO: Botão Fechar (desseleciona o utilizador) ----------
                     with col_btn3:
                         if st.button("Fechar", key="admin_fechar_gerir_user", use_container_width=True):
+                            # Incrementar a chave do selectbox para forçar reset
+                            st.session_state.admin_user_dropdown_key += 1
+                            # Limpar a seleção
                             st.session_state.doc_selecionado = None
                             st.rerun()
                 
@@ -1840,7 +1843,7 @@ elif st.session_state.perfil == "admin":
                                 st.caption(f"  Comentário: {v['comentario']}")
                     else:
                         st.info("Sem histórico disponível.")
-                        
+
 # ============================================================
 # GARANTIR QUE O CLOSE_DOC_AFTER_ACTION É PROCESSADO
 # ============================================================
