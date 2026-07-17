@@ -21,60 +21,13 @@ def get_api_url():
 
 API_URL = get_api_url()
 
-# ============================================================
-# TRADUÇÕES
-# ============================================================
-TRADUCOES = {
-    "pt": {
-        "app_title": "Notificações",
-        "logout": "Sair",
-        "back": "← Voltar",
-        "logged_as": "Logado como:",
-        "no_notifications_found": "Nenhuma notificação encontrada.",
-        "all_notifications_read": "📌 Todas as notificações estão lidas.",
-        "unread_notifications": "📌 Você tem {count} notificação(ões) não lida(s).",
-        "mark_all_read": "Marcar todas como lidas",
-        "mark_read": "✓ Marcar lida",
-        "read": "✅ Lida",
-        "view_document": "Ver Documento",
-        "notifications": "Notificações",
-        "unread_notifications_one": "🔔 {count} notificação não lida",
-        "unread_notifications_other": "🔔 {count} notificações não lidas"
-    },
-    "en": {
-        "app_title": "Notifications",
-        "logout": "Logout",
-        "back": "← Back",
-        "logged_as": "Logged as:",
-        "no_notifications_found": "No notifications found.",
-        "all_notifications_read": "📌 All notifications are read.",
-        "unread_notifications": "📌 You have {count} unread notification(s).",
-        "mark_all_read": "Mark all as read",
-        "mark_read": "✓ Mark as read",
-        "read": "✅ Read",
-        "view_document": "View Document",
-        "notifications": "Notifications",
-        "unread_notifications_one": "🔔 {count} unread notification",
-        "unread_notifications_other": "🔔 {count} unread notifications"
-    }
-}
-
-def t(key: str, **kwargs) -> str:
-    lang = st.session_state.get("idioma", "pt")
-    texto = TRADUCOES.get(lang, TRADUCOES["pt"]).get(key, key)
-    if kwargs:
-        try:
-            return texto.format(**kwargs)
-        except KeyError:
-            return texto
-    return texto
-
 st.set_page_config(
-    page_title=t("app_title"),
+    page_title="Notificações",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
+# CSS - sidebar 270px
 st.markdown("""
 <style>
     [data-testid="stSidebarNav"] {
@@ -87,6 +40,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Verificar autenticação
 if "token" not in st.session_state or st.session_state.token is None:
     st.warning("Por favor, faça login primeiro.")
     st.stop()
@@ -133,14 +87,15 @@ def marcar_como_lida(notificacao_id):
         st.error(f"Erro ao marcar como lida: {e}")
         return False
 
+# Sidebar personalizada
 with st.sidebar:
-    st.write(f"{t('logged_as')} **{st.session_state.username}**")
+    st.write(f"Logado como: **{st.session_state.username}**")
     st.divider()
     
-    if st.button(t("back"), use_container_width=True, key="notificacoes_sidebar_voltar"):
+    if st.button("← Voltar", use_container_width=True, key="notificacoes_sidebar_voltar"):
         st.switch_page("app.py")
     
-    if st.button(t("logout"), key="notificacoes_sidebar_logout"):
+    if st.button("Logout", key="notificacoes_sidebar_logout"):
         st.session_state.token = None
         st.session_state.perfil = None
         st.session_state.username = None
@@ -153,37 +108,41 @@ with st.sidebar:
         st.session_state.refresh_counter = 0
         st.rerun()
 
-st.title(t("notifications"))
+# Título
+st.title("Notificações")
 
+# Contador de não lidas
 try:
     resp = requests.get(f"{API_URL}/notificacoes/nao-lidas", headers=headers_auth())
     if resp.status_code == 200:
         count = resp.json().get("count", 0)
         if count > 0:
             if count == 1:
-                st.info(t("unread_notifications_one", count=count))
+                st.info(f"📌 Você tem {count} notificação não lida.")
             else:
-                st.info(t("unread_notifications_other", count=count))
+                st.info(f"📌 Você tem {count} notificações não lidas.")
         else:
-            st.info(t("all_notifications_read"))
+            st.info("📌 Todas as notificações estão lidas.")
 except:
     pass
 
+# Botões de ação
 col1, col2 = st.columns([1, 5])
 with col1:
-    if st.button(t("back"), use_container_width=True, key="notificacoes_voltar_principal"):
+    if st.button("← Voltar", use_container_width=True, key="notificacoes_voltar_principal"):
         st.switch_page("app.py")
 with col2:
-    if st.button(t("mark_all_read"), use_container_width=True, key="notificacoes_marcar_todas"):
+    if st.button("Marcar todas como lidas", use_container_width=True, key="notificacoes_marcar_todas"):
         if marcar_todas_lidas():
             st.rerun()
 
 st.divider()
 
+# Listar notificações
 notificacoes = get_notificacoes(100)
 
 if not notificacoes:
-    st.info(t("no_notifications_found"))
+    st.info("Nenhuma notificação encontrada.")
 else:
     for notif in notificacoes:
         with st.container():
@@ -199,18 +158,19 @@ else:
                 st.caption(f"📅 {notif['created_at']}")
             with col3:
                 if not notif.get("lida", False):
-                    if st.button(t("mark_read"), key=f"notificacao_marcar_lida_{notif['id']}"):
+                    if st.button("✓ Marcar lida", key=f"notificacao_marcar_lida_{notif['id']}"):
                         if marcar_como_lida(notif['id']):
                             st.rerun()
                 else:
-                    st.write(t("read"))
+                    st.write("✅ Lida")
             
+            # Link para o documento
             if notif.get("link"):
                 link = notif['link'].replace("/documentos?doc_id=", "")
                 if link:
                     try:
                         doc_id = int(link)
-                        if st.button(t("view_document"), key=f"notificacao_ver_doc_{notif['id']}"):
+                        if st.button("Ver Documento", key=f"notificacao_ver_doc_{notif['id']}"):
                             st.session_state.doc_selecionado = doc_id
                             st.query_params["doc_id"] = str(doc_id)
                             st.query_params["from_notification"] = "true"

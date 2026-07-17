@@ -2,6 +2,9 @@ import streamlit as st
 import requests
 import os
 
+# ============================================================
+# CONFIGURAÇÃO DA API_URL
+# ============================================================
 def get_api_url():
     try:
         if hasattr(st, 'secrets') and st.secrets and 'API_URL' in st.secrets:
@@ -17,10 +20,13 @@ def get_api_url():
 
 API_URL = get_api_url()
 
+# REMOVER st.set_page_config() - já é chamado na página principal
+
 def headers_auth():
     return {"Authorization": f"Bearer {st.session_state.token}"}
 
 def get_notificacoes_nao_lidas():
+    """Obtém o número de notificações não lidas."""
     try:
         resp = requests.get(f"{API_URL}/notificacoes/nao-lidas", headers=headers_auth())
         if resp.status_code == 200:
@@ -30,11 +36,21 @@ def get_notificacoes_nao_lidas():
     return 0
 
 def render_notificacoes_badge():
+    """
+    Renderiza o badge de notificações no canto superior direito.
+    """
+    # Verificar se o token existe
     if st.session_state.token is None:
         return
     
     count = get_notificacoes_nao_lidas()
     
+    if count == 1:
+        badge_text = f"{count} notificação não lida"
+    else:
+        badge_text = f"{count} notificações não lidas"    
+    
+    # CSS para posicionar o badge
     st.markdown("""
     <style>
     .notification-badge {
@@ -79,6 +95,7 @@ def render_notificacoes_badge():
     </style>
     """, unsafe_allow_html=True)
     
+    # Badge HTML com botão de refresh
     if count > 0:
         badge_html = f"""
         <div class="notification-badge">
@@ -108,9 +125,11 @@ def render_notificacoes_badge():
     
     st.markdown(badge_html, unsafe_allow_html=True)
     
+    # Verificar se clicou no badge (via query param)
     if "page" in st.query_params and st.query_params["page"] == "notificacoes":
         st.switch_page("pages/notificacoes.py")
     
+    # Verificar se clicou no refresh
     if "refresh_notifications" in st.query_params:
         st.query_params.clear()
         st.rerun()

@@ -18,10 +18,6 @@ class EstadoDocumento(str, enum.Enum):
     APROVADO = "Aprovado"
     ARQUIVADO = "Arquivado"
 
-class Idioma(str, enum.Enum):
-    PT = "pt"
-    EN = "en"
-
 class Utilizador(Base):
     __tablename__ = "utilizadores"
 
@@ -30,7 +26,6 @@ class Utilizador(Base):
     password_hash = Column(String, nullable=False)
     perfil = Column(Enum(PerfilUtilizador), nullable=False)
     nome_completo = Column(String)
-    idioma = Column(Enum(Idioma), default=Idioma.PT)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Documento(Base):
@@ -61,16 +56,17 @@ class VersaoDocumento(Base):
 
     documento = relationship("Documento", back_populates="versoes")
 
+# ---------- Modelo de Notificações ----------
 class Notificacao(Base):
     __tablename__ = "notificacoes"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String, nullable=False)
+    username = Column(String, nullable=False)  # destinatário
     titulo = Column(String, nullable=False)
     mensagem = Column(Text, nullable=False)
     lida = Column(Boolean, default=False)
-    link = Column(String, nullable=True)
-    icone = Column(String, nullable=True)
+    link = Column(String, nullable=True)  # link para o documento (ex: "/documento/1")
+    icone = Column(String, nullable=True)  # emoji para a notificação
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     def to_dict(self):

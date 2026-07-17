@@ -14,11 +14,11 @@ import json
 import traceback
 
 from database import SessionLocal, engine
-from models import Base, Documento, VersaoDocumento, EstadoDocumento, Utilizador, PerfilUtilizador, Notificacao, Idioma
+from models import Base, Documento, VersaoDocumento, EstadoDocumento, Utilizador, PerfilUtilizador, Notificacao  # <-- ADICIONAR Notificacao
 from schemas import (
     DocumentoCreate, DocumentoUpdate, DocumentoOut,
     VersaoOut, MudancaEstado, UtilizadorCreate, Token,
-    PasswordUpdate, UtilizadorOut
+    PasswordUpdate
 )
 from auth import (
     hash_password,
@@ -43,6 +43,9 @@ from notificacoes import (
     get_notificacoes_nao_lidas_count
 )
 
+# EMAIL DESATIVADO - manter para futuro
+# from email_utils import enviar_email, DESTINATARIO_PADRAO
+
 # Criar tabelas (se não existirem)
 Base.metadata.create_all(bind=engine)
 
@@ -51,7 +54,7 @@ app = FastAPI()
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8501", "http://127.0.0.1:8501", "https://*.streamlit.app"],
+    allow_origins=["http://localhost:8501", "http://127.0.0.1:8501"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -87,8 +90,7 @@ def registar(utilizador: UtilizadorCreate, db: Session = Depends(get_db)):
         username=utilizador.username,
         password_hash=hash_password(utilizador.password),
         perfil=utilizador.perfil,
-        nome_completo=utilizador.nome_completo,
-        idioma=utilizador.idioma
+        nome_completo=utilizador.nome_completo
     )
     db.add(user)
     db.commit()
@@ -112,14 +114,12 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-@app.get("/me", response_model=UtilizadorOut)
+@app.get("/me", response_model=dict)
 def quem_sou_eu(current_user: Utilizador = Depends(get_current_user)):
     return {
         "username": current_user.username,
-        "perfil": current_user.perfil,
-        "nome_completo": current_user.nome_completo,
-        "idioma": current_user.idioma,
-        "created_at": current_user.created_at
+        "perfil": current_user.perfil.value,
+        "nome_completo": current_user.nome_completo
     }
 
 # -------------------- Documentos --------------------
@@ -158,6 +158,7 @@ def pesquisar_documentos(
     # -------------------- Filtro por pesquisa de texto --------------------
     if q:
         q = f"%{q}%"
+        # Tenta converter para inteiro para pesquisar por ID
         try:
             id_int = int(q.replace("%", ""))
             query = query.filter(
@@ -187,21 +188,23 @@ def pesquisar_documentos(
             data_inicio_dt = datetime.strptime(data_inicio, "%Y-%m-%d")
             query = query.filter(Documento.created_at >= data_inicio_dt)
         except ValueError:
-            pass
+            pass  # Ignora data inválida
 
     if data_fim:
         try:
             data_fim_dt = datetime.strptime(data_fim, "%Y-%m-%d")
+            # Adicionar um dia para incluir todo o dia
             data_fim_dt = data_fim_dt.replace(hour=23, minute=59, second=59)
             query = query.filter(Documento.created_at <= data_fim_dt)
         except ValueError:
-            pass
+            pass  # Ignora data inválida
 
     # -------------------- Filtro por perfil --------------------
     if current_user.perfil == PerfilUtilizador.PARCEIRO:
         query = query.filter(Documento.parceiro_id == current_user.username)
 
     # -------------------- Ordenação --------------------
+    # Mapeamento de campos para ordenação segura
     order_map = {
         "id": Documento.id,
         "titulo": Documento.titulo,
@@ -296,6 +299,7 @@ def submeter_documento(
     db.commit()
     db.refresh(doc)
     
+    # Criar notificação para a empresa
     criar_notificacao_para_empresa(
         db=db,
         documento=doc,
@@ -324,6 +328,7 @@ def iniciar_revisao(
     db.commit()
     db.refresh(doc)
     
+    # Criar notificação para o parceiro
     criar_notificacao_para_parceiro(
         db=db,
         documento=doc,
@@ -333,6 +338,7 @@ def iniciar_revisao(
     )
     
     return doc
+
 
 @app.post("/documentos/{doc_id}/pedir-alteracoes", response_model=DocumentoOut)
 def pedir_alteracoes(
@@ -353,6 +359,7 @@ def pedir_alteracoes(
     db.commit()
     db.refresh(doc)
     
+    # Criar notificação para o parceiro
     criar_notificacao_para_parceiro(
         db=db,
         documento=doc,
@@ -401,6 +408,7 @@ def aprovar_documento(
     db.commit()
     db.refresh(doc)
     
+    # Criar notificação para o parceiro
     criar_notificacao_para_parceiro(
         db=db,
         documento=doc,
@@ -408,6 +416,18 @@ def aprovar_documento(
         mensagem=f"O documento '{doc.titulo}' foi aprovado por {current_user.username}.",
         icone="✅"
     )
+
+    # EMAIL DESATIVADO - manter para futuro
+    # assunto = f"Documento '{doc.titulo}' aprovado (ID {doc.id})"
+    # corpo = (
+    #     f"O documento '{doc.titulo}' (ID {doc.id}) foi aprovado.\n\n"
+    #     f"Parceiro: {doc.parceiro_id}\n"
+    #     f"Última versão: {doc.versao_atual}\n"
+    #     f"Aprovado por: {current_user.username}\n"
+    #     f"Data: {doc.updated_at or doc.created_at}\n\n"
+    #     "Aceda à plataforma para consultar os detalhes."
+    # )
+    # enviar_email(DESTINATARIO_PADRAO, assunto, corpo)
 
     return doc
 
@@ -449,6 +469,7 @@ def arquivar_documento(
     db.commit()
     db.refresh(doc)
     
+    # Criar notificação para o parceiro
     criar_notificacao_para_parceiro(
         db=db,
         documento=doc,
@@ -456,6 +477,18 @@ def arquivar_documento(
         mensagem=f"O documento '{doc.titulo}' foi arquivado por {current_user.username}.",
         icone="📁"
     )
+
+    # EMAIL DESATIVADO - manter para futuro
+    # assunto = f"Documento '{doc.titulo}' arquivado (ID {doc.id})"
+    # corpo = (
+    #     f"O documento '{doc.titulo}' (ID {doc.id}) foi arquivado.\n\n"
+    #     f"Parceiro: {doc.parceiro_id}\n"
+    #     f"Última versão: {doc.versao_atual}\n"
+    #     f"Arquivado por: {current_user.username}\n"
+    #     f"Data: {doc.updated_at or doc.created_at}\n\n"
+    #     "O documento está disponível apenas para consulta na plataforma."
+    # )
+    # enviar_email(DESTINATARIO_PADRAO, assunto, corpo)
 
     return doc
 
@@ -474,7 +507,7 @@ def listar_versoes(
     return versoes
 
 # -------------------- Admin: gestão de utilizadores --------------------
-@app.get("/admin/usuarios", response_model=List[UtilizadorOut])
+@app.get("/admin/usuarios", response_model=List[dict])
 def listar_utilizadores(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
@@ -485,9 +518,8 @@ def listar_utilizadores(
     return [
         {
             "username": u.username,
-            "perfil": u.perfil,
+            "perfil": u.perfil.value,
             "nome_completo": u.nome_completo,
-            "idioma": u.idioma,
             "created_at": u.created_at
         }
         for u in users
@@ -532,7 +564,21 @@ def dashboard_kpis(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
+    """
+    Obtém os KPIs principais para o dashboard.
+    """
     return get_dashboard_kpis(db, current_user.username, current_user.perfil)
+
+@app.get("/dashboard/evolucao")
+def dashboard_evolucao(
+    meses: int = 12,
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    """
+    Obtém a evolução mensal de documentos.
+    """
+    return get_evolucao_mensal(db, current_user.username, current_user.perfil, meses)
 
 @app.get("/dashboard/top-parceiros")
 def dashboard_top_parceiros(
@@ -540,9 +586,22 @@ def dashboard_top_parceiros(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
+    """
+    Obtém os parceiros com mais documentos (apenas para empresa/admin).
+    """
     if current_user.perfil == PerfilUtilizador.PARCEIRO:
         raise HTTPException(status_code=403, detail="Apenas empresa/admin podem ver top parceiros")
     return get_top_parceiros(db, limit)
+
+@app.get("/dashboard/tempo-medio-estado")
+def dashboard_tempo_medio_estado(
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    """
+    Obtém o tempo médio em cada estado.
+    """
+    return get_tempo_medio_por_estado(db, current_user.username, current_user.perfil)
 
 @app.get("/dashboard/documentos-recentes")
 def dashboard_documentos_recentes(
@@ -550,6 +609,9 @@ def dashboard_documentos_recentes(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
+    """
+    Obtém os documentos mais recentes.
+    """
     return get_documentos_recentes(db, current_user.username, current_user.perfil, limit)
 
 # -------------------- Notificações --------------------
@@ -559,6 +621,9 @@ def listar_notificacoes(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
+    """
+    Lista as notificações do utilizador atual.
+    """
     return get_notificacoes_utilizador(db, current_user.username, limit)
 
 @app.get("/notificacoes/nao-lidas")
@@ -566,6 +631,9 @@ def contar_notificacoes_nao_lidas(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
+    """
+    Conta as notificações não lidas do utilizador atual.
+    """
     count = get_notificacoes_nao_lidas_count(db, current_user.username)
     return {"count": count}
 
@@ -575,7 +643,11 @@ def marcar_notificacao_lida(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
+    """
+    Marca uma notificação como lida.
+    """
     try:
+        # Verificar se a notificação existe e pertence ao utilizador
         notificacao = db.query(Notificacao).filter(
             Notificacao.id == notificacao_id,
             Notificacao.username == current_user.username
@@ -599,6 +671,9 @@ def marcar_todas_notificacoes_lidas(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
+    """
+    Marca todas as notificações como lidas.
+    """
     try:
         count = db.query(Notificacao).filter(
             Notificacao.username == current_user.username,
@@ -828,7 +903,9 @@ def exportar_versoes_excel(
         wb.save(output)
         output.seek(0)
 
+        # Usar o título do documento para o nome do ficheiro
         filename = f"{doc.titulo}.xlsx"
+        # Remover caracteres inválidos
         filename = "".join(c for c in filename if c.isalnum() or c in " ._-")
         
         headers = {"Content-Disposition": f"attachment; filename={filename}"}
