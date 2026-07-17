@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Query, Request
+from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,7 +14,7 @@ import json
 import traceback
 
 from database import SessionLocal, engine
-from models import Base, Documento, VersaoDocumento, EstadoDocumento, Utilizador, PerfilUtilizador, Notificacao
+from models import Base, Documento, VersaoDocumento, EstadoDocumento, Utilizador, PerfilUtilizador, Notificacao  # <-- ADICIONAR Notificacao
 from schemas import (
     DocumentoCreate, DocumentoUpdate, DocumentoOut,
     VersaoOut, MudancaEstado, UtilizadorCreate, Token,
@@ -43,8 +43,8 @@ from notificacoes import (
     get_notificacoes_nao_lidas_count
 )
 
-# Importar traduções
-from frontend.translations import TRANSLATIONS, get_translation, get_datasource_options
+# EMAIL DESATIVADO - manter para futuro
+# from email_utils import enviar_email, DESTINATARIO_PADRAO
 
 # Criar tabelas (se não existirem)
 Base.metadata.create_all(bind=engine)
@@ -54,7 +54,7 @@ app = FastAPI()
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8501", "http://127.0.0.1:8501", "https://*.streamlit.app"],
+    allow_origins=["http://localhost:8501", "http://127.0.0.1:8501"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -78,19 +78,6 @@ def criar_versao(db: Session, documento: Documento, estado: EstadoDocumento, cri
     )
     db.add(versao)
     db.commit()
-
-# -------------------- Traduções --------------------
-@app.get("/translations")
-def get_translations(lang: str = "pt"):
-    """Retorna as traduções para o idioma solicitado."""
-    if lang not in TRANSLATIONS:
-        lang = "pt"
-    return TRANSLATIONS[lang]
-
-@app.get("/datasource-options")
-def get_datasource_options_endpoint(lang: str = "pt"):
-    """Retorna as opções de fonte de dados no idioma solicitado."""
-    return get_datasource_options(lang)
 
 # -------------------- Autenticação --------------------
 @app.post("/registar", response_model=Token)
@@ -163,10 +150,15 @@ def pesquisar_documentos(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
+    """
+    Endpoint de pesquisa avançada de documentos.
+    """
     query = db.query(Documento)
 
+    # -------------------- Filtro por pesquisa de texto --------------------
     if q:
         q = f"%{q}%"
+        # Tenta converter para inteiro para pesquisar por ID
         try:
             id_int = int(q.replace("%", ""))
             query = query.filter(
@@ -184,29 +176,35 @@ def pesquisar_documentos(
                 )
             )
 
+    # -------------------- Filtro por estados --------------------
     if estados:
         estados_lista = [e.strip() for e in estados.split(",") if e.strip()]
         if estados_lista:
             query = query.filter(Documento.estado.in_(estados_lista))
 
+    # -------------------- Filtro por data --------------------
     if data_inicio:
         try:
             data_inicio_dt = datetime.strptime(data_inicio, "%Y-%m-%d")
             query = query.filter(Documento.created_at >= data_inicio_dt)
         except ValueError:
-            pass
+            pass  # Ignora data inválida
 
     if data_fim:
         try:
             data_fim_dt = datetime.strptime(data_fim, "%Y-%m-%d")
+            # Adicionar um dia para incluir todo o dia
             data_fim_dt = data_fim_dt.replace(hour=23, minute=59, second=59)
             query = query.filter(Documento.created_at <= data_fim_dt)
         except ValueError:
-            pass
+            pass  # Ignora data inválida
 
+    # -------------------- Filtro por perfil --------------------
     if current_user.perfil == PerfilUtilizador.PARCEIRO:
         query = query.filter(Documento.parceiro_id == current_user.username)
 
+    # -------------------- Ordenação --------------------
+    # Mapeamento de campos para ordenação segura
     order_map = {
         "id": Documento.id,
         "titulo": Documento.titulo,
@@ -301,6 +299,7 @@ def submeter_documento(
     db.commit()
     db.refresh(doc)
     
+    # Criar notificação para a empresa
     criar_notificacao_para_empresa(
         db=db,
         documento=doc,
@@ -329,6 +328,7 @@ def iniciar_revisao(
     db.commit()
     db.refresh(doc)
     
+    # Criar notificação para o parceiro
     criar_notificacao_para_parceiro(
         db=db,
         documento=doc,
@@ -338,6 +338,7 @@ def iniciar_revisao(
     )
     
     return doc
+
 
 @app.post("/documentos/{doc_id}/pedir-alteracoes", response_model=DocumentoOut)
 def pedir_alteracoes(
@@ -358,6 +359,7 @@ def pedir_alteracoes(
     db.commit()
     db.refresh(doc)
     
+    # Criar notificação para o parceiro
     criar_notificacao_para_parceiro(
         db=db,
         documento=doc,
@@ -406,6 +408,7 @@ def aprovar_documento(
     db.commit()
     db.refresh(doc)
     
+    # Criar notificação para o parceiro
     criar_notificacao_para_parceiro(
         db=db,
         documento=doc,
@@ -413,6 +416,18 @@ def aprovar_documento(
         mensagem=f"O documento '{doc.titulo}' foi aprovado por {current_user.username}.",
         icone="✅"
     )
+
+    # EMAIL DESATIVADO - manter para futuro
+    # assunto = f"Documento '{doc.titulo}' aprovado (ID {doc.id})"
+    # corpo = (
+    #     f"O documento '{doc.titulo}' (ID {doc.id}) foi aprovado.\n\n"
+    #     f"Parceiro: {doc.parceiro_id}\n"
+    #     f"Última versão: {doc.versao_atual}\n"
+    #     f"Aprovado por: {current_user.username}\n"
+    #     f"Data: {doc.updated_at or doc.created_at}\n\n"
+    #     "Aceda à plataforma para consultar os detalhes."
+    # )
+    # enviar_email(DESTINATARIO_PADRAO, assunto, corpo)
 
     return doc
 
@@ -454,6 +469,7 @@ def arquivar_documento(
     db.commit()
     db.refresh(doc)
     
+    # Criar notificação para o parceiro
     criar_notificacao_para_parceiro(
         db=db,
         documento=doc,
@@ -461,6 +477,18 @@ def arquivar_documento(
         mensagem=f"O documento '{doc.titulo}' foi arquivado por {current_user.username}.",
         icone="📁"
     )
+
+    # EMAIL DESATIVADO - manter para futuro
+    # assunto = f"Documento '{doc.titulo}' arquivado (ID {doc.id})"
+    # corpo = (
+    #     f"O documento '{doc.titulo}' (ID {doc.id}) foi arquivado.\n\n"
+    #     f"Parceiro: {doc.parceiro_id}\n"
+    #     f"Última versão: {doc.versao_atual}\n"
+    #     f"Arquivado por: {current_user.username}\n"
+    #     f"Data: {doc.updated_at or doc.created_at}\n\n"
+    #     "O documento está disponível apenas para consulta na plataforma."
+    # )
+    # enviar_email(DESTINATARIO_PADRAO, assunto, corpo)
 
     return doc
 
@@ -536,7 +564,21 @@ def dashboard_kpis(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
+    """
+    Obtém os KPIs principais para o dashboard.
+    """
     return get_dashboard_kpis(db, current_user.username, current_user.perfil)
+
+@app.get("/dashboard/evolucao")
+def dashboard_evolucao(
+    meses: int = 12,
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    """
+    Obtém a evolução mensal de documentos.
+    """
+    return get_evolucao_mensal(db, current_user.username, current_user.perfil, meses)
 
 @app.get("/dashboard/top-parceiros")
 def dashboard_top_parceiros(
@@ -544,9 +586,22 @@ def dashboard_top_parceiros(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
+    """
+    Obtém os parceiros com mais documentos (apenas para empresa/admin).
+    """
     if current_user.perfil == PerfilUtilizador.PARCEIRO:
         raise HTTPException(status_code=403, detail="Apenas empresa/admin podem ver top parceiros")
     return get_top_parceiros(db, limit)
+
+@app.get("/dashboard/tempo-medio-estado")
+def dashboard_tempo_medio_estado(
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    """
+    Obtém o tempo médio em cada estado.
+    """
+    return get_tempo_medio_por_estado(db, current_user.username, current_user.perfil)
 
 @app.get("/dashboard/documentos-recentes")
 def dashboard_documentos_recentes(
@@ -554,6 +609,9 @@ def dashboard_documentos_recentes(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
+    """
+    Obtém os documentos mais recentes.
+    """
     return get_documentos_recentes(db, current_user.username, current_user.perfil, limit)
 
 # -------------------- Notificações --------------------
@@ -563,6 +621,9 @@ def listar_notificacoes(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
+    """
+    Lista as notificações do utilizador atual.
+    """
     return get_notificacoes_utilizador(db, current_user.username, limit)
 
 @app.get("/notificacoes/nao-lidas")
@@ -570,6 +631,9 @@ def contar_notificacoes_nao_lidas(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
+    """
+    Conta as notificações não lidas do utilizador atual.
+    """
     count = get_notificacoes_nao_lidas_count(db, current_user.username)
     return {"count": count}
 
@@ -579,7 +643,11 @@ def marcar_notificacao_lida(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
+    """
+    Marca uma notificação como lida.
+    """
     try:
+        # Verificar se a notificação existe e pertence ao utilizador
         notificacao = db.query(Notificacao).filter(
             Notificacao.id == notificacao_id,
             Notificacao.username == current_user.username
@@ -603,6 +671,9 @@ def marcar_todas_notificacoes_lidas(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
+    """
+    Marca todas as notificações como lidas.
+    """
     try:
         count = db.query(Notificacao).filter(
             Notificacao.username == current_user.username,
@@ -633,10 +704,12 @@ def exportar_versoes_excel(
         wb = openpyxl.Workbook()
         processos = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
 
+        # ---------- Folha LCA ----------
         ws_lca = wb.active
         ws_lca.title = "LCA"
         row = 1
 
+        # INPUTS
         ws_lca.cell(row=row, column=1, value="INPUTS").font = Font(bold=True, size=12)
         row += 1
         cab_inputs = ["Processo", "Material", "QTY", "Unit", "Material Description", "CAS/Comments", "Distance (km)", "Country", "Data Source"]
@@ -657,6 +730,7 @@ def exportar_versoes_excel(
                 row += 1
         row += 1
 
+        # PROCESSES
         ws_lca.cell(row=row, column=1, value="PROCESSES").font = Font(bold=True, size=12)
         row += 1
         cab_proc = ["Processo", "Tipo", "QTY", "Unit", "Description", "Comments", "Data Source"]
@@ -675,6 +749,7 @@ def exportar_versoes_excel(
                 row += 1
         row += 1
 
+        # OUTPUTS
         ws_lca.cell(row=row, column=1, value="OUTPUTS").font = Font(bold=True, size=12)
         row += 1
         cab_out = ["Processo", "Etapa", "Tipo", "Sub-tipo", "QTY", "Unit", "Material description", "Comments", "Data Source"]
@@ -694,6 +769,7 @@ def exportar_versoes_excel(
                 ws_lca.cell(row=row, column=9, value=item.get("datasource", ""))
                 row += 1
 
+        # Ajustar colunas LCA
         for col in ws_lca.columns:
             max_length = 0
             for cell in col:
@@ -702,9 +778,11 @@ def exportar_versoes_excel(
             col_letter = get_column_letter(cell.column)
             ws_lca.column_dimensions[col_letter].width = min(max_length + 2, 40)
 
+        # ---------- Folha LCC ----------
         ws_lcc = wb.create_sheet("LCC")
         row = 1
 
+        # MATERIALS
         ws_lcc.cell(row=row, column=1, value="COST BREAKDOWN MATERIAL").font = Font(bold=True, size=12)
         row += 1
         cab_mat = ["Processo", "Material", "Price €", "Qty", "Unit", "Material Description", "Comments", "Distance (km)", "Country", "Data Source"]
@@ -726,6 +804,7 @@ def exportar_versoes_excel(
                 row += 1
         row += 1
 
+        # EQUIPMENT
         ws_lcc.cell(row=row, column=1, value="EQUIPMENT").font = Font(bold=True, size=12)
         row += 1
         cab_eq = ["Processo", "Equipment", "Process", "Unit Cost (€)", "Lifespan (Years)", "Maintenance €/Year", "Industrial Equivalent", "Comments", "Data Source"]
@@ -746,6 +825,7 @@ def exportar_versoes_excel(
                 row += 1
         row += 1
 
+        # LABOUR
         ws_lcc.cell(row=row, column=1, value="LABOUR").font = Font(bold=True, size=12)
         row += 1
         cab_lab = ["Processo", "Name of the process", "Total Labour - Number", "Total Labour - Cost €",
@@ -772,6 +852,7 @@ def exportar_versoes_excel(
                 row += 1
         row += 1
 
+        # OUTPUTS LCC
         ws_lcc.cell(row=row, column=1, value="OUTPUTS").font = Font(bold=True, size=12)
         row += 1
         cab_out_lcc = ["Processo", "Material", "Market Price €", "Quantity", "Unit", "Amount of product produced", "Comments", "Data Source"]
@@ -798,6 +879,7 @@ def exportar_versoes_excel(
             col_letter = get_column_letter(cell.column)
             ws_lcc.column_dimensions[col_letter].width = min(max_length + 2, 40)
 
+        # ---------- Histórico ----------
         ws_hist = wb.create_sheet("Historico")
         versoes = db.query(VersaoDocumento).filter(VersaoDocumento.documento_id == doc_id).order_by(VersaoDocumento.numero_versao).all()
         cab_hist = ["Nº Versão", "Estado", "Criado por", "Data", "Comentário"]
@@ -821,7 +903,9 @@ def exportar_versoes_excel(
         wb.save(output)
         output.seek(0)
 
+        # Usar o título do documento para o nome do ficheiro
         filename = f"{doc.titulo}.xlsx"
+        # Remover caracteres inválidos
         filename = "".join(c for c in filename if c.isalnum() or c in " ._-")
         
         headers = {"Content-Disposition": f"attachment; filename={filename}"}

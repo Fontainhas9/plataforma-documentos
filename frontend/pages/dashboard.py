@@ -5,15 +5,28 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 import os
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from app import get_text, get_language, get_api_url, headers_auth
+
+# ============================================================
+# CONFIGURAÇÃO DA API_URL
+# ============================================================
+def get_api_url():
+    try:
+        if hasattr(st, 'secrets') and st.secrets and 'API_URL' in st.secrets:
+            return st.secrets['API_URL']
+    except Exception:
+        pass
+    
+    api_url = os.getenv('API_URL')
+    if api_url:
+        return api_url
+    
+    return "http://127.0.0.1:8000"
 
 API_URL = get_api_url()
 
 # Configuração da página
 st.set_page_config(
-    page_title=get_text("dashboard"),
+    page_title="Dashboard",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -33,24 +46,27 @@ st.markdown("""
 
 # Verificar autenticação
 if "token" not in st.session_state or st.session_state.token is None:
-    st.warning(get_text("please_login_first"))
+    st.warning("Por favor, faça login primeiro.")
     st.stop()
+
+def headers_auth():
+    return {"Authorization": f"Bearer {st.session_state.token}"}
 
 # Sidebar personalizada
 with st.sidebar:
-    st.write(f"{get_text('logged_as')} **{st.session_state.username}**")
+    st.write(f"Logado como: **{st.session_state.username}**")
     st.divider()
     
-    if st.button(get_text("back"), use_container_width=True, key="dashboard_sidebar_voltar"):
+    if st.button("← Voltar", use_container_width=True, key="dashboard_sidebar_voltar"):
         st.switch_page("app.py")
     
-    if st.button(get_text("logout"), key="dashboard_sidebar_logout"):
+    if st.button("Logout", key="dashboard_sidebar_logout"):
         st.session_state.token = None
         st.session_state.perfil = None
         st.session_state.username = None
         st.session_state.doc_selecionado = None
         st.session_state.success_message = None
-        st.session_state.menu_parceiro_widget = get_text("my_documents")
+        st.session_state.menu_parceiro_widget = "Meus Documentos"
         st.session_state.redirect_to_docs = False
         st.session_state.edit_data = None
         st.session_state.new_data = None
@@ -58,10 +74,10 @@ with st.sidebar:
         st.rerun()
 
 # Título
-st.title(get_text("dashboard"))
+st.title("Dashboard")
 
 # ---------- KPIs ----------
-st.subheader(get_text("key_indicators"))
+st.subheader("Indicadores Chave")
 
 try:
     response = requests.get(f"{API_URL}/dashboard/kpis", headers=headers_auth())
@@ -71,43 +87,38 @@ try:
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric(
-                label=get_text("total_documents"),
+                label="Total Documentos",
                 value=kpis.get("total_documentos", 0)
             )
         with col2:
             st.metric(
-                label=get_text("approved"),
+                label="Aprovados",
                 value=kpis.get("aprovados", 0)
             )
         with col3:
             st.metric(
-                label=get_text("approval_rate"),
+                label="Taxa Aprovação",
                 value=f"{kpis.get('taxa_aprovacao', 0)}%"
             )
         with col4:
             st.metric(
-                label=get_text("avg_review_time"),
-                value=f"{kpis.get('tempo_medio_revisao', 0)} {get_text('days')}"
+                label="Tempo Médio Revisão",
+                value=f"{kpis.get('tempo_medio_revisao', 0)} dias"
             )
         
         # Distribuição por estado (gráfico de pizza)
         estados = kpis.get("documentos_por_estado", {})
         if estados and sum(estados.values()) > 0:
-            # Traduzir os estados para o idioma atual
-            estados_traduzidos = {}
-            for estado, valor in estados.items():
-                estados_traduzidos[get_text(estado, estado)] = valor
-            
             df_estados = pd.DataFrame({
-                get_text("state"): list(estados_traduzidos.keys()),
-                "Quantidade": list(estados_traduzidos.values())
+                "Estado": list(estados.keys()),
+                "Quantidade": list(estados.values())
             })
             
             fig_pizza = px.pie(
                 df_estados,
                 values="Quantidade",
-                names=get_text("state"),
-                title=get_text("documents_by_status"),
+                names="Estado",
+                title="Distribuição de Documentos por Estado",
                 color_discrete_sequence=px.colors.qualitative.Set3,
                 hole=0.3
             )
@@ -120,23 +131,23 @@ try:
             with col2:
                 fig_barras = px.bar(
                     df_estados,
-                    x=get_text("state"),
+                    x="Estado",
                     y="Quantidade",
-                    title=get_text("documents_by_status"),
-                    color=get_text("state"),
+                    title="Documentos por Estado (Barras)",
+                    color="Estado",
                     color_discrete_sequence=px.colors.qualitative.Set3
                 )
                 fig_barras.update_layout(showlegend=False)
                 st.plotly_chart(fig_barras, use_container_width=True)
     else:
-        st.error(get_text("error"))
+        st.error("Erro ao carregar KPIs")
 
 except Exception as e:
-    st.error(f"{get_text('error')}: {e}")
+    st.error(f"Erro ao carregar dados: {e}")
 
 # ---------- Documentos Recentes ----------
 st.divider()
-st.subheader(get_text("recent_documents"))
+st.subheader("Documentos Recentes")
 
 try:
     response = requests.get(f"{API_URL}/dashboard/documentos-recentes?limit=10", headers=headers_auth())
@@ -155,32 +166,29 @@ try:
             }
             df_recentes["Cor"] = df_recentes["estado"].map(estado_cores)
             
-            # Traduzir estados
-            df_recentes["estado"] = df_recentes["estado"].apply(lambda x: get_text(x, x))
-            
             st.dataframe(
                 df_recentes[["id", "titulo", "estado", "parceiro_id", "created_at"]],
                 column_config={
-                    "id": get_text("id"),
-                    "titulo": get_text("title"),
-                    "estado": get_text("state"),
-                    "parceiro_id": get_text("partner"),
-                    "created_at": get_text("created_at_table")
+                    "id": "ID",
+                    "titulo": "Título",
+                    "estado": "Estado",
+                    "parceiro_id": "Parceiro",
+                    "created_at": "Criado em"
                 },
                 hide_index=True,
                 use_container_width=True
             )
         else:
-            st.info(get_text("no_recent_documents"))
+            st.info("Sem documentos recentes")
     else:
-        st.error(get_text("error"))
+        st.error("Erro ao carregar documentos recentes")
 except Exception as e:
-    st.error(f"{get_text('error')}: {e}")
+    st.error(f"Erro ao carregar documentos recentes: {e}")
 
 # ---------- Top Parceiros ----------
 if st.session_state.perfil != "parceiro":
     st.divider()
-    st.subheader(get_text("top_partners"))
+    st.subheader("Top Parceiros")
     
     try:
         response = requests.get(f"{API_URL}/dashboard/top-parceiros?limit=10", headers=headers_auth())
@@ -195,20 +203,20 @@ if st.session_state.perfil != "parceiro":
                     x="total",
                     y="parceiro",
                     orientation='h',
-                    title=get_text("partner_documents"),
-                    labels={"total": get_text("total_documents"), "parceiro": get_text("partner")},
+                    title="Parceiros com Mais Documentos",
+                    labels={"total": "Documentos", "parceiro": "Parceiro"},
                     color="total",
                     color_continuous_scale="Blues"
                 )
                 fig_top.update_layout(
-                    xaxis_title=get_text("total_documents"),
-                    yaxis_title=get_text("partner"),
+                    xaxis_title="Documentos",
+                    yaxis_title="Parceiro",
                     showlegend=False
                 )
                 st.plotly_chart(fig_top, use_container_width=True)
             else:
-                st.info(get_text("no_top_partners"))
+                st.info("Sem dados de top parceiros")
         else:
-            st.error(get_text("error"))
+            st.error("Erro ao carregar top parceiros")
     except Exception as e:
-        st.error(f"{get_text('error')}: {e}")
+        st.error(f"Erro ao carregar top parceiros: {e}")
