@@ -1602,9 +1602,9 @@ elif st.session_state.perfil == "admin":
                                             erro = resp_del.text
                                         st.error(f"Erro ao eliminar: {erro}")
                     
-                    # ---------- CORREÇÃO: Botão Fechar (desseleciona o utilizador) ----------
+                    # ---------- CORREÇÃO: Botão Fechar Detalhes (desseleciona o utilizador) ----------
                     with col_btn3:
-                        if st.button("Fechar", key="admin_fechar_gerir_user", use_container_width=True):
+                        if st.button("Fechar Detalhes", key="admin_fechar_gerir_user", use_container_width=True):
                             # Incrementar a chave do selectbox para forçar reset
                             st.session_state.admin_user_dropdown_key += 1
                             # Limpar a seleção
