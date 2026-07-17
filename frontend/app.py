@@ -1579,7 +1579,6 @@ elif st.session_state.perfil == "admin":
                                         erro = resp_pw.text
                                     st.error(f"Erro ao alterar password: {erro}")
                     
-                    st.divider()
                     
                     with col2:
                         if st.button("Eliminar utilizador", key="btn_eliminar_user", use_container_width=True):
