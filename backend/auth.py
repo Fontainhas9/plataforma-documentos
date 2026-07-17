@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from database import SessionLocal
-from models import Utilizador
+from models import Utilizador, Idioma
 
 SECRET_KEY = "uma-chave-secreta-muito-segura"
 ALGORITHM = "HS256"
@@ -45,4 +45,4 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     db.close()
     if user is None:
         raise credentials_exception
-    return user  # <-- Deve retornar um objeto Utilizador, não uma string
+    return user

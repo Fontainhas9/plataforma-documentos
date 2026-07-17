@@ -18,6 +18,10 @@ class EstadoDocumento(str, enum.Enum):
     APROVADO = "Aprovado"
     ARQUIVADO = "Arquivado"
 
+class Idioma(str, enum.Enum):
+    PT = "pt"
+    EN = "en"
+
 class Utilizador(Base):
     __tablename__ = "utilizadores"
 
@@ -26,6 +30,7 @@ class Utilizador(Base):
     password_hash = Column(String, nullable=False)
     perfil = Column(Enum(PerfilUtilizador), nullable=False)
     nome_completo = Column(String)
+    idioma = Column(Enum(Idioma), default=Idioma.PT)  # NOVO CAMPO
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Documento(Base):

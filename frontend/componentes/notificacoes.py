@@ -3,6 +3,14 @@ import requests
 import os
 
 # ============================================================
+# IMPORTAR SISTEMA DE INTERNACIONALIZAÇÃO
+# ============================================================
+import sys
+import os as os_module
+sys.path.insert(0, os_module.path.dirname(os_module.path.dirname(os_module.path.abspath(__file__))))
+from i18n import get_text
+
+# ============================================================
 # CONFIGURAÇÃO DA API_URL
 # ============================================================
 def get_api_url():
@@ -20,7 +28,9 @@ def get_api_url():
 
 API_URL = get_api_url()
 
-# REMOVER st.set_page_config() - já é chamado na página principal
+def _t(key: str) -> str:
+    """Helper para obter texto traduzido."""
+    return get_text(key, st.session_state.get("idioma", "pt"))
 
 def headers_auth():
     return {"Authorization": f"Bearer {st.session_state.token}"}
@@ -46,9 +56,9 @@ def render_notificacoes_badge():
     count = get_notificacoes_nao_lidas()
     
     if count == 1:
-        badge_text = f"{count} notificação não lida"
+        badge_text = f"{count} {_t('notifications_unread')}"
     else:
-        badge_text = f"{count} notificações não lidas"    
+        badge_text = f"{count} {_t('notifications_unread_plural')}"    
     
     # CSS para posicionar o badge
     st.markdown("""

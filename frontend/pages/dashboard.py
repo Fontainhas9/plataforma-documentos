@@ -7,6 +7,14 @@ from datetime import datetime
 import os
 
 # ============================================================
+# IMPORTAR SISTEMA DE INTERNACIONALIZAÇÃO
+# ============================================================
+import sys
+import os as os_module
+sys.path.insert(0, os_module.path.dirname(os_module.path.dirname(os_module.path.abspath(__file__))))
+from i18n import get_text
+
+# ============================================================
 # CONFIGURAÇÃO DA API_URL
 # ============================================================
 def get_api_url():
@@ -49,18 +57,22 @@ if "token" not in st.session_state or st.session_state.token is None:
     st.warning("Por favor, faça login primeiro.")
     st.stop()
 
+def _t(key: str) -> str:
+    """Helper para obter texto traduzido."""
+    return get_text(key, st.session_state.get("idioma", "pt"))
+
 def headers_auth():
     return {"Authorization": f"Bearer {st.session_state.token}"}
 
 # Sidebar personalizada
 with st.sidebar:
-    st.write(f"Logado como: **{st.session_state.username}**")
+    st.write(f"{_t('logged_as')} **{st.session_state.username}**")
     st.divider()
     
-    if st.button("← Voltar", use_container_width=True, key="dashboard_sidebar_voltar"):
+    if st.button("← " + _t("close_details"), use_container_width=True, key="dashboard_sidebar_voltar"):
         st.switch_page("app.py")
     
-    if st.button("Logout", key="dashboard_sidebar_logout"):
+    if st.button(_t("logout"), key="dashboard_sidebar_logout"):
         st.session_state.token = None
         st.session_state.perfil = None
         st.session_state.username = None
@@ -74,10 +86,10 @@ with st.sidebar:
         st.rerun()
 
 # Título
-st.title("Dashboard")
+st.title(_t("dashboard"))
 
 # ---------- KPIs ----------
-st.subheader("Indicadores Chave")
+st.subheader(_t("key_indicators"))
 
 try:
     response = requests.get(f"{API_URL}/dashboard/kpis", headers=headers_auth())
@@ -87,38 +99,49 @@ try:
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric(
-                label="Total Documentos",
+                label=_t("total_documents"),
                 value=kpis.get("total_documentos", 0)
             )
         with col2:
             st.metric(
-                label="Aprovados",
+                label=_t("approved_documents"),
                 value=kpis.get("aprovados", 0)
             )
         with col3:
             st.metric(
-                label="Taxa Aprovação",
+                label=_t("approval_rate"),
                 value=f"{kpis.get('taxa_aprovacao', 0)}%"
             )
         with col4:
             st.metric(
-                label="Tempo Médio Revisão",
+                label=_t("avg_review_time"),
                 value=f"{kpis.get('tempo_medio_revisao', 0)} dias"
             )
         
         # Distribuição por estado (gráfico de pizza)
         estados = kpis.get("documentos_por_estado", {})
         if estados and sum(estados.values()) > 0:
+            # Traduzir estados
+            estado_map = {
+                "Rascunho": _t("draft"),
+                "Submetido": _t("submitted"),
+                "Em Revisão": _t("review"),
+                "Alterações": _t("changes"),
+                "Aprovado": _t("approved"),
+                "Arquivado": _t("archived")
+            }
+            estados_traduzidos = {estado_map.get(k, k): v for k, v in estados.items()}
+            
             df_estados = pd.DataFrame({
-                "Estado": list(estados.keys()),
-                "Quantidade": list(estados.values())
+                "Estado": list(estados_traduzidos.keys()),
+                "Quantidade": list(estados_traduzidos.values())
             })
             
             fig_pizza = px.pie(
                 df_estados,
                 values="Quantidade",
                 names="Estado",
-                title="Distribuição de Documentos por Estado",
+                title=_t("distribution_by_state"),
                 color_discrete_sequence=px.colors.qualitative.Set3,
                 hole=0.3
             )
@@ -133,7 +156,7 @@ try:
                     df_estados,
                     x="Estado",
                     y="Quantidade",
-                    title="Documentos por Estado (Barras)",
+                    title=_t("documents_by_state"),
                     color="Estado",
                     color_discrete_sequence=px.colors.qualitative.Set3
                 )
@@ -147,7 +170,7 @@ except Exception as e:
 
 # ---------- Documentos Recentes ----------
 st.divider()
-st.subheader("Documentos Recentes")
+st.subheader(_t("recent_documents"))
 
 try:
     response = requests.get(f"{API_URL}/dashboard/documentos-recentes?limit=10", headers=headers_auth())
@@ -156,30 +179,41 @@ try:
         if dados:
             df_recentes = pd.DataFrame(dados)
             
+            # Traduzir estados
+            estado_map = {
+                "Rascunho": _t("draft"),
+                "Submetido": _t("submitted"),
+                "Em Revisão": _t("review"),
+                "Alterações": _t("changes"),
+                "Aprovado": _t("approved"),
+                "Arquivado": _t("archived")
+            }
+            df_recentes["estado"] = df_recentes["estado"].map(lambda x: estado_map.get(x, x))
+            
             estado_cores = {
-                "Rascunho": "#FFB74D",
-                "Submetido": "#64B5F6",
-                "Em Revisão": "#FFD54F",
-                "Alterações": "#FF8A65",
-                "Aprovado": "#81C784",
-                "Arquivado": "#BDBDBD"
+                _t("draft"): "#FFB74D",
+                _t("submitted"): "#64B5F6",
+                _t("review"): "#FFD54F",
+                _t("changes"): "#FF8A65",
+                _t("approved"): "#81C784",
+                _t("archived"): "#BDBDBD"
             }
             df_recentes["Cor"] = df_recentes["estado"].map(estado_cores)
             
             st.dataframe(
                 df_recentes[["id", "titulo", "estado", "parceiro_id", "created_at"]],
                 column_config={
-                    "id": "ID",
-                    "titulo": "Título",
-                    "estado": "Estado",
-                    "parceiro_id": "Parceiro",
-                    "created_at": "Criado em"
+                    "id": _t("id"),
+                    "titulo": _t("title"),
+                    "estado": _t("state"),
+                    "parceiro_id": _t("partner"),
+                    "created_at": _t("created_at")
                 },
                 hide_index=True,
                 use_container_width=True
             )
         else:
-            st.info("Sem documentos recentes")
+            st.info(_t("no_recent_docs"))
     else:
         st.error("Erro ao carregar documentos recentes")
 except Exception as e:
@@ -188,7 +222,7 @@ except Exception as e:
 # ---------- Top Parceiros ----------
 if st.session_state.perfil != "parceiro":
     st.divider()
-    st.subheader("Top Parceiros")
+    st.subheader(_t("top_partners"))
     
     try:
         response = requests.get(f"{API_URL}/dashboard/top-parceiros?limit=10", headers=headers_auth())
@@ -203,19 +237,19 @@ if st.session_state.perfil != "parceiro":
                     x="total",
                     y="parceiro",
                     orientation='h',
-                    title="Parceiros com Mais Documentos",
-                    labels={"total": "Documentos", "parceiro": "Parceiro"},
+                    title=_t("partners_most_docs"),
+                    labels={"total": _t("total_documents"), "parceiro": _t("partner")},
                     color="total",
                     color_continuous_scale="Blues"
                 )
                 fig_top.update_layout(
-                    xaxis_title="Documentos",
-                    yaxis_title="Parceiro",
+                    xaxis_title=_t("total_documents"),
+                    yaxis_title=_t("partner"),
                     showlegend=False
                 )
                 st.plotly_chart(fig_top, use_container_width=True)
             else:
-                st.info("Sem dados de top parceiros")
+                st.info(_t("no_top_partners"))
         else:
             st.error("Erro ao carregar top parceiros")
     except Exception as e:
