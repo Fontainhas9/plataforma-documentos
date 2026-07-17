@@ -1,0 +1,622 @@
+# backend/translations.py
+from typing import Dict, Any
+
+# Dicionário de traduções
+TRANSLATIONS: Dict[str, Dict[str, str]] = {
+    "pt": {
+        # Geral
+        "app_title": "Plataforma de Gestão de Documentos",
+        "login": "Login",
+        "username": "Utilizador",
+        "password": "Palavra-passe",
+        "login_button": "Entrar",
+        "logout": "Sair",
+        "dashboard": "Painel de Controlo",
+        "notifications": "Notificações",
+        "back": "← Voltar",
+        "menu": "Menu",
+        "error": "Erro",
+        "warning": "Aviso",
+        "info": "Informação",
+        "success": "Sucesso",
+        
+        # Perfis
+        "parceiro": "Parceiro",
+        "empresa": "Empresa",
+        "admin": "Administrador",
+        
+        # Estados
+        "Rascunho": "Rascunho",
+        "Submetido": "Submetido",
+        "Em Revisão": "Em Revisão",
+        "Alterações": "Alterações",
+        "Aprovado": "Aprovado",
+        "Arquivado": "Arquivado",
+        
+        # Documentos
+        "documents": "Documentos",
+        "create_document": "Criar Documento",
+        "document_title": "Título do Documento",
+        "my_documents": "Meus Documentos",
+        "select_document": "Seleciona um documento",
+        "select_document_placeholder": "Selecione um documento...",
+        "load_document": "Carregar documento",
+        "close_details": "Fechar detalhes",
+        "refresh_list": "Atualizar lista",
+        "no_documents": "Nenhum documento encontrado.",
+        "fill_form_instructions": "Preencha os dados nas tabelas abaixo. Cada processo tem a sua própria secção.",
+        "document_summary": "Resumo de documentos",
+        "view_data_tables": "Ver dados em tabelas",
+        "view_raw_json": "Ver JSON bruto",
+        "version_history": "Histórico de versões",
+        "no_history": "Sem histórico disponível.",
+        "select_document_first": "Selecione um documento.",
+        
+        # Ações
+        "save": "Guardar",
+        "submit": "Submeter",
+        "approve": "Aprovar",
+        "reopen": "Reabrir",
+        "archive": "Arquivar",
+        "request_changes": "Pedir alterações",
+        "edit_again": "Editar novamente",
+        "start_review": "Iniciar revisão",
+        "export_history": "Exportar Histórico",
+        "close": "Fechar",
+        "edit": "Editar",
+        "delete": "Eliminar",
+        "confirm": "Confirmar",
+        "cancel": "Cancelar",
+        
+        # Formulário LCA/LCC
+        "lca": "LCA - Análise do Ciclo de Vida",
+        "lcc": "LCC - Custo do Ciclo de Vida",
+        "inputs": "Inputs",
+        "processes": "Processos",
+        "outputs": "Outputs",
+        "materials": "Materiais",
+        "equipment": "Equipamento",
+        "labour": "Mão-de-obra",
+        "add_input": "Adicionar input",
+        "add_process": "Adicionar processo (3 linhas)",
+        "add_output": "Adicionar output",
+        "add_material": "Adicionar material",
+        "add_equipment": "Adicionar equipamento",
+        "add_labour": "Adicionar linha de trabalho",
+        "remove_last": "Remover último",
+        "outputs_lcc": "Outputs (produto final)",
+        
+        # Campos do formulário LCA
+        "material": "Material",
+        "qty": "Quantidade",
+        "unit": "Unidade",
+        "description": "Descrição",
+        "cas_comments": "CAS/Comentários",
+        "distance": "Distância (km)",
+        "country": "País",
+        "data_source": "Fonte de Dados",
+        "datasource_options": ["Medido", "Calculado", "Estimado", "Literatura"],
+        "process_type": "Tipo de Processo",
+        "comments": "Comentários",
+        "etapa": "Etapa (ex: Demagnetisation)",
+        "tipo": "Tipo",
+        "sub_tipo": "Sub-tipo (ex: Name 1, Liquid 1, Solid 1, etc.)",
+        "tipos_output": ["Subproduct", "Emissions", "Waste"],
+        
+        # Campos do formulário LCC
+        "price": "Preço (€)",
+        "unit_cost": "Custo Unitário (€)",
+        "lifespan": "Vida Útil (Anos)",
+        "maintenance": "Manutenção (€/Ano)",
+        "industrial_equiv": "Equivalente Industrial",
+        "total_number": "Total - Número",
+        "total_cost": "Total - Custo (€)",
+        "high_skilled": "Número - Alta Qualificação",
+        "moderate_skilled": "Número - Qualificação Média",
+        "unskilled": "Número - Não Qualificado",
+        "high_rate": "Taxa - Alta Qualificação (€/h)",
+        "moderate_rate": "Taxa - Qualificação Média (€/h)",
+        "unskilled_rate": "Taxa - Não Qualificado (€/h)",
+        "market_price": "Preço de Mercado (€)",
+        "quantity": "Quantidade",
+        "amount_produced": "Quantidade Produzida",
+        "process_name": "Nome do Processo",
+        
+        # Filtros
+        "filters": "Filtros de Pesquisa",
+        "search": "Pesquisar",
+        "search_placeholder": "Título, parceiro ou ID...",
+        "status": "Estado",
+        "start_date": "Data Início",
+        "end_date": "Data Fim",
+        "order_by": "Ordenar por",
+        "order_direction": "Direção",
+        "ascending": "Crescente",
+        "descending": "Decrescente",
+        "apply_filters": "Aplicar Filtros",
+        "clear_filters": "Limpar Filtros",
+        "order_fields": {
+            "id": "ID",
+            "titulo": "Título",
+            "parceiro_id": "Parceiro",
+            "estado": "Estado",
+            "created_at": "Data Criação",
+            "updated_at": "Data Atualização",
+            "versao_atual": "Versão"
+        },
+        
+        # Admin
+        "admin_panel": "Painel Administrativo",
+        "users": "Utilizadores",
+        "company_documents": "Documentos (empresa)",
+        "user_management": "Gestão de Utilizadores",
+        "create_user": "Novo Utilizador",
+        "change_password": "Alterar Password",
+        "delete_user": "Eliminar utilizador",
+        "confirm_delete": "Confirmar eliminação",
+        "close_details": "Fechar Detalhes",
+        "new_password": "Nova password (deixar vazio para não alterar)",
+        "create_user_form": "Criar Novo Utilizador",
+        "username_required": "Username é obrigatório",
+        "password_required": "Password é obrigatória e deve ter pelo menos 3 caracteres",
+        "profile_required": "Perfil é obrigatório",
+        "username_exists": "Username já existe!",
+        "select_user": "Selecionar utilizador para gerir",
+        "select_user_placeholder": "Selecione um utilizador...",
+        "loading_users": "Carregar utilizadores",
+        "manage_user": "Gerir Utilizador",
+        "password_min_length": "A password deve ter pelo menos 3 caracteres",
+        "cannot_delete_self": "Não pode eliminar a si próprio",
+        "user_not_found": "Utilizador não encontrado",
+        "only_admin": "Apenas admin",
+        
+        # Dashboard
+        "key_indicators": "Indicadores Chave",
+        "total_documents": "Total Documentos",
+        "approved": "Aprovados",
+        "approval_rate": "Taxa Aprovação",
+        "avg_review_time": "Tempo Médio Revisão",
+        "documents_by_status": "Distribuição de Documentos por Estado",
+        "recent_documents": "Documentos Recentes",
+        "top_partners": "Top Parceiros",
+        "partner_documents": "Parceiros com Mais Documentos",
+        "days": "dias",
+        "no_recent_documents": "Sem documentos recentes",
+        "no_top_partners": "Sem dados de top parceiros",
+        
+        # Notificações
+        "no_notifications": "Nenhuma notificação encontrada.",
+        "mark_all_read": "Marcar todas como lidas",
+        "mark_read": "Marcar como lida",
+        "unread": "Não lida",
+        "read": "Lida",
+        "unread_notifications_count": "notificação(ões) não lida(s)",
+        "no_notifications_text": "Sem notificações",
+        "all_notifications_read": "Todas as notificações estão lidas.",
+        "view_document": "Ver Documento",
+        
+        # Mensagens de sucesso/erro
+        "invalid_credentials": "Credenciais inválidas",
+        "login_success": "Login efetuado com sucesso!",
+        "document_created": "Documento criado com sucesso!",
+        "document_updated": "Documento atualizado com sucesso!",
+        "document_submitted": "Documento submetido com sucesso!",
+        "document_approved": "Documento aprovado com sucesso!",
+        "document_archived": "Documento arquivado com sucesso!",
+        "review_started": "Revisão iniciada com sucesso!",
+        "changes_requested": "Alterações solicitadas com sucesso!",
+        "document_reopened": "Documento reaberto para edição!",
+        "user_created": "Utilizador criado com sucesso!",
+        "password_changed": "Password alterada com sucesso!",
+        "user_deleted": "Utilizador eliminado com sucesso!",
+        "document_edit_saved": "Documento atualizado com sucesso!",
+        "document_reopened_edit": "Documento reaberto para edição!",
+        "comment_required": "É necessário um comentário para pedir alterações",
+        "document_state_error": "Documento não está submetido",
+        "document_review_error": "Só pode aprovar durante a revisão",
+        "document_archive_error": "Só é possível arquivar documentos em rascunho ou aprovados",
+        "document_reopen_error": "Só pode reabrir um documento aprovado",
+        "document_not_found": "Documento não encontrado",
+        "access_denied": "Acesso negado",
+        "error_creating_document": "Erro ao criar documento",
+        "error_loading_document": "Erro ao obter documento",
+        "error_editing": "Erro ao editar",
+        "error_submitting": "Erro ao submeter",
+        "error_approving": "Erro ao aprovar",
+        "error_archiving": "Erro ao arquivar",
+        "error_reopening": "Erro ao reabrir",
+        "error_exporting": "Falha na exportação",
+        "error_loading_notifications": "Erro ao carregar notificações",
+        "error_marking_read": "Erro ao marcar como lida",
+        "error_marking_all_read": "Erro ao marcar todas como lidas",
+        "error_loading_users": "Falha ao carregar utilizadores",
+        "error_creating_user": "Erro ao criar utilizador",
+        "error_deleting_user": "Erro ao eliminar",
+        "error_changing_password": "Erro ao alterar password",
+        
+        # Sidebar
+        "logged_as": "Logado como:",
+        "no_notifications_text_sidebar": "Sem notificações",
+        "unread_notifications_sidebar": "notificação(ões) não lida(s)",
+        "home": "Início",
+        
+        # Document detail
+        "document_id": "Documento ID",
+        "status": "Estado",
+        "version": "Versão",
+        "partner": "Parceiro",
+        "last_update": "Última Atualização",
+        "created_at": "Data Criação",
+        "updated_at": "Data Atualização",
+        "comment": "Comentário",
+        "comment_optional": "Comentário (obrigatório se pedir alterações)",
+        "waiting_partner": "Aguardando o parceiro editar novamente.",
+        "document_approved_status": "Documento aprovado. Não pode ser editado.",
+        "under_review": "Documento em análise pela empresa.",
+        "archived_readonly": "Documento arquivado (apenas consulta).",
+        "company_requested_changes": "A empresa pediu alterações.",
+        "reason": "Motivo",
+        "export_historical": "Exportar Histórico",
+        
+        # Estado de revisão
+        "draft_status": "Rascunho",
+        "submitted_status": "Submetido",
+        "under_review_status": "Em Revisão",
+        "changes_requested_status": "Alterações",
+        "approved_status": "Aprovado",
+        "archived_status": "Arquivado",
+        
+        # Tabelas
+        "id": "ID",
+        "title": "Título",
+        "state": "Estado",
+        "version_number": "Versão",
+        "partner_id": "Parceiro",
+        "username": "Username",
+        "profile": "Perfil",
+        "full_name": "Nome",
+        "created_at_table": "Criado em",
+        "updated_at_table": "Última Atualização",
+        
+        # Áreas
+        "partner_area": "Área do Parceiro",
+        "company_area": "Área da Empresa (Validação)",
+        "admin_area": "Painel Administrativo",
+        
+        # Componentes
+        "notifications_badge": "Notificações",
+        "refresh": "Atualizar",
+        "loading": "A carregar...",
+        "please_login_first": "Por favor, faça login primeiro.",
+        
+        # Processos
+        "demagnetisation": "Demagnetisation",
+        "crushing_grinding": "Crushing / Grinding",
+        "aqua_regia": "Aqua regia microwave digestion",
+        "icp_oes_ms": "ICP-OES/-MS",
+    },
+    "en": {
+        # General
+        "app_title": "Document Management Platform",
+        "login": "Login",
+        "username": "Username",
+        "password": "Password",
+        "login_button": "Login",
+        "logout": "Logout",
+        "dashboard": "Dashboard",
+        "notifications": "Notifications",
+        "back": "← Back",
+        "menu": "Menu",
+        "error": "Error",
+        "warning": "Warning",
+        "info": "Information",
+        "success": "Success",
+        
+        # Profiles
+        "parceiro": "Partner",
+        "empresa": "Company",
+        "admin": "Administrator",
+        
+        # States
+        "Rascunho": "Draft",
+        "Submetido": "Submitted",
+        "Em Revisão": "Under Review",
+        "Alterações": "Changes Requested",
+        "Aprovado": "Approved",
+        "Arquivado": "Archived",
+        
+        # Documents
+        "documents": "Documents",
+        "create_document": "Create Document",
+        "document_title": "Document Title",
+        "my_documents": "My Documents",
+        "select_document": "Select a document",
+        "select_document_placeholder": "Select a document...",
+        "load_document": "Load document",
+        "close_details": "Close details",
+        "refresh_list": "Refresh list",
+        "no_documents": "No documents found.",
+        "fill_form_instructions": "Fill in the data in the tables below. Each process has its own section.",
+        "document_summary": "Document Summary",
+        "view_data_tables": "View data in tables",
+        "view_raw_json": "View raw JSON",
+        "version_history": "Version History",
+        "no_history": "No history available.",
+        "select_document_first": "Select a document.",
+        
+        # Actions
+        "save": "Save",
+        "submit": "Submit",
+        "approve": "Approve",
+        "reopen": "Reopen",
+        "archive": "Archive",
+        "request_changes": "Request Changes",
+        "edit_again": "Edit Again",
+        "start_review": "Start Review",
+        "export_history": "Export History",
+        "close": "Close",
+        "edit": "Edit",
+        "delete": "Delete",
+        "confirm": "Confirm",
+        "cancel": "Cancel",
+        
+        # LCA/LCC Form
+        "lca": "LCA - Life Cycle Assessment",
+        "lcc": "LCC - Life Cycle Costing",
+        "inputs": "Inputs",
+        "processes": "Processes",
+        "outputs": "Outputs",
+        "materials": "Materials",
+        "equipment": "Equipment",
+        "labour": "Labour",
+        "add_input": "Add input",
+        "add_process": "Add process (3 rows)",
+        "add_output": "Add output",
+        "add_material": "Add material",
+        "add_equipment": "Add equipment",
+        "add_labour": "Add labour row",
+        "remove_last": "Remove last",
+        "outputs_lcc": "Outputs (final product)",
+        
+        # LCA Form fields
+        "material": "Material",
+        "qty": "QTY",
+        "unit": "Unit",
+        "description": "Description",
+        "cas_comments": "CAS/Comments",
+        "distance": "Distance (km)",
+        "country": "Country",
+        "data_source": "Data Source",
+        "datasource_options": ["Measured", "Calculated", "Estimated", "Literature"],
+        "process_type": "Process Type",
+        "comments": "Comments",
+        "etapa": "Stage (ex: Demagnetisation)",
+        "tipo": "Type",
+        "sub_tipo": "Sub-type (ex: Name 1, Liquid 1, Solid 1, etc.)",
+        "tipos_output": ["Subproduct", "Emissions", "Waste"],
+        
+        # LCC Form fields
+        "price": "Price €",
+        "unit_cost": "Unit Cost €",
+        "lifespan": "Lifespan (Years)",
+        "maintenance": "Maintenance €/Year",
+        "industrial_equiv": "Industrial Equivalent",
+        "total_number": "Total - Number",
+        "total_cost": "Total - Cost €",
+        "high_skilled": "Number - High Skilled",
+        "moderate_skilled": "Number - Moderated Skilled",
+        "unskilled": "Number - Unskilled",
+        "high_rate": "Rate - High Skilled €/h",
+        "moderate_rate": "Rate - Moderated Skilled €/h",
+        "unskilled_rate": "Rate - Unskilled €/h",
+        "market_price": "Market Price €",
+        "quantity": "Quantity",
+        "amount_produced": "Amount Produced",
+        "process_name": "Process Name",
+        
+        # Filters
+        "filters": "Search Filters",
+        "search": "Search",
+        "search_placeholder": "Title, partner or ID...",
+        "status": "Status",
+        "start_date": "Start Date",
+        "end_date": "End Date",
+        "order_by": "Order By",
+        "order_direction": "Direction",
+        "ascending": "Ascending",
+        "descending": "Descending",
+        "apply_filters": "Apply Filters",
+        "clear_filters": "Clear Filters",
+        "order_fields": {
+            "id": "ID",
+            "titulo": "Title",
+            "parceiro_id": "Partner",
+            "estado": "Status",
+            "created_at": "Created At",
+            "updated_at": "Updated At",
+            "versao_atual": "Version"
+        },
+        
+        # Admin
+        "admin_panel": "Administrative Panel",
+        "users": "Users",
+        "company_documents": "Company Documents",
+        "user_management": "User Management",
+        "create_user": "New User",
+        "change_password": "Change Password",
+        "delete_user": "Delete User",
+        "confirm_delete": "Confirm Deletion",
+        "close_details": "Close Details",
+        "new_password": "New password (leave empty to keep current)",
+        "create_user_form": "Create New User",
+        "username_required": "Username is required",
+        "password_required": "Password is required and must be at least 3 characters",
+        "profile_required": "Profile is required",
+        "username_exists": "Username already exists!",
+        "select_user": "Select user to manage",
+        "select_user_placeholder": "Select a user...",
+        "loading_users": "Load users",
+        "manage_user": "Manage User",
+        "password_min_length": "Password must be at least 3 characters",
+        "cannot_delete_self": "Cannot delete yourself",
+        "user_not_found": "User not found",
+        "only_admin": "Admin only",
+        
+        # Dashboard
+        "key_indicators": "Key Indicators",
+        "total_documents": "Total Documents",
+        "approved": "Approved",
+        "approval_rate": "Approval Rate",
+        "avg_review_time": "Avg Review Time",
+        "documents_by_status": "Document Distribution by Status",
+        "recent_documents": "Recent Documents",
+        "top_partners": "Top Partners",
+        "partner_documents": "Partners with Most Documents",
+        "days": "days",
+        "no_recent_documents": "No recent documents",
+        "no_top_partners": "No top partners data",
+        
+        # Notifications
+        "no_notifications": "No notifications found.",
+        "mark_all_read": "Mark all as read",
+        "mark_read": "Mark as read",
+        "unread": "Unread",
+        "read": "Read",
+        "unread_notifications_count": "unread notification(s)",
+        "no_notifications_text": "No notifications",
+        "all_notifications_read": "All notifications are read.",
+        "view_document": "View Document",
+        
+        # Success/Error messages
+        "invalid_credentials": "Invalid credentials",
+        "login_success": "Login successful!",
+        "document_created": "Document created successfully!",
+        "document_updated": "Document updated successfully!",
+        "document_submitted": "Document submitted successfully!",
+        "document_approved": "Document approved successfully!",
+        "document_archived": "Document archived successfully!",
+        "review_started": "Review started successfully!",
+        "changes_requested": "Changes requested successfully!",
+        "document_reopened": "Document reopened for editing!",
+        "user_created": "User created successfully!",
+        "password_changed": "Password changed successfully!",
+        "user_deleted": "User deleted successfully!",
+        "document_edit_saved": "Document updated successfully!",
+        "document_reopened_edit": "Document reopened for editing!",
+        "comment_required": "A comment is required to request changes",
+        "document_state_error": "Document is not submitted",
+        "document_review_error": "Can only approve during review",
+        "document_archive_error": "Can only archive draft or approved documents",
+        "document_reopen_error": "Can only reopen an approved document",
+        "document_not_found": "Document not found",
+        "access_denied": "Access denied",
+        "error_creating_document": "Error creating document",
+        "error_loading_document": "Error loading document",
+        "error_editing": "Error editing",
+        "error_submitting": "Error submitting",
+        "error_approving": "Error approving",
+        "error_archiving": "Error archiving",
+        "error_reopening": "Error reopening",
+        "error_exporting": "Export failed",
+        "error_loading_notifications": "Error loading notifications",
+        "error_marking_read": "Error marking as read",
+        "error_marking_all_read": "Error marking all as read",
+        "error_loading_users": "Failed to load users",
+        "error_creating_user": "Error creating user",
+        "error_deleting_user": "Error deleting",
+        "error_changing_password": "Error changing password",
+        
+        # Sidebar
+        "logged_as": "Logged as:",
+        "no_notifications_text_sidebar": "No notifications",
+        "unread_notifications_sidebar": "unread notification(s)",
+        "home": "Home",
+        
+        # Document detail
+        "document_id": "Document ID",
+        "status": "Status",
+        "version": "Version",
+        "partner": "Partner",
+        "last_update": "Last Update",
+        "created_at": "Created At",
+        "updated_at": "Updated At",
+        "comment": "Comment",
+        "comment_optional": "Comment (required if requesting changes)",
+        "waiting_partner": "Waiting for partner to edit again.",
+        "document_approved_status": "Document approved. Cannot be edited.",
+        "under_review": "Document under review by the company.",
+        "archived_readonly": "Document archived (view only).",
+        "company_requested_changes": "The company requested changes.",
+        "reason": "Reason",
+        "export_historical": "Export History",
+        
+        # Review status
+        "draft_status": "Draft",
+        "submitted_status": "Submitted",
+        "under_review_status": "Under Review",
+        "changes_requested_status": "Changes Requested",
+        "approved_status": "Approved",
+        "archived_status": "Archived",
+        
+        # Tables
+        "id": "ID",
+        "title": "Title",
+        "state": "Status",
+        "version_number": "Version",
+        "partner_id": "Partner",
+        "username": "Username",
+        "profile": "Profile",
+        "full_name": "Full Name",
+        "created_at_table": "Created At",
+        "updated_at_table": "Last Update",
+        
+        # Areas
+        "partner_area": "Partner Area",
+        "company_area": "Company Area (Validation)",
+        "admin_area": "Administrative Panel",
+        
+        # Components
+        "notifications_badge": "Notifications",
+        "refresh": "Refresh",
+        "loading": "Loading...",
+        "please_login_first": "Please login first.",
+        
+        # Processes
+        "demagnetisation": "Demagnetisation",
+        "crushing_grinding": "Crushing / Grinding",
+        "aqua_regia": "Aqua regia microwave digestion",
+        "icp_oes_ms": "ICP-OES/-MS",
+    }
+}
+
+def get_translation(lang: str, key: str, default: str = None) -> str:
+    """Obtém uma tradução para a chave dada."""
+    if lang not in TRANSLATIONS:
+        lang = "pt"
+    
+    # Tentar obter a tradução
+    translation = TRANSLATIONS.get(lang, {}).get(key)
+    
+    # Se não encontrar, tentar em português
+    if translation is None:
+        translation = TRANSLATIONS.get("pt", {}).get(key)
+    
+    # Se ainda não encontrar, retornar a chave ou o default
+    if translation is None:
+        return default or key
+    
+    return translation
+
+def get_datasource_options(lang: str) -> list:
+    """Retorna as opções de fonte de dados no idioma selecionado."""
+    if lang == "en":
+        return ["Measured", "Calculated", "Estimated", "Literature"]
+    return ["Medido", "Calculado", "Estimado", "Literatura"]
+
+def translate_estado(lang: str, estado: str) -> str:
+    """Traduz um estado de documento."""
+    return get_translation(lang, estado, estado)
+
+def translate_perfil(lang: str, perfil: str) -> str:
+    """Traduz um perfil de utilizador."""
+    return get_translation(lang, perfil, perfil)

@@ -2,27 +2,14 @@ import streamlit as st
 import requests
 from datetime import datetime
 import os
-
-# ============================================================
-# CONFIGURAÇÃO DA API_URL
-# ============================================================
-def get_api_url():
-    try:
-        if hasattr(st, 'secrets') and st.secrets and 'API_URL' in st.secrets:
-            return st.secrets['API_URL']
-    except Exception:
-        pass
-    
-    api_url = os.getenv('API_URL')
-    if api_url:
-        return api_url
-    
-    return "http://127.0.0.1:8000"
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from app import get_text, get_language, get_api_url, headers_auth
 
 API_URL = get_api_url()
 
 st.set_page_config(
-    page_title="Notificações",
+    page_title=get_text("notifications"),
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -42,11 +29,8 @@ st.markdown("""
 
 # Verificar autenticação
 if "token" not in st.session_state or st.session_state.token is None:
-    st.warning("Por favor, faça login primeiro.")
+    st.warning(get_text("please_login_first"))
     st.stop()
-
-def headers_auth():
-    return {"Authorization": f"Bearer {st.session_state.token}"}
 
 def get_notificacoes(limit=100):
     try:
@@ -54,10 +38,10 @@ def get_notificacoes(limit=100):
         if resp.status_code == 200:
             return resp.json()
         else:
-            st.error(f"Erro ao carregar notificações: {resp.status_code}")
+            st.error(f"{get_text('error_loading_notifications')}: {resp.status_code}")
             return []
     except Exception as e:
-        st.error(f"Erro ao carregar notificações: {e}")
+        st.error(f"{get_text('error_loading_notifications')}: {e}")
         return []
 
 def marcar_todas_lidas():
@@ -65,43 +49,43 @@ def marcar_todas_lidas():
         resp = requests.put(f"{API_URL}/notificacoes/ler-todas", headers=headers_auth())
         if resp.status_code == 200:
             count = resp.json().get("count", 0)
-            st.success(f"✅ {count} notificações marcadas como lidas!")
+            st.success(f"✅ {count} {get_text('unread_notifications_count')} {get_text('mark_all_read').lower()}!")
             return True
         else:
-            st.error(f"Erro ao marcar todas como lidas: {resp.status_code} - {resp.text}")
+            st.error(f"{get_text('error_marking_all_read')}: {resp.status_code} - {resp.text}")
             return False
     except Exception as e:
-        st.error(f"Erro ao marcar todas como lidas: {e}")
+        st.error(f"{get_text('error_marking_all_read')}: {e}")
         return False
 
 def marcar_como_lida(notificacao_id):
     try:
         resp = requests.put(f"{API_URL}/notificacoes/{notificacao_id}/ler", headers=headers_auth())
         if resp.status_code == 200:
-            st.success("✅ Notificação marcada como lida!")
+            st.success(f"✅ {get_text('mark_read')}!")
             return True
         else:
-            st.error(f"Erro ao marcar como lida: {resp.status_code} - {resp.text}")
+            st.error(f"{get_text('error_marking_read')}: {resp.status_code} - {resp.text}")
             return False
     except Exception as e:
-        st.error(f"Erro ao marcar como lida: {e}")
+        st.error(f"{get_text('error_marking_read')}: {e}")
         return False
 
 # Sidebar personalizada
 with st.sidebar:
-    st.write(f"Logado como: **{st.session_state.username}**")
+    st.write(f"{get_text('logged_as')} **{st.session_state.username}**")
     st.divider()
     
-    if st.button("← Voltar", use_container_width=True, key="notificacoes_sidebar_voltar"):
+    if st.button(get_text("back"), use_container_width=True, key="notificacoes_sidebar_voltar"):
         st.switch_page("app.py")
     
-    if st.button("Logout", key="notificacoes_sidebar_logout"):
+    if st.button(get_text("logout"), key="notificacoes_sidebar_logout"):
         st.session_state.token = None
         st.session_state.perfil = None
         st.session_state.username = None
         st.session_state.doc_selecionado = None
         st.session_state.success_message = None
-        st.session_state.menu_parceiro_widget = "Meus Documentos"
+        st.session_state.menu_parceiro_widget = get_text("my_documents")
         st.session_state.redirect_to_docs = False
         st.session_state.edit_data = None
         st.session_state.new_data = None
@@ -109,7 +93,7 @@ with st.sidebar:
         st.rerun()
 
 # Título
-st.title("Notificações")
+st.title(get_text("notifications"))
 
 # Contador de não lidas
 try:
@@ -118,21 +102,21 @@ try:
         count = resp.json().get("count", 0)
         if count > 0:
             if count == 1:
-                st.info(f"📌 Você tem {count} notificação não lida.")
+                st.info(f"📌 {get_text('unread')}: {count} {get_text('unread_notifications_count')}")
             else:
-                st.info(f"📌 Você tem {count} notificações não lidas.")
+                st.info(f"📌 {get_text('unread')}: {count} {get_text('unread_notifications_count')}")
         else:
-            st.info("📌 Todas as notificações estão lidas.")
+            st.info(f"📌 {get_text('all_notifications_read')}")
 except:
     pass
 
 # Botões de ação
 col1, col2 = st.columns([1, 5])
 with col1:
-    if st.button("← Voltar", use_container_width=True, key="notificacoes_voltar_principal"):
+    if st.button(get_text("back"), use_container_width=True, key="notificacoes_voltar_principal"):
         st.switch_page("app.py")
 with col2:
-    if st.button("Marcar todas como lidas", use_container_width=True, key="notificacoes_marcar_todas"):
+    if st.button(get_text("mark_all_read"), use_container_width=True, key="notificacoes_marcar_todas"):
         if marcar_todas_lidas():
             st.rerun()
 
@@ -142,7 +126,7 @@ st.divider()
 notificacoes = get_notificacoes(100)
 
 if not notificacoes:
-    st.info("Nenhuma notificação encontrada.")
+    st.info(get_text("no_notifications"))
 else:
     for notif in notificacoes:
         with st.container():
@@ -158,11 +142,11 @@ else:
                 st.caption(f"📅 {notif['created_at']}")
             with col3:
                 if not notif.get("lida", False):
-                    if st.button("✓ Marcar lida", key=f"notificacao_marcar_lida_{notif['id']}"):
+                    if st.button(get_text("mark_read"), key=f"notificacao_marcar_lida_{notif['id']}"):
                         if marcar_como_lida(notif['id']):
                             st.rerun()
                 else:
-                    st.write("✅ Lida")
+                    st.write(f"✅ {get_text('read')}")
             
             # Link para o documento
             if notif.get("link"):
@@ -170,7 +154,7 @@ else:
                 if link:
                     try:
                         doc_id = int(link)
-                        if st.button("Ver Documento", key=f"notificacao_ver_doc_{notif['id']}"):
+                        if st.button(get_text("view_document"), key=f"notificacao_ver_doc_{notif['id']}"):
                             st.session_state.doc_selecionado = doc_id
                             st.query_params["doc_id"] = str(doc_id)
                             st.query_params["from_notification"] = "true"

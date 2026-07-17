@@ -1,29 +1,11 @@
 import streamlit as st
 import requests
 import os
-
-# ============================================================
-# CONFIGURAÇÃO DA API_URL
-# ============================================================
-def get_api_url():
-    try:
-        if hasattr(st, 'secrets') and st.secrets and 'API_URL' in st.secrets:
-            return st.secrets['API_URL']
-    except Exception:
-        pass
-    
-    api_url = os.getenv('API_URL')
-    if api_url:
-        return api_url
-    
-    return "http://127.0.0.1:8000"
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from app import get_text, get_language, get_api_url, headers_auth
 
 API_URL = get_api_url()
-
-# REMOVER st.set_page_config() - já é chamado na página principal
-
-def headers_auth():
-    return {"Authorization": f"Bearer {st.session_state.token}"}
 
 def get_notificacoes_nao_lidas():
     """Obtém o número de notificações não lidas."""
@@ -39,18 +21,16 @@ def render_notificacoes_badge():
     """
     Renderiza o badge de notificações no canto superior direito.
     """
-    # Verificar se o token existe
     if st.session_state.token is None:
         return
     
     count = get_notificacoes_nao_lidas()
     
     if count == 1:
-        badge_text = f"{count} notificação não lida"
+        badge_text = f"{count} {get_text('unread_notifications_sidebar')}"
     else:
-        badge_text = f"{count} notificações não lidas"    
+        badge_text = f"{count} {get_text('unread_notifications_sidebar')}"    
     
-    # CSS para posicionar o badge
     st.markdown("""
     <style>
     .notification-badge {
@@ -95,7 +75,6 @@ def render_notificacoes_badge():
     </style>
     """, unsafe_allow_html=True)
     
-    # Badge HTML com botão de refresh
     if count > 0:
         badge_html = f"""
         <div class="notification-badge">
@@ -125,11 +104,9 @@ def render_notificacoes_badge():
     
     st.markdown(badge_html, unsafe_allow_html=True)
     
-    # Verificar se clicou no badge (via query param)
     if "page" in st.query_params and st.query_params["page"] == "notificacoes":
         st.switch_page("pages/notificacoes.py")
     
-    # Verificar se clicou no refresh
     if "refresh_notifications" in st.query_params:
         st.query_params.clear()
         st.rerun()
