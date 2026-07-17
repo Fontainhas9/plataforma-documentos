@@ -21,8 +21,56 @@ def get_api_url():
 
 API_URL = get_api_url()
 
+# ============================================================
+# TRADUÇÕES
+# ============================================================
+TRADUCOES = {
+    "pt": {
+        "app_title": "Notificações",
+        "logout": "Sair",
+        "back": "← Voltar",
+        "logged_as": "Logado como:",
+        "no_notifications_found": "Nenhuma notificação encontrada.",
+        "all_notifications_read": "📌 Todas as notificações estão lidas.",
+        "unread_notifications": "📌 Você tem {count} notificação(ões) não lida(s).",
+        "mark_all_read": "Marcar todas como lidas",
+        "mark_read": "✓ Marcar lida",
+        "read": "✅ Lida",
+        "view_document": "Ver Documento",
+        "notifications": "Notificações",
+        "unread_notifications_one": "🔔 {count} notificação não lida",
+        "unread_notifications_other": "🔔 {count} notificações não lidas"
+    },
+    "en": {
+        "app_title": "Notifications",
+        "logout": "Logout",
+        "back": "← Back",
+        "logged_as": "Logged as:",
+        "no_notifications_found": "No notifications found.",
+        "all_notifications_read": "📌 All notifications are read.",
+        "unread_notifications": "📌 You have {count} unread notification(s).",
+        "mark_all_read": "Mark all as read",
+        "mark_read": "✓ Mark as read",
+        "read": "✅ Read",
+        "view_document": "View Document",
+        "notifications": "Notifications",
+        "unread_notifications_one": "🔔 {count} unread notification",
+        "unread_notifications_other": "🔔 {count} unread notifications"
+    }
+}
+
+def t(key: str, **kwargs) -> str:
+    lang = st.session_state.get("idioma", "pt")
+    texto = TRADUCOES.get(lang, TRADUCOES["pt"]).get(key, key)
+    if kwargs:
+        try:
+            return texto.format(**kwargs)
+        except KeyError:
+            return texto
+    return texto
+
 st.set_page_config(
-    page_title="Notificações",
+    page_title=t("app_title"),
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -89,13 +137,13 @@ def marcar_como_lida(notificacao_id):
 
 # Sidebar personalizada
 with st.sidebar:
-    st.write(f"Logado como: **{st.session_state.username}**")
+    st.write(f"{t('logged_as')} **{st.session_state.username}**")
     st.divider()
     
-    if st.button("← Voltar", use_container_width=True, key="notificacoes_sidebar_voltar"):
+    if st.button(t("back"), use_container_width=True, key="notificacoes_sidebar_voltar"):
         st.switch_page("app.py")
     
-    if st.button("Logout", key="notificacoes_sidebar_logout"):
+    if st.button(t("logout"), key="notificacoes_sidebar_logout"):
         st.session_state.token = None
         st.session_state.perfil = None
         st.session_state.username = None
@@ -109,7 +157,7 @@ with st.sidebar:
         st.rerun()
 
 # Título
-st.title("Notificações")
+st.title(t("notifications"))
 
 # Contador de não lidas
 try:
@@ -118,21 +166,21 @@ try:
         count = resp.json().get("count", 0)
         if count > 0:
             if count == 1:
-                st.info(f"📌 Você tem {count} notificação não lida.")
+                st.info(t("unread_notifications_one", count=count))
             else:
-                st.info(f"📌 Você tem {count} notificações não lidas.")
+                st.info(t("unread_notifications_other", count=count))
         else:
-            st.info("📌 Todas as notificações estão lidas.")
+            st.info(t("all_notifications_read"))
 except:
     pass
 
 # Botões de ação
 col1, col2 = st.columns([1, 5])
 with col1:
-    if st.button("← Voltar", use_container_width=True, key="notificacoes_voltar_principal"):
+    if st.button(t("back"), use_container_width=True, key="notificacoes_voltar_principal"):
         st.switch_page("app.py")
 with col2:
-    if st.button("Marcar todas como lidas", use_container_width=True, key="notificacoes_marcar_todas"):
+    if st.button(t("mark_all_read"), use_container_width=True, key="notificacoes_marcar_todas"):
         if marcar_todas_lidas():
             st.rerun()
 
@@ -142,7 +190,7 @@ st.divider()
 notificacoes = get_notificacoes(100)
 
 if not notificacoes:
-    st.info("Nenhuma notificação encontrada.")
+    st.info(t("no_notifications_found"))
 else:
     for notif in notificacoes:
         with st.container():
@@ -158,11 +206,11 @@ else:
                 st.caption(f"📅 {notif['created_at']}")
             with col3:
                 if not notif.get("lida", False):
-                    if st.button("✓ Marcar lida", key=f"notificacao_marcar_lida_{notif['id']}"):
+                    if st.button(t("mark_read"), key=f"notificacao_marcar_lida_{notif['id']}"):
                         if marcar_como_lida(notif['id']):
                             st.rerun()
                 else:
-                    st.write("✅ Lida")
+                    st.write(t("read"))
             
             # Link para o documento
             if notif.get("link"):
@@ -170,7 +218,7 @@ else:
                 if link:
                     try:
                         doc_id = int(link)
-                        if st.button("Ver Documento", key=f"notificacao_ver_doc_{notif['id']}"):
+                        if st.button(t("view_document"), key=f"notificacao_ver_doc_{notif['id']}"):
                             st.session_state.doc_selecionado = doc_id
                             st.query_params["doc_id"] = str(doc_id)
                             st.query_params["from_notification"] = "true"
