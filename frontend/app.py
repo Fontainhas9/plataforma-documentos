@@ -186,6 +186,8 @@ if "show_create_user_form" not in st.session_state:
     st.session_state.show_create_user_form = False
 if "close_doc_after_action" not in st.session_state:
     st.session_state.close_doc_after_action = False
+if "expander_aberto" not in st.session_state:
+    st.session_state.expander_aberto = False
 
 # Chave para forçar recriação dos widgets de filtro
 if "filtros_widget_key" not in st.session_state:
@@ -306,6 +308,7 @@ def logout():
     st.session_state.new_data = None
     st.session_state.refresh_counter = 0
     st.session_state.ultimo_count = 0
+    st.session_state.expander_aberto = False
 
 def headers_auth():
     return {"Authorization": f"Bearer {st.session_state.token}"}
@@ -385,6 +388,7 @@ def submeter(doc_id):
     st.success("Documento submetido com sucesso!")
     st.session_state.doc_selecionado = None
     st.session_state.edit_data = None
+    st.session_state.expander_aberto = False
     st.session_state.close_doc_after_action = True
     st.rerun()
     return resp.json()
@@ -396,6 +400,7 @@ def iniciar_revisao(doc_id):
         return None
     st.success("Revisão iniciada com sucesso!")
     st.session_state.doc_selecionado = doc_id
+    st.session_state.expander_aberto = True
     st.rerun()
     return resp.json()
 
@@ -421,6 +426,7 @@ def editar_novamente(doc_id):
     st.success("Documento reaberto para edição!")
     st.session_state.doc_selecionado = None
     st.session_state.edit_data = None
+    st.session_state.expander_aberto = False
     st.session_state.close_doc_after_action = True
     st.rerun()
     return resp.json()
@@ -432,6 +438,7 @@ def aprovar(doc_id):
         return None
     st.success("Documento aprovado com sucesso!")
     st.session_state.doc_selecionado = None
+    st.session_state.expander_aberto = False
     st.session_state.close_doc_after_action = True
     st.rerun()
     return resp.json()
@@ -453,6 +460,7 @@ def arquivar(doc_id):
         return None
     st.success("Documento arquivado com sucesso!")
     st.session_state.doc_selecionado = None
+    st.session_state.expander_aberto = False
     st.session_state.close_doc_after_action = True
     st.rerun()
     return resp.json()
@@ -1176,6 +1184,7 @@ if st.session_state.perfil == "parceiro":
                     st.warning("Selecione um documento.")
                 else:
                     st.session_state.doc_selecionado = id_selecionado
+                    st.session_state.expander_aberto = False
                     trigger_scroll(id_selecionado)
                     st.rerun()
 
@@ -1190,7 +1199,8 @@ if st.session_state.perfil == "parceiro":
                 
                 dados = doc['dados']
                 
-                with st.expander("Ver dados em tabelas", expanded=False):
+                # Usar expander_aberto controlado pelo estado
+                with st.expander("Ver dados em tabelas", expanded=st.session_state.get("expander_aberto", False)):
                     st.subheader("LCA")
                     lca = dados.get("lca", {})
                     for proc in PROCESSOS:
@@ -1241,6 +1251,7 @@ if st.session_state.perfil == "parceiro":
                             if resultado:
                                 st.session_state.edit_data = None
                                 st.session_state.doc_selecionado = None
+                                st.session_state.expander_aberto = False
                                 st.session_state.close_doc_after_action = True
                                 st.success("Documento atualizado com sucesso!")
                                 st.rerun()
@@ -1253,6 +1264,7 @@ if st.session_state.perfil == "parceiro":
                                 if resultado_sub:
                                     st.session_state.edit_data = None
                                     st.session_state.doc_selecionado = None
+                                    st.session_state.expander_aberto = False
                                     st.session_state.close_doc_after_action = True
                                     st.success("Documento submetido!")
                                     st.rerun()
@@ -1260,6 +1272,7 @@ if st.session_state.perfil == "parceiro":
                         if st.button("Fechar", key="parceiro_fechar_detalhes", use_container_width=True):
                             st.session_state.doc_selecionado = None
                             st.session_state.edit_data = None
+                            st.session_state.expander_aberto = False
                             st.rerun()
 
                 else:
@@ -1302,6 +1315,7 @@ if st.session_state.perfil == "parceiro":
                         if st.button("Fechar", key="parceiro_fechar_detalhes", use_container_width=True):
                             st.session_state.doc_selecionado = None
                             st.session_state.edit_data = None
+                            st.session_state.expander_aberto = False
                             st.rerun()
 
                 st.markdown("---")
@@ -1359,6 +1373,7 @@ elif st.session_state.perfil == "empresa":
                 st.warning("Selecione um documento.")
             else:
                 st.session_state.doc_selecionado = id_selecionado
+                st.session_state.expander_aberto = False
                 trigger_scroll(id_selecionado)
                 st.rerun()
 
@@ -1373,7 +1388,8 @@ elif st.session_state.perfil == "empresa":
 
             dados = doc['dados']
             
-            with st.expander("Ver dados do documento", expanded=False):
+            # Usar expander_aberto controlado pelo estado
+            with st.expander("Ver dados do documento", expanded=st.session_state.get("expander_aberto", False)):
                 st.subheader("LCA")
                 lca = dados.get("lca", {})
                 for proc in PROCESSOS:
@@ -1466,6 +1482,7 @@ elif st.session_state.perfil == "empresa":
             with col_btn3:
                 if st.button("Fechar detalhes", key="empresa_fechar_detalhes", use_container_width=True):
                     st.session_state.doc_selecionado = None
+                    st.session_state.expander_aberto = False
                     st.rerun()
 
             st.markdown("---")
@@ -1602,12 +1619,9 @@ elif st.session_state.perfil == "admin":
                                             erro = resp_del.text
                                         st.error(f"Erro ao eliminar: {erro}")
                     
-                    # ---------- CORREÇÃO: Botão Fechar Detalhes (desseleciona o utilizador) ----------
                     with col_btn3:
                         if st.button("Fechar Detalhes", key="admin_fechar_gerir_user", use_container_width=True):
-                            # Incrementar a chave do selectbox para forçar reset
                             st.session_state.admin_user_dropdown_key += 1
-                            # Limpar a seleção
                             st.session_state.doc_selecionado = None
                             st.rerun()
                 
@@ -1722,6 +1736,7 @@ elif st.session_state.perfil == "admin":
                     st.warning("Selecione um documento.")
                 else:
                     st.session_state.doc_selecionado = id_selecionado
+                    st.session_state.expander_aberto = False
                     trigger_scroll(id_selecionado)
                     st.rerun()
 
@@ -1736,7 +1751,8 @@ elif st.session_state.perfil == "admin":
 
                 dados = doc['dados']
                 
-                with st.expander("Ver dados do documento", expanded=False):
+                # Usar expander_aberto controlado pelo estado
+                with st.expander("Ver dados do documento", expanded=st.session_state.get("expander_aberto", False)):
                     st.subheader("LCA")
                     lca = dados.get("lca", {})
                     for proc in PROCESSOS:
@@ -1829,6 +1845,7 @@ elif st.session_state.perfil == "admin":
                 with col_btn3:
                     if st.button("Fechar detalhes", key="admin_fechar_detalhes", use_container_width=True):
                         st.session_state.doc_selecionado = None
+                        st.session_state.expander_aberto = False
                         st.rerun()
 
                 st.markdown("---")
