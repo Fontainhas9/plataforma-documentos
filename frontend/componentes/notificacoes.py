@@ -1,12 +1,15 @@
-# frontend/componentes/notificacoes.py (modificado)
+# frontend/componentes/notificacoes.py
 import streamlit as st
 import requests
 import os
 import sys
 
 # Importar módulo de tradução
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from backend.translations import t, get_language, set_language
+backend_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'backend')
+if backend_path not in sys.path:
+    sys.path.insert(0, backend_path)
+
+from translations import t, get_language, set_language
 
 # ============================================================
 # CONFIGURAÇÃO DA API_URL

@@ -1,15 +1,20 @@
-# frontend/app.py (modificado)
+```python
+# frontend/app.py
 import streamlit as st
 import requests
 import pandas as pd
 import copy
 from datetime import datetime
 import os
-
-# Importar módulo de tradução
 import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from backend.translations import t, get_language, set_language
+
+# Adicionar o caminho do backend para importar o módulo de tradução
+backend_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'backend')
+if backend_path not in sys.path:
+    sys.path.insert(0, backend_path)
+
+from translations import get_language, set_language, t
+from componentes.language_selector import render_language_selector
 
 # ============================================================
 # CONFIGURAÇÃO DA API_URL - FUNCIONA EM LOCAL E PRODUÇÃO
@@ -111,36 +116,6 @@ st.markdown("""
         top: -80px;
         visibility: hidden;
         height: 0;
-    }
-    /* Rodapé com seletor de idioma */
-    .footer {
-        position: fixed;
-        bottom: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 999;
-        font-size: 12px;
-        color: #666;
-        background: rgba(255,255,255,0.9);
-        padding: 4px 12px;
-        border-radius: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        backdrop-filter: blur(5px);
-    }
-    .footer select {
-        font-size: 12px;
-        padding: 2px 6px;
-        border-radius: 4px;
-        border: 1px solid #ddd;
-        background: transparent;
-        cursor: pointer;
-    }
-    .footer select:focus {
-        outline: none;
-        border-color: #888;
     }
 </style>
 
@@ -554,20 +529,10 @@ def show_document_summary(documentos):
         if estado in contagens:
             contagens[estado] += 1
 
-    # Usar traduções para os estados
-    estado_labels = {
-        "Rascunho": t("doc_state_draft"),
-        "Submetido": t("doc_state_submitted"),
-        "Em Revisão": t("doc_state_review"),
-        "Alterações": t("doc_state_changes"),
-        "Aprovado": t("doc_state_approved"),
-        "Arquivado": t("doc_state_archived")
-    }
-
     cols = st.columns(len(estados))
     for i, estado in enumerate(estados):
         with cols[i]:
-            st.metric(label=estado_labels.get(estado, estado), value=contagens[estado])
+            st.metric(label=estado, value=contagens[estado])
 
 # ---------- Função para exibir dataframes ----------
 def display_dataframe(df):
@@ -595,18 +560,9 @@ def render_filtros():
             st.session_state.filtros_temporarios["q"] = q
             
             estados_disponiveis = ["Rascunho", "Submetido", "Em Revisão", "Alterações", "Aprovado", "Arquivado"]
-            estado_labels = {
-                "Rascunho": t("doc_state_draft"),
-                "Submetido": t("doc_state_submitted"),
-                "Em Revisão": t("doc_state_review"),
-                "Alterações": t("doc_state_changes"),
-                "Aprovado": t("doc_state_approved"),
-                "Arquivado": t("doc_state_archived")
-            }
             estados_selecionados = st.multiselect(
                 t("filter_status"),
                 options=estados_disponiveis,
-                format_func=lambda x: estado_labels.get(x, x),
                 default=st.session_state.filtros_temporarios.get("estados", []),
                 key=f"filtro_estados_{key_suffix}"
             )
@@ -1078,36 +1034,6 @@ def trigger_scroll(doc_id):
     st.query_params["scroll_to"] = str(doc_id)
 
 # ============================================================
-# FUNÇÃO PARA RENDERIZAR SELETOR DE IDIOMA NO RODAPÉ
-# ============================================================
-def render_language_selector():
-    """Renderiza o seletor de idioma no rodapé da página."""
-    current_lang = get_language()
-    lang_labels = {
-        "en": "🇬🇧 English",
-        "pt": "🇵🇹 Português"
-    }
-    
-    # HTML para o rodapé com seletor de idioma
-    st.markdown(f"""
-    <div class="footer">
-        <span>🌐 {t("language")}:</span>
-        <select id="lang-selector" onchange="window.location.href='?lang='+this.value">
-            <option value="en" {'selected' if current_lang == 'en' else ''}>🇬🇧 English</option>
-            <option value="pt" {'selected' if current_lang == 'pt' else ''}>🇵🇹 Português</option>
-        </select>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Verificar se o idioma foi alterado via query param
-    if "lang" in st.query_params:
-        new_lang = st.query_params["lang"]
-        if new_lang in ["en", "pt"] and new_lang != current_lang:
-            set_language(new_lang)
-            st.query_params.clear()
-            st.rerun()
-
-# ============================================================
 # INTERFACE PRINCIPAL
 # ============================================================
 
@@ -1211,7 +1137,7 @@ if st.session_state.perfil == "parceiro":
 
     if menu == t("create_document"):
         st.subheader(t("new_document_title"))
-        titulo = st.text_input(t("doc_title") + " (ex: LCA/LCC NEO-CYCLE)")
+        titulo = st.text_input(f"{t('doc_title')} (ex: LCA/LCC NEO-CYCLE)")
         st.info(t("fill_data_info"))
         if st.session_state.new_data is None:
             st.session_state.new_data = ensure_new_structure({})
@@ -1248,15 +1174,6 @@ if st.session_state.perfil == "parceiro":
             if "updated_at" in df.columns:
                 df["updated_at"] = pd.to_datetime(df["updated_at"]).dt.strftime("%d/%m/%Y %H:%M")
             df = df[["id", "titulo", "estado", "versao_atual", "updated_at"]]
-            estado_labels = {
-                "Rascunho": t("doc_state_draft"),
-                "Submetido": t("doc_state_submitted"),
-                "Em Revisão": t("doc_state_review"),
-                "Alterações": t("doc_state_changes"),
-                "Aprovado": t("doc_state_approved"),
-                "Arquivado": t("doc_state_archived")
-            }
-            df["estado"] = df["estado"].map(lambda x: estado_labels.get(x, x))
             df.columns = [t("doc_id"), t("doc_title"), t("doc_status"), t("doc_version"), t("doc_last_update")]
             st.dataframe(df, use_container_width=True, hide_index=True)
 
@@ -1285,15 +1202,7 @@ if st.session_state.perfil == "parceiro":
                 
                 st.divider()
                 st.subheader(f"{t('document')} {t('doc_id')} {doc['id']}: {doc['titulo']}")
-                estado_labels = {
-                    "Rascunho": t("doc_state_draft"),
-                    "Submetido": t("doc_state_submitted"),
-                    "Em Revisão": t("doc_state_review"),
-                    "Alterações": t("doc_state_changes"),
-                    "Aprovado": t("doc_state_approved"),
-                    "Arquivado": t("doc_state_archived")
-                }
-                st.write(f"{t('doc_status')}: **{estado_labels.get(doc['estado'], doc['estado'])}** | {t('doc_version')}: {doc['versao_atual']}")
+                st.write(f"{t('doc_status')}: **{doc['estado']}** | {t('doc_version')}: {doc['versao_atual']}")
                 
                 dados = doc['dados']
                 
@@ -1427,7 +1336,7 @@ if st.session_state.perfil == "parceiro":
 # ---------- Área da Empresa ----------
 elif st.session_state.perfil == "empresa":
     st.header(t("company_area"))
-    
+
     st.subheader(t("available_documents"))
     render_filtros()
     
@@ -1448,15 +1357,6 @@ elif st.session_state.perfil == "empresa":
         if "created_at" in df.columns:
             df["created_at"] = pd.to_datetime(df["created_at"]).dt.strftime("%d/%m/%Y %H:%M")
         df = df[["id", "titulo", "parceiro_id", "estado", "versao_atual", "updated_at"]]
-        estado_labels = {
-            "Rascunho": t("doc_state_draft"),
-            "Submetido": t("doc_state_submitted"),
-            "Em Revisão": t("doc_state_review"),
-            "Alterações": t("doc_state_changes"),
-            "Aprovado": t("doc_state_approved"),
-            "Arquivado": t("doc_state_archived")
-        }
-        df["estado"] = df["estado"].map(lambda x: estado_labels.get(x, x))
         df.columns = [t("doc_id"), t("doc_title"), t("doc_partner"), t("doc_status"), t("doc_version"), t("doc_last_update")]
         st.dataframe(df, use_container_width=True, hide_index=True)
 
@@ -1484,16 +1384,8 @@ elif st.session_state.perfil == "empresa":
             create_document_anchor(doc['id'])
             
             st.divider()
-            estado_labels = {
-                "Rascunho": t("doc_state_draft"),
-                "Submetido": t("doc_state_submitted"),
-                "Em Revisão": t("doc_state_review"),
-                "Alterações": t("doc_state_changes"),
-                "Aprovado": t("doc_state_approved"),
-                "Arquivado": t("doc_state_archived")
-            }
             st.subheader(f"{t('document')} {t('doc_id')} {doc['id']}: {doc['titulo']} ({t('doc_partner')}: {doc['parceiro_id']})")
-            st.write(f"{t('doc_status')}: **{estado_labels.get(doc['estado'], doc['estado'])}** | {t('doc_version')}: {doc['versao_atual']}")
+            st.write(f"{t('doc_status')}: **{doc['estado']}** | {t('doc_version')}: {doc['versao_atual']}")
 
             dados = doc['dados']
             
@@ -1631,6 +1523,7 @@ elif st.session_state.perfil == "admin":
         if resp.status_code == 200:
             users = resp.json()
             if users:
+                # Traduzir perfis
                 perfil_labels = {
                     "empresa": t("profile_empresa"),
                     "parceiro": t("profile_parceiro"),
@@ -1825,15 +1718,6 @@ elif st.session_state.perfil == "admin":
             if "created_at" in df.columns:
                 df["created_at"] = pd.to_datetime(df["created_at"]).dt.strftime("%d/%m/%Y %H:%M")
             df = df[["id", "titulo", "parceiro_id", "estado", "versao_atual", "updated_at"]]
-            estado_labels = {
-                "Rascunho": t("doc_state_draft"),
-                "Submetido": t("doc_state_submitted"),
-                "Em Revisão": t("doc_state_review"),
-                "Alterações": t("doc_state_changes"),
-                "Aprovado": t("doc_state_approved"),
-                "Arquivado": t("doc_state_archived")
-            }
-            df["estado"] = df["estado"].map(lambda x: estado_labels.get(x, x))
             df.columns = [t("doc_id"), t("doc_title"), t("doc_partner"), t("doc_status"), t("doc_version"), t("doc_last_update")]
             st.dataframe(df, use_container_width=True, hide_index=True)
 
@@ -1861,16 +1745,8 @@ elif st.session_state.perfil == "admin":
                 create_document_anchor(doc['id'])
                 
                 st.divider()
-                estado_labels = {
-                    "Rascunho": t("doc_state_draft"),
-                    "Submetido": t("doc_state_submitted"),
-                    "Em Revisão": t("doc_state_review"),
-                    "Alterações": t("doc_state_changes"),
-                    "Aprovado": t("doc_state_approved"),
-                    "Arquivado": t("doc_state_archived")
-                }
                 st.subheader(f"{t('document')} {t('doc_id')} {doc['id']}: {doc['titulo']} ({t('doc_partner')}: {doc['parceiro_id']})")
-                st.write(f"{t('doc_status')}: **{estado_labels.get(doc['estado'], doc['estado'])}** | {t('doc_version')}: {doc['versao_atual']}")
+                st.write(f"{t('doc_status')}: **{doc['estado']}** | {t('doc_version')}: {doc['versao_atual']}")
 
                 dados = doc['dados']
                 
