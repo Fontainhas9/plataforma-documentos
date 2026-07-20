@@ -583,38 +583,7 @@ def render_filtros():
             )
             st.session_state.filtros_temporarios["data_fim"] = data_fim.strftime("%Y-%m-%d") if data_fim else None
         
-        col3, col4 = st.columns(2)
-        with col3:
-            ordem_campos = {
-                "id": "ID",
-                "titulo": "Título",
-                "parceiro_id": "Parceiro",
-                "estado": "Estado",
-                "created_at": "Data Criação",
-                "updated_at": "Data Atualização",
-                "versao_atual": "Versão"
-            }
-            order_by = st.selectbox(
-                "Ordenar por",
-                options=list(ordem_campos.keys()),
-                format_func=lambda x: ordem_campos.get(x, x),
-                index=list(ordem_campos.keys()).index(st.session_state.filtros_temporarios.get("order_by", "id")),
-                key=f"filtro_order_by_{key_suffix}",
-                placeholder="Escolha uma destas opções"
-            )
-            st.session_state.filtros_temporarios["order_by"] = order_by
-        
-        with col4:
-            order_dir = st.selectbox(
-                "Direção",
-                options=["desc", "asc"],
-                format_func=lambda x: "Decrescente" if x == "desc" else "Crescente",
-                index=0 if st.session_state.filtros_temporarios.get("order_dir", "desc") == "desc" else 1,
-                key=f"filtro_order_dir_{key_suffix}",
-                placeholder="Escolha uma destas opções"
-            )
-            st.session_state.filtros_temporarios["order_dir"] = order_dir
-        
+        # Botões de ação
         col5, col6 = st.columns(2)
         with col5:
             if st.button("Aplicar Filtros", use_container_width=True):
