@@ -37,12 +37,11 @@ def get_dashboard_kpis(db: Session, current_user_username: str, perfil: str) -> 
     
     taxa_aprovacao = (aprovados / submetidos * 100) if submetidos > 0 else 0
     
-  
     return {
         "total_documentos": total_documentos,
         "documentos_por_estado": documentos_por_estado,
         "aprovados": aprovados,
-        "taxa_aprovacao": round(taxa_aprovacao, 1),
+        "taxa_aprovacao": round(taxa_aprovacao, 1)
     }
 
 

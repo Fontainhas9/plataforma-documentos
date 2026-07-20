@@ -49,6 +49,11 @@ if "token" not in st.session_state or st.session_state.token is None:
     st.warning("Por favor, faça login primeiro.")
     st.stop()
 
+# Verificar se o utilizador é admin
+if st.session_state.perfil != "admin":
+    st.error("Acesso negado. Apenas administradores têm acesso ao Dashboard.")
+    st.stop()
+
 def headers_auth():
     return {"Authorization": f"Bearer {st.session_state.token}"}
 
@@ -84,7 +89,8 @@ try:
     if response.status_code == 200:
         kpis = response.json()
         
-        col1, col2, col3, col4 = st.columns(4)
+        # Apenas 3 colunas (removeu-se o Tempo Médio Revisão)
+        col1, col2, col3 = st.columns(3)
         with col1:
             st.metric(
                 label="Total Documentos",
@@ -99,11 +105,6 @@ try:
             st.metric(
                 label="Taxa Aprovação",
                 value=f"{kpis.get('taxa_aprovacao', 0)}%"
-            )
-        with col4:
-            st.metric(
-                label="Tempo Médio Revisão",
-                value=f"{kpis.get('tempo_medio_revisao', 0)} dias"
             )
         
         # Distribuição por estado (gráfico de pizza)
@@ -186,37 +187,36 @@ except Exception as e:
     st.error(f"Erro ao carregar documentos recentes: {e}")
 
 # ---------- Top Parceiros ----------
-if st.session_state.perfil != "parceiro":
-    st.divider()
-    st.subheader("Top Parceiros")
-    
-    try:
-        response = requests.get(f"{API_URL}/dashboard/top-parceiros?limit=10", headers=headers_auth())
-        if response.status_code == 200:
-            dados = response.json()
-            if dados:
-                df_top = pd.DataFrame(dados)
-                df_top = df_top.sort_values("total", ascending=True)
-                
-                fig_top = px.bar(
-                    df_top,
-                    x="total",
-                    y="parceiro",
-                    orientation='h',
-                    title="Parceiros com Mais Documentos",
-                    labels={"total": "Documentos", "parceiro": "Parceiro"},
-                    color="total",
-                    color_continuous_scale="Blues"
-                )
-                fig_top.update_layout(
-                    xaxis_title="Documentos",
-                    yaxis_title="Parceiro",
-                    showlegend=False
-                )
-                st.plotly_chart(fig_top, use_container_width=True)
-            else:
-                st.info("Sem dados de top parceiros")
+st.divider()
+st.subheader("Top Parceiros")
+
+try:
+    response = requests.get(f"{API_URL}/dashboard/top-parceiros?limit=10", headers=headers_auth())
+    if response.status_code == 200:
+        dados = response.json()
+        if dados:
+            df_top = pd.DataFrame(dados)
+            df_top = df_top.sort_values("total", ascending=True)
+            
+            fig_top = px.bar(
+                df_top,
+                x="total",
+                y="parceiro",
+                orientation='h',
+                title="Parceiros com Mais Documentos",
+                labels={"total": "Documentos", "parceiro": "Parceiro"},
+                color="total",
+                color_continuous_scale="Blues"
+            )
+            fig_top.update_layout(
+                xaxis_title="Documentos",
+                yaxis_title="Parceiro",
+                showlegend=False
+            )
+            st.plotly_chart(fig_top, use_container_width=True)
         else:
-            st.error("Erro ao carregar top parceiros")
-    except Exception as e:
-        st.error(f"Erro ao carregar top parceiros: {e}")
+            st.info("Sem dados de top parceiros")
+    else:
+        st.error("Erro ao carregar top parceiros")
+except Exception as e:
+    st.error(f"Erro ao carregar top parceiros: {e}")
