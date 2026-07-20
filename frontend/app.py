@@ -1098,8 +1098,9 @@ with st.sidebar:
     
     st.divider()
     
-    if st.button("Dashboard", use_container_width=True, key="app_dashboard"):
-        st.switch_page("pages/dashboard.py")
+    if st.session_state.perfil == "admin":
+        if st.button("Dashboard", use_container_width=True, key="app_dashboard"):
+            st.switch_page("pages/dashboard.py")
     
     if st.button("Notificações", use_container_width=True, key="app_notificacoes"):
         st.switch_page("pages/notificacoes.py")
