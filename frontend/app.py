@@ -106,27 +106,30 @@ st.markdown("""
         visibility: hidden;
         height: 0;
     }
+    #create_user_form_target {
+        scroll-margin-top: 100px;
+    }
 </style>
 
 <script>
     function checkScrollParam() {
         var urlParams = new URLSearchParams(window.location.search);
-        var docId = urlParams.get('scroll_to');
-        if (docId) {
+        var targetId = urlParams.get('scroll_to');
+        if (targetId) {
             setTimeout(function() {
-                var element = document.getElementById('doc-' + docId);
+                var element = document.getElementById(targetId);
                 if (element) {
                     element.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             }, 100);
             setTimeout(function() {
-                var element = document.getElementById('doc-' + docId);
+                var element = document.getElementById(targetId);
                 if (element) {
                     element.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             }, 400);
             setTimeout(function() {
-                var element = document.getElementById('doc-' + docId);
+                var element = document.getElementById(targetId);
                 if (element) {
                     element.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
@@ -309,6 +312,8 @@ def logout():
     st.session_state.refresh_counter = 0
     st.session_state.ultimo_count = 0
     st.session_state.expander_aberto = False
+    st.session_state.show_create_user_form = False
+    st.query_params.clear()
 
 def headers_auth():
     return {"Authorization": f"Bearer {st.session_state.token}"}
@@ -1098,6 +1103,7 @@ with st.sidebar:
     
     st.divider()
     
+    # Apenas admin vê o Dashboard
     if st.session_state.perfil == "admin":
         if st.button("Dashboard", use_container_width=True, key="app_dashboard"):
             st.switch_page("pages/dashboard.py")
@@ -1507,6 +1513,9 @@ elif st.session_state.perfil == "admin":
     if menu_admin == "Utilizadores":
         st.subheader("Gestão de Utilizadores")
         
+        # ============================================================
+        # BOTÃO E FORMULÁRIO DE CRIAÇÃO - APARECEM NO TOPO
+        # ============================================================
         col1, col2 = st.columns([3, 1])
         with col1:
             if st.button("Carregar utilizadores", use_container_width=True, key="admin_carregar_users"):
@@ -1516,11 +1525,89 @@ elif st.session_state.perfil == "admin":
                 st.rerun()
         with col2:
             if st.button("Novo Utilizador", use_container_width=True, key="admin_novo_user"):
-                st.session_state.show_create_user_form = True
+                st.session_state.show_create_user_form = not st.session_state.show_create_user_form
                 st.rerun()
         
         st.write("")
-
+        
+        # Formulário de criação (aparece imediatamente abaixo do botão)
+        if st.session_state.show_create_user_form:
+            st.divider()
+            st.subheader("Criar Novo Utilizador")
+            
+            with st.form("create_user_form"):
+                new_username = st.text_input("Username *", placeholder="Ex: novo_parceiro")
+                new_password = st.text_input("Password *", type="password", placeholder="Mínimo 3 caracteres")
+                new_nome = st.text_input("Nome Completo", placeholder="Ex: João Silva")
+                new_perfil = st.selectbox(
+                    "Perfil *",
+                    options=["parceiro", "empresa", "admin"],
+                    format_func=lambda x: {
+                        "parceiro": "Parceiro",
+                        "empresa": "Empresa",
+                        "admin": "Admin"
+                    }.get(x, x),
+                    placeholder="Escolha uma destas opções"
+                )
+                
+                col1, col2, col3 = st.columns([1, 1, 2])
+                with col1:
+                    submit_create = st.form_submit_button("Criar Utilizador", use_container_width=True)
+                with col2:
+                    cancel_create = st.form_submit_button("Cancelar", use_container_width=True)
+                
+                if cancel_create:
+                    st.session_state.show_create_user_form = False
+                    st.rerun()
+                
+                if submit_create:
+                    if not new_username.strip():
+                        st.error("Username é obrigatório")
+                    elif not new_password.strip() or len(new_password.strip()) < 3:
+                        st.error("Password é obrigatória e deve ter pelo menos 3 caracteres")
+                    elif not new_perfil:
+                        st.error("Perfil é obrigatório")
+                    else:
+                        # Verificar se o utilizador já existe (precisamos dos users carregados)
+                        # Para isso, vamos carregar os users primeiro
+                        resp_check = requests.get(f"{API_URL}/admin/usuarios", headers=headers_auth())
+                        if resp_check.status_code == 200:
+                            users_existentes = resp_check.json()
+                            if any(u["username"] == new_username for u in users_existentes):
+                                st.error(f"Username '{new_username}' já existe!")
+                            else:
+                                try:
+                                    resp_create = requests.post(
+                                        f"{API_URL}/registar",
+                                        json={
+                                            "username": new_username.strip(),
+                                            "password": new_password.strip(),
+                                            "perfil": new_perfil,
+                                            "nome_completo": new_nome.strip() if new_nome.strip() else new_username.strip()
+                                        }
+                                    )
+                                    if resp_create.status_code == 200:
+                                        st.toast(f"Utilizador '{new_username}' criado com sucesso!", icon="✅")
+                                        st.session_state.show_create_user_form = False
+                                        st.session_state.pw_input_counter += 1
+                                        st.session_state.admin_user_dropdown_key += 1
+                                        st.rerun()
+                                    else:
+                                        try:
+                                            erro = resp_create.json().get("detail", "Erro desconhecido")
+                                        except:
+                                            erro = resp_create.text
+                                        st.error(f"Erro ao criar utilizador: {erro}")
+                                except Exception as e:
+                                    st.error(f"Erro ao criar utilizador: {str(e)}")
+                        else:
+                            st.error("Erro ao verificar utilizadores existentes")
+            
+            st.divider()
+        
+        # ============================================================
+        # TABELA DE UTILIZADORES - APARECE DEPOIS DO FORMULÁRIO
+        # ============================================================
         resp = requests.get(f"{API_URL}/admin/usuarios", headers=headers_auth())
         if resp.status_code == 200:
             users = resp.json()
@@ -1625,71 +1712,6 @@ elif st.session_state.perfil == "admin":
                             st.session_state.admin_user_dropdown_key += 1
                             st.session_state.doc_selecionado = None
                             st.rerun()
-                
-                if st.session_state.show_create_user_form:
-                    st.divider()
-                    st.subheader("Criar Novo Utilizador")
-                    
-                    with st.form("create_user_form"):
-                        new_username = st.text_input("Username *", placeholder="Ex: novo_parceiro")
-                        new_password = st.text_input("Password *", type="password", placeholder="Mínimo 3 caracteres")
-                        new_nome = st.text_input("Nome Completo", placeholder="Ex: João Silva")
-                        new_perfil = st.selectbox(
-                            "Perfil *",
-                            options=["parceiro", "empresa", "admin"],
-                            format_func=lambda x: {
-                                "parceiro": "Parceiro",
-                                "empresa": "Empresa",
-                                "admin": "Admin"
-                            }.get(x, x),
-                            placeholder="Escolha uma destas opções"
-                        )
-                        
-                        col1, col2, col3 = st.columns([1, 1, 2])
-                        with col1:
-                            submit_create = st.form_submit_button("Criar Utilizador", use_container_width=True)
-                        with col2:
-                            cancel_create = st.form_submit_button("Cancelar", use_container_width=True)
-                        
-                        if cancel_create:
-                            st.session_state.show_create_user_form = False
-                            st.rerun()
-                        
-                        if submit_create:
-                            if not new_username.strip():
-                                st.error("Username é obrigatório")
-                            elif not new_password.strip() or len(new_password.strip()) < 3:
-                                st.error("Password é obrigatória e deve ter pelo menos 3 caracteres")
-                            elif not new_perfil:
-                                st.error("Perfil é obrigatório")
-                            else:
-                                if any(u["username"] == new_username for u in users):
-                                    st.error(f"Username '{new_username}' já existe!")
-                                else:
-                                    try:
-                                        resp_create = requests.post(
-                                            f"{API_URL}/registar",
-                                            json={
-                                                "username": new_username.strip(),
-                                                "password": new_password.strip(),
-                                                "perfil": new_perfil,
-                                                "nome_completo": new_nome.strip() if new_nome.strip() else new_username.strip()
-                                            }
-                                        )
-                                        if resp_create.status_code == 200:
-                                            st.toast(f"Utilizador '{new_username}' criado com sucesso!", icon="✅")
-                                            st.session_state.show_create_user_form = False
-                                            st.session_state.pw_input_counter += 1
-                                            st.session_state.admin_user_dropdown_key += 1
-                                            st.rerun()
-                                        else:
-                                            try:
-                                                erro = resp_create.json().get("detail", "Erro desconhecido")
-                                            except:
-                                                erro = resp_create.text
-                                            st.error(f"Erro ao criar utilizador: {erro}")
-                                    except Exception as e:
-                                        st.error(f"Erro ao criar utilizador: {str(e)}")
 
             else:
                 st.info("Nenhum utilizador encontrado")
