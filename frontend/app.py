@@ -1,4 +1,3 @@
-```python
 # frontend/app.py
 import streamlit as st
 import requests
@@ -227,6 +226,14 @@ if "filtros_temporarios" not in st.session_state:
 # Inicializar idioma
 if "language" not in st.session_state:
     st.session_state.language = "en"
+
+# Verificar se o idioma foi alterado via query param (antes de tudo)
+if "lang" in st.query_params:
+    new_lang = st.query_params["lang"]
+    if new_lang in ["en", "pt"] and new_lang != st.session_state.language:
+        st.session_state.language = new_lang
+        st.query_params.clear()
+        st.rerun()
 
 # ---------- Funções auxiliares ----------
 def safe_copy(data):
@@ -529,10 +536,20 @@ def show_document_summary(documentos):
         if estado in contagens:
             contagens[estado] += 1
 
+    # Usar traduções para os estados
+    estado_labels = {
+        "Rascunho": t("doc_state_draft"),
+        "Submetido": t("doc_state_submitted"),
+        "Em Revisão": t("doc_state_review"),
+        "Alterações": t("doc_state_changes"),
+        "Aprovado": t("doc_state_approved"),
+        "Arquivado": t("doc_state_archived")
+    }
+
     cols = st.columns(len(estados))
     for i, estado in enumerate(estados):
         with cols[i]:
-            st.metric(label=estado, value=contagens[estado])
+            st.metric(label=estado_labels.get(estado, estado), value=contagens[estado])
 
 # ---------- Função para exibir dataframes ----------
 def display_dataframe(df):
@@ -560,9 +577,18 @@ def render_filtros():
             st.session_state.filtros_temporarios["q"] = q
             
             estados_disponiveis = ["Rascunho", "Submetido", "Em Revisão", "Alterações", "Aprovado", "Arquivado"]
+            estado_labels = {
+                "Rascunho": t("doc_state_draft"),
+                "Submetido": t("doc_state_submitted"),
+                "Em Revisão": t("doc_state_review"),
+                "Alterações": t("doc_state_changes"),
+                "Aprovado": t("doc_state_approved"),
+                "Arquivado": t("doc_state_archived")
+            }
             estados_selecionados = st.multiselect(
                 t("filter_status"),
                 options=estados_disponiveis,
+                format_func=lambda x: estado_labels.get(x, x),
                 default=st.session_state.filtros_temporarios.get("estados", []),
                 key=f"filtro_estados_{key_suffix}"
             )
@@ -643,7 +669,7 @@ def render_filtros():
                 st.session_state.filtros_widget_key += 1
                 st.rerun()
 
-# ---------- Funções de renderização com auto-add ----------
+# ---------- Funções de renderização com auto-add (mantidas como estavam) ----------
 def render_lca_inputs(data_key, prefix=""):
     st.subheader("Inputs")
     for proc in PROCESSOS:
@@ -1523,7 +1549,6 @@ elif st.session_state.perfil == "admin":
         if resp.status_code == 200:
             users = resp.json()
             if users:
-                # Traduzir perfis
                 perfil_labels = {
                     "empresa": t("profile_empresa"),
                     "parceiro": t("profile_parceiro"),

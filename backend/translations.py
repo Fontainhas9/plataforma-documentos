@@ -6,7 +6,7 @@ Suporta Inglês (en) e Português (pt).
 
 TRANSLATIONS = {
     "en": {
-        # Geral
+        # Geral - Títulos e cabeçalhos principais
         "app_title": "Document Management Platform",
         "login": "Login",
         "username": "Username",
@@ -118,15 +118,13 @@ TRANSLATIONS = {
         "top_partners_error": "Error loading top partners",
         "days": "days",
         "day": "day",
-        "new_notification": "new notification(s)",
-        "logged_as": "Logged as",
 
         # Perfis
         "profile_parceiro": "Partner",
         "profile_empresa": "Company",
         "profile_admin": "Admin",
 
-        # Documentos
+        # Documentos - Colunas e labels
         "doc_id": "ID",
         "doc_title": "Title",
         "doc_partner": "Partner",
@@ -217,7 +215,7 @@ TRANSLATIONS = {
     },
 
     "pt": {
-        # Geral
+        # Geral - Títulos e cabeçalhos principais
         "app_title": "Plataforma de Gestão de Documentos",
         "login": "Entrar",
         "username": "Utilizador",
@@ -329,14 +327,13 @@ TRANSLATIONS = {
         "top_partners_error": "Erro ao carregar top parceiros",
         "days": "dias",
         "day": "dia",
-        "logged_as": "Logado como",
 
         # Perfis
         "profile_parceiro": "Parceiro",
         "profile_empresa": "Empresa",
         "profile_admin": "Admin",
 
-        # Documentos
+        # Documentos - Colunas e labels
         "doc_id": "ID",
         "doc_title": "Título",
         "doc_partner": "Parceiro",
@@ -431,7 +428,11 @@ def get_translation(key: str, lang: str = "en") -> str:
     """Obtém a tradução para uma chave específica."""
     if lang not in TRANSLATIONS:
         lang = "en"
-    return TRANSLATIONS[lang].get(key, key)
+    result = TRANSLATIONS[lang].get(key)
+    if result is None:
+        # Se a chave não existir, devolver a chave em formato legível
+        return key.replace("_", " ").title()
+    return result
 
 def get_language() -> str:
     """Obtém o idioma atual da sessão."""

@@ -25,8 +25,8 @@ def render_language_selector():
         z-index: 999;
         font-size: 12px;
         color: #666;
-        background: rgba(255,255,255,0.9);
-        padding: 4px 12px;
+        background: rgba(255,255,255,0.95);
+        padding: 4px 14px;
         border-radius: 20px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         display: flex;
@@ -37,13 +37,14 @@ def render_language_selector():
     }
     .footer-selector select {
         font-size: 12px;
-        padding: 2px 6px;
+        padding: 2px 8px;
         border-radius: 4px;
         border: 1px solid #ddd;
-        background: transparent;
+        background: white;
         cursor: pointer;
-        background-color: white;
+        color: #333;
         font-family: inherit;
+        min-width: 100px;
     }
     .footer-selector select:focus {
         outline: none;
@@ -54,6 +55,7 @@ def render_language_selector():
     }
     .footer-selector span {
         font-size: 12px;
+        color: #666;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -63,24 +65,34 @@ def render_language_selector():
         new_lang = st.query_params["lang"]
         if new_lang in ["en", "pt"] and new_lang != current_lang:
             set_language(new_lang)
+            # Limpar os query params e recarregar
             st.query_params.clear()
             st.rerun()
     
-    # Opções de idioma
+    # Opções de idioma com bandeiras
     lang_options = {
         "en": "🇬🇧 English",
         "pt": "🇵🇹 Português"
     }
     
-    # Renderizar o seletor
+    # Renderizar o seletor com JavaScript para trocar idioma
     html = f"""
     <div class="footer-selector">
         <span>🌐 {t('language')}:</span>
-        <select id="lang-selector" onchange="window.location.href='?lang='+this.value">
+        <select id="lang-selector" onchange="changeLanguage(this.value)">
             <option value="en" {'selected' if current_lang == 'en' else ''}>🇬🇧 English</option>
             <option value="pt" {'selected' if current_lang == 'pt' else ''}>🇵🇹 Português</option>
         </select>
     </div>
+    
+    <script>
+    function changeLanguage(lang) {{
+        // Usar window.location para recarregar com o novo idioma
+        var url = new URL(window.location.href);
+        url.searchParams.set('lang', lang);
+        window.location.href = url.toString();
+    }}
+    </script>
     """
     
     st.markdown(html, unsafe_allow_html=True)
