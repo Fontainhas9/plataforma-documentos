@@ -1,15 +1,6 @@
-# frontend/componentes/notificacoes.py
 import streamlit as st
 import requests
 import os
-import sys
-
-# Importar módulo de tradução
-backend_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'backend')
-if backend_path not in sys.path:
-    sys.path.insert(0, backend_path)
-
-from translations import t, get_language, set_language
 
 # ============================================================
 # CONFIGURAÇÃO DA API_URL
@@ -28,6 +19,8 @@ def get_api_url():
     return "http://127.0.0.1:8000"
 
 API_URL = get_api_url()
+
+# REMOVER st.set_page_config() - já é chamado na página principal
 
 def headers_auth():
     return {"Authorization": f"Bearer {st.session_state.token}"}
@@ -51,6 +44,11 @@ def render_notificacoes_badge():
         return
     
     count = get_notificacoes_nao_lidas()
+    
+    if count == 1:
+        badge_text = f"{count} notificação não lida"
+    else:
+        badge_text = f"{count} notificações não lidas"    
     
     # CSS para posicionar o badge
     st.markdown("""
@@ -99,20 +97,14 @@ def render_notificacoes_badge():
     
     # Badge HTML com botão de refresh
     if count > 0:
-        if count == 1:
-            tooltip = t("unread_notification")
-        else:
-            tooltip = f"{count} {t('unread_notifications')}"
-        
         badge_html = f"""
         <div class="notification-badge">
-            <span onclick="window.location.href='?page=notificacoes'" style="cursor:pointer;" title="{tooltip}">
+            <span onclick="window.location.href='?page=notificacoes'" style="cursor:pointer;">
                 🔔
                 <span class="badge">{count}</span>
             </span>
             <span onclick="window.location.href='?refresh_notifications=true'" 
-                  style="cursor:pointer; font-size:14px; color:#666; background:#f0f0f0; padding:2px 8px; border-radius:4px; margin-left:5px;" 
-                  title="{t('refresh')}">
+                  style="cursor:pointer; font-size:14px; color:#666; background:#f0f0f0; padding:2px 8px; border-radius:4px; margin-left:5px;">
                 🔄
             </span>
         </div>
@@ -120,13 +112,12 @@ def render_notificacoes_badge():
     else:
         badge_html = f"""
         <div class="notification-badge">
-            <span onclick="window.location.href='?page=notificacoes'" style="cursor:pointer;" title="{t('no_notifications')}">
+            <span onclick="window.location.href='?page=notificacoes'" style="cursor:pointer;">
                 🔔
                 <span class="badge-zero">0</span>
             </span>
             <span onclick="window.location.href='?refresh_notifications=true'" 
-                  style="cursor:pointer; font-size:14px; color:#666; background:#f0f0f0; padding:2px 8px; border-radius:4px; margin-left:5px;" 
-                  title="{t('refresh')}">
+                  style="cursor:pointer; font-size:14px; color:#666; background:#f0f0f0; padding:2px 8px; border-radius:4px; margin-left:5px;">
                 🔄
             </span>
         </div>
