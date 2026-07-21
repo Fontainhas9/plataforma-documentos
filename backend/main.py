@@ -605,15 +605,15 @@ def dashboard_tempo_medio_estado(
 
 @app.get("/dashboard/documentos-recentes")
 def dashboard_documentos_recentes(
-    limit: int = 10,
+    limit: int = Query(None, description="Número de documentos a retornar (opcional)"),
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
     """
     Obtém os documentos mais recentes.
+    Se limit não for especificado, retorna todos os documentos.
     """
     return get_documentos_recentes(db, current_user.username, current_user.perfil, limit)
-
 # -------------------- Notificações --------------------
 @app.get("/notificacoes")
 def listar_notificacoes(

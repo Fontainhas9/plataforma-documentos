@@ -106,9 +106,6 @@ st.markdown("""
         visibility: hidden;
         height: 0;
     }
-    #create_user_form_target {
-        scroll-margin-top: 100px;
-    }
 </style>
 
 <script>
@@ -313,7 +310,6 @@ def logout():
     st.session_state.ultimo_count = 0
     st.session_state.expander_aberto = False
     st.session_state.show_create_user_form = False
-    st.query_params.clear()
 
 def headers_auth():
     return {"Authorization": f"Bearer {st.session_state.token}"}
@@ -1537,8 +1533,7 @@ elif st.session_state.perfil == "admin":
                     elif not new_perfil:
                         st.error("Perfil é obrigatório")
                     else:
-                        # Verificar se o utilizador já existe (precisamos dos users carregados)
-                        # Para isso, vamos carregar os users primeiro
+                        # Verificar se o utilizador já existe
                         resp_check = requests.get(f"{API_URL}/admin/usuarios", headers=headers_auth())
                         if resp_check.status_code == 200:
                             users_existentes = resp_check.json()

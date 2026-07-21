@@ -40,6 +40,13 @@ st.markdown("""
     [data-testid="stSidebar"] {
         min-width: 270px !important;
         width: 270px !important;
+        max-width: 270px !important;
+        overflow: auto !important;
+    }
+    .main > div {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        max-width: 100% !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -89,7 +96,6 @@ try:
     if response.status_code == 200:
         kpis = response.json()
         
-        # Apenas 3 colunas (removeu-se o Tempo Médio Revisão)
         col1, col2, col3 = st.columns(3)
         with col1:
             st.metric(
@@ -146,12 +152,13 @@ try:
 except Exception as e:
     st.error(f"Erro ao carregar dados: {e}")
 
-# ---------- Documentos Recentes ----------
+# ---------- Documentos Recentes (TODOS) ----------
 st.divider()
-st.subheader("Documentos Recentes")
+st.subheader("Todos os Documentos")
 
 try:
-    response = requests.get(f"{API_URL}/dashboard/documentos-recentes?limit=10", headers=headers_auth())
+    # Remover o limit para buscar todos os documentos
+    response = requests.get(f"{API_URL}/dashboard/documentos-recentes?limit=9999", headers=headers_auth())
     if response.status_code == 200:
         dados = response.json()
         if dados:
@@ -167,6 +174,7 @@ try:
             }
             df_recentes["Cor"] = df_recentes["estado"].map(estado_cores)
             
+            # Mostrar todos os documentos
             st.dataframe(
                 df_recentes[["id", "titulo", "estado", "parceiro_id", "created_at"]],
                 column_config={
@@ -179,12 +187,15 @@ try:
                 hide_index=True,
                 use_container_width=True
             )
+            
+            # Mostrar contagem total
+            st.caption(f"Total de documentos: {len(df_recentes)}")
         else:
-            st.info("Sem documentos recentes")
+            st.info("Sem documentos na plataforma")
     else:
-        st.error("Erro ao carregar documentos recentes")
+        st.error("Erro ao carregar documentos")
 except Exception as e:
-    st.error(f"Erro ao carregar documentos recentes: {e}")
+    st.error(f"Erro ao carregar documentos: {e}")
 
 # ---------- Top Parceiros ----------
 st.divider()

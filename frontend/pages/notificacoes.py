@@ -36,6 +36,13 @@ st.markdown("""
     [data-testid="stSidebar"] {
         min-width: 270px !important;
         width: 270px !important;
+        max-width: 270px !important;
+        overflow: auto !important;
+    }
+    .main > div {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        max-width: 100% !important;
     }
 </style>
 """, unsafe_allow_html=True)

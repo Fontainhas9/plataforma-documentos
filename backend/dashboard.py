@@ -64,15 +64,23 @@ def get_top_parceiros(db: Session, limit: int = 10) -> List[Dict]:
         for r in resultados
     ]
 
-def get_documentos_recentes(db: Session, current_user_username: str, perfil: str, limit: int = 10) -> List[Dict]:
+def get_documentos_recentes(db: Session, current_user_username: str, perfil: str, limit: int = None) -> List[Dict]:
     """
     Obtém os documentos mais recentes.
+    Se limit for None, retorna todos os documentos.
     """
     query = db.query(Documento)
     if perfil == PerfilUtilizador.PARCEIRO:
         query = query.filter(Documento.parceiro_id == current_user_username)
     
-    documentos = query.order_by(Documento.created_at.desc()).limit(limit).all()
+    # Ordenar por data de criação (mais recentes primeiro)
+    query = query.order_by(Documento.created_at.desc())
+    
+    # Aplicar limite se especificado
+    if limit is not None:
+        query = query.limit(limit)
+    
+    documentos = query.all()
     
     return [
         {
