@@ -213,8 +213,8 @@ body {
 /* ----- Main Content Area ----- */
 .main-content {
     margin-top: 80px;
-    padding: 0 2rem 2rem 2rem;
-    max-width: 1440px;
+    padding: 0 3px 2rem 3px !important;
+    max-width: 1200px;
     margin-left: auto;
     margin-right: auto;
 }
