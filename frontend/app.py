@@ -68,385 +68,103 @@ def formatar_data_hora(data_str):
 st.set_page_config(
     page_title="Document Platform",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
+
+# ============================================================
+# LOAD EXTERNAL CSS
+# ============================================================
+def load_css():
+    """Loads the external CSS file."""
+    try:
+        with open('style.css', 'r') as f:
+            css = f.read()
+            st.markdown(f'<style>{css}</style>', unsafe_allow_html=True)
+    except FileNotFoundError:
+        # Fallback CSS if file not found
+        st.markdown("""
+        <style>
+            [data-testid="stSidebar"] { display: none !important; }
+            [data-testid="stSidebarNav"] { display: none !important; }
+            .main > div { padding: 0 !important; max-width: 100% !important; }
+            .block-container { padding: 0 !important; }
+            .main-content { margin-top: 80px; padding: 0 2rem 2rem 2rem; max-width: 1440px; margin-left: auto; margin-right: auto; }
+        </style>
+        """, unsafe_allow_html=True)
+
+# Load CSS
+load_css()
 
 # Import notification component
 from componentes.notificacoes import render_notificacoes_badge, get_notificacoes_nao_lidas
 
 # ============================================================
-# CSS AND JAVASCRIPT FOR AUTO SCROLL - SIDEBAR 270px
+# HEADER COMPONENT
+# ============================================================
+def render_header():
+    """
+    Renders the fixed header with logo, navigation and user profile.
+    """
+    username = st.session_state.get("username", "User")
+    perfil = st.session_state.get("perfil", "")
+    
+    # Get unread notifications count
+    notif_count = get_notificacoes_nao_lidas() if st.session_state.get("token") else 0
+    
+    # Determine active page
+    current_page = st.query_params.get("page", "home")
+    is_home = current_page == "home" or current_page == ""
+    is_dashboard = current_page == "dashboard"
+    is_notifications = current_page == "notificacoes"
+    
+    # HTML do header
+    header_html = f'''
+    <header class="main-header">
+        <div class="header-logo" onclick="window.location.href='?page=home'">
+            <div class="logo-icon">📄</div>
+            <span>DocPlatform</span>
+        </div>
+        
+        <nav class="header-nav">
+            <a class="{'active' if is_home else ''}" onclick="window.location.href='?page=home'">Home</a>
+            <a class="{'active' if is_dashboard else ''}" onclick="window.location.href='?page=dashboard'">Dashboard</a>
+            <span class="nav-divider"></span>
+            <a class="{'active' if is_notifications else ''}" onclick="window.location.href='?page=notificacoes'">Notifications</a>
+        </nav>
+        
+        <div class="header-user">
+            <span class="user-name">{username}</span>
+            <button class="notification-bell" onclick="window.location.href='?page=notificacoes'">
+                🔔
+                {'<span class="badge">{}</span>'.format(notif_count) if notif_count > 0 else ''}
+            </button>
+            <div class="user-avatar">{username[0].upper() if username else 'U'}</div>
+            <button class="logout-btn" onclick="window.location.href='?logout=true'">Logout</button>
+        </div>
+    </header>
+    <div class="main-content">
+    '''
+    
+    st.markdown(header_html, unsafe_allow_html=True)
+    
+    # Process logout
+    if st.query_params.get("logout") == "true":
+        st.query_params.clear()
+        logout()
+        st.rerun()
+    
+    # Process navigation
+    if st.query_params.get("page") == "dashboard":
+        st.switch_page("pages/dashboard.py")
+    elif st.query_params.get("page") == "notificacoes":
+        st.switch_page("pages/notificacoes.py")
+    
+    return username
+
+# ============================================================
+# JAVASCRIPT FOR AUTO SCROLL
 # ============================================================
 st.markdown("""
-<style>
-    /* Hide default Streamlit navigation */
-    [data-testid="stSidebarNav"] {
-        display: none !important;
-    }
-    
-    /* Sidebar styling */
-    [data-testid="stSidebar"] {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        width: auto !important;
-        min-width: 270px !important;
-        max-width: 270px !important;
-        overflow: auto !important;
-        pointer-events: auto !important;
-        background: linear-gradient(180deg, #0a0a1a 0%, #1a1a2e 100%) !important;
-        border-right: 1px solid rgba(255,255,255,0.05) !important;
-    }
-    
-    [data-testid="stSidebar"] .stButton button {
-        background: rgba(255,255,255,0.05) !important;
-        border: 1px solid rgba(255,255,255,0.08) !important;
-        border-radius: 10px !important;
-        color: #e0e0e0 !important;
-        transition: all 0.3s ease !important;
-    }
-    
-    [data-testid="stSidebar"] .stButton button:hover {
-        background: rgba(255,255,255,0.1) !important;
-        border-color: rgba(255,255,255,0.2) !important;
-        transform: translateY(-1px);
-    }
-    
-    /* Main content */
-    .main > div {
-        padding-left: 2rem !important;
-        padding-right: 2rem !important;
-        max-width: 100% !important;
-    }
-    
-    /* Smooth scroll */
-    html {
-        scroll-behavior: smooth;
-    }
-    
-    .doc-anchor {
-        display: block;
-        position: relative;
-        top: -80px;
-        visibility: hidden;
-        height: 0;
-    }
-    
-    /* ============================================================
-       NEW MODERN DASHBOARD STYLING
-       ============================================================ */
-    
-    /* Headers */
-    .main h1 {
-        font-size: 2.5rem !important;
-        font-weight: 700 !important;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        -webkit-background-clip: text !important;
-        -webkit-text-fill-color: transparent !important;
-        background-clip: text !important;
-        margin-bottom: 0.5rem !important;
-    }
-    
-    .main h2, .main h3 {
-        color: #e8e8e8 !important;
-        font-weight: 600 !important;
-        letter-spacing: -0.01em !important;
-    }
-    
-    /* Metric cards */
-    [data-testid="stMetric"] {
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.10) 100%) !important;
-        border-radius: 16px !important;
-        padding: 1.5rem !important;
-        border: 1px solid rgba(255, 255, 255, 0.06) !important;
-        backdrop-filter: blur(10px) !important;
-        transition: all 0.3s ease !important;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.2) !important;
-    }
-    
-    [data-testid="stMetric"]:hover {
-        transform: translateY(-4px) !important;
-        box-shadow: 0 8px 30px rgba(102, 126, 234, 0.25) !important;
-        border-color: rgba(102, 126, 234, 0.3) !important;
-    }
-    
-    [data-testid="stMetric"] label {
-        color: #a0a0b8 !important;
-        font-size: 0.85rem !important;
-        font-weight: 500 !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.05em !important;
-    }
-    
-    [data-testid="stMetric"] [data-testid="stMetricValue"] {
-        color: #ffffff !important;
-        font-size: 2.2rem !important;
-        font-weight: 700 !important;
-    }
-    
-    /* Card-like containers */
-    .element-container:has(.stExpander) {
-        background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%) !important;
-        border-radius: 16px !important;
-        border: 1px solid rgba(255,255,255,0.06) !important;
-        padding: 0.5rem !important;
-        margin-bottom: 1rem !important;
-    }
-    
-    /* Expander styling */
-    .stExpander {
-        background: transparent !important;
-        border: none !important;
-    }
-    
-    .stExpander details {
-        background: rgba(255,255,255,0.03) !important;
-        border-radius: 12px !important;
-        border: 1px solid rgba(255,255,255,0.06) !important;
-        transition: all 0.3s ease !important;
-    }
-    
-    .stExpander details:hover {
-        border-color: rgba(102, 126, 234, 0.3) !important;
-    }
-    
-    .stExpander summary {
-        color: #e8e8e8 !important;
-        font-weight: 500 !important;
-        padding: 0.75rem 1rem !important;
-    }
-    
-    /* Buttons */
-    .stButton button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 10px !important;
-        padding: 0.6rem 1.5rem !important;
-        font-weight: 500 !important;
-        transition: all 0.3s ease !important;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
-    }
-    
-    .stButton button:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4) !important;
-    }
-    
-    .stButton button:active {
-        transform: translateY(0px) !important;
-    }
-    
-    /* Secondary buttons */
-    .stButton button[kind="secondary"] {
-        background: rgba(255,255,255,0.08) !important;
-        box-shadow: none !important;
-    }
-    
-    .stButton button[kind="secondary"]:hover {
-        background: rgba(255,255,255,0.12) !important;
-    }
-    
-    /* Dataframes / Tables */
-    .stDataFrame {
-        background: rgba(255,255,255,0.03) !important;
-        border-radius: 12px !important;
-        border: 1px solid rgba(255,255,255,0.06) !important;
-        overflow: hidden !important;
-    }
-    
-    .stDataFrame thead tr th {
-        background: rgba(102, 126, 234, 0.15) !important;
-        color: #e0e0e0 !important;
-        font-weight: 600 !important;
-        padding: 0.75rem 1rem !important;
-    }
-    
-    .stDataFrame tbody tr td {
-        color: #c0c0d0 !important;
-        padding: 0.6rem 1rem !important;
-        border-bottom: 1px solid rgba(255,255,255,0.03) !important;
-    }
-    
-    .stDataFrame tbody tr:hover {
-        background: rgba(102, 126, 234, 0.05) !important;
-    }
-    
-    /* Select boxes and inputs */
-    .stSelectbox select, .stTextInput input, .stTextArea textarea {
-        background: rgba(255,255,255,0.05) !important;
-        border: 1px solid rgba(255,255,255,0.08) !important;
-        border-radius: 8px !important;
-        color: #e8e8e8 !important;
-        transition: all 0.3s ease !important;
-    }
-    
-    .stSelectbox select:focus, .stTextInput input:focus, .stTextArea textarea:focus {
-        border-color: #667eea !important;
-        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2) !important;
-    }
-    
-    .stSelectbox select, .stTextInput input {
-        padding: 0.6rem 0.75rem !important;
-    }
-    
-    /* Force white text on disabled inputs */
-    .stTextInput input:disabled {
-        color: white !important;
-        opacity: 1 !important;
-        background-color: rgba(255,255,255,0.05) !important;
-    }
-    
-    .stSelectbox select:disabled {
-        color: white !important;
-        opacity: 1 !important;
-        background-color: rgba(255,255,255,0.05) !important;
-    }
-    
-    /* Checkboxes */
-    .stCheckbox label {
-        color: #d0d0e0 !important;
-    }
-    
-    .stCheckbox input[type="checkbox"] {
-        accent-color: #667eea !important;
-    }
-    
-    /* Info, Warning, Success, Error boxes */
-    .stAlert {
-        border-radius: 12px !important;
-        border-left: 4px solid !important;
-        background: rgba(255,255,255,0.03) !important;
-        backdrop-filter: blur(10px) !important;
-    }
-    
-    .stAlert [data-testid="stMarkdownContainer"] {
-        color: #e0e0e0 !important;
-    }
-    
-    /* Info */
-    .stAlert.info {
-        border-left-color: #667eea !important;
-    }
-    
-    /* Success */
-    .stAlert.success {
-        border-left-color: #00d4ff !important;
-    }
-    
-    /* Warning */
-    .stAlert.warning {
-        border-left-color: #f59e0b !important;
-    }
-    
-    /* Error */
-    .stAlert.error {
-        border-left-color: #ef4444 !important;
-    }
-    
-    /* Dividers */
-    hr {
-        border-color: rgba(255,255,255,0.06) !important;
-        margin: 1.5rem 0 !important;
-    }
-    
-    /* Tabs */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 0.5rem !important;
-        background: rgba(255,255,255,0.03) !important;
-        border-radius: 12px !important;
-        padding: 0.25rem !important;
-    }
-    
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 8px !important;
-        padding: 0.5rem 1.5rem !important;
-        color: #a0a0b8 !important;
-        transition: all 0.3s ease !important;
-    }
-    
-    .stTabs [data-baseweb="tab"][aria-selected="true"] {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        color: white !important;
-    }
-    
-    .stTabs [data-baseweb="tab"]:hover {
-        color: #e8e8e8 !important;
-    }
-    
-    /* Badge / notification styling */
-    .notification-badge {
-        position: fixed;
-        top: 10px;
-        right: 20px;
-        z-index: 999;
-        cursor: pointer;
-        font-size: 28px;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-    
-    .notification-badge .badge {
-        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%) !important;
-        color: white !important;
-        border-radius: 50% !important;
-        padding: 2px 8px !important;
-        font-size: 12px !important;
-        font-weight: bold !important;
-        min-width: 20px !important;
-        text-align: center !important;
-        animation: pulse 1s infinite !important;
-        box-shadow: 0 2px 10px rgba(238, 90, 36, 0.4) !important;
-    }
-    
-    .notification-badge .badge-zero {
-        background: transparent !important;
-        color: #888 !important;
-        border-radius: 50% !important;
-        padding: 2px 8px !important;
-        font-size: 12px !important;
-        min-width: 20px !important;
-        text-align: center !important;
-    }
-    
-    @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.1); }
-        100% { transform: scale(1); }
-    }
-    
-    .notification-badge:hover {
-        opacity: 0.8;
-    }
-    
-    /* Caption / small text */
-    .stCaption, caption, .caption {
-        color: #80809a !important;
-        font-size: 0.85rem !important;
-    }
-    
-    /* Scrollbar */
-    ::-webkit-scrollbar {
-        width: 6px !important;
-        height: 6px !important;
-    }
-    
-    ::-webkit-scrollbar-track {
-        background: rgba(255,255,255,0.03) !important;
-        border-radius: 10px !important;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        border-radius: 10px !important;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-        background: #667eea !important;
-    }
-</style>
-
 <script>
     function checkScrollParam() {
         var urlParams = new URLSearchParams(window.location.search);
@@ -499,8 +217,6 @@ if "doc_selecionado" not in st.session_state:
     st.session_state.doc_selecionado = None
 if "success_message" not in st.session_state:
     st.session_state.success_message = None
-if "menu_parceiro_widget" not in st.session_state:
-    st.session_state.menu_parceiro_widget = "My Documents"
 if "redirect_to_docs" not in st.session_state:
     st.session_state.redirect_to_docs = False
 if "edit_data" not in st.session_state:
@@ -667,7 +383,6 @@ def logout():
     st.session_state.username = None
     st.session_state.doc_selecionado = None
     st.session_state.success_message = None
-    st.session_state.menu_parceiro_widget = "My Documents"
     st.session_state.redirect_to_docs = False
     st.session_state.edit_data = None
     st.session_state.new_data = None
@@ -896,44 +611,36 @@ def show_document_summary(documentos):
         st.info("No documents found.")
         return
 
-    # Define both English and Portuguese status names
-    estados_map = {
-        "Draft": "Rascunho",
-        "Submitted": "Submetido",
-        "In Review": "Em Revisão",
-        "Changes Requested": "Alterações",
-        "Approved": "Aprovado",
-        "Archived": "Arquivado"
+    # Map to group Portuguese and English statuses together
+    estado_groups = {
+        "Draft": ["Draft", "Rascunho"],
+        "Submitted": ["Submitted", "Submetido"],
+        "In Review": ["In Review", "Em Revisão"],
+        "Changes Requested": ["Changes Requested", "Alterações"],
+        "Approved": ["Approved", "Aprovado"],
+        "Archived": ["Archived", "Arquivado"]
     }
     
-    # Use English names for display (they will be mapped)
-    estados_display = ["Draft", "Submitted", "In Review", "Changes Requested", "Approved", "Archived"]
-    contagens = {estado: 0 for estado in estados_display}
+    contagens = {group: 0 for group in estado_groups.keys()}
     
     for doc in documentos:
         estado = doc.get("estado", "")
-        # Check if the status matches any display status or its Portuguese equivalent
-        found = False
-        for display_estado, portugues_estado in estados_map.items():
-            if estado == display_estado or estado == portugues_estado:
-                contagens[display_estado] += 1
-                found = True
+        for group, values in estado_groups.items():
+            if estado in values:
+                contagens[group] += 1
                 break
-        if not found:
-            # If status not recognized, try to add it anyway
-            if estado in contagens:
-                contagens[estado] += 1
-            else:
-                # Add unknown status to the list
-                contagens[estado] = 1
 
-    # Create columns for all statuses
+    # Show metrics using the new stat cards
     cols = st.columns(len(contagens))
     for i, (estado, count) in enumerate(contagens.items()):
         with cols[i]:
-            # Use the display name (English)
-            label = estado
-            st.metric(label=label, value=count)
+            # Use custom stat card style
+            st.markdown(f"""
+            <div class="stat-card primary">
+                <div class="stat-value">{count}</div>
+                <div class="stat-label">{estado}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
 # ---------- Function to display dataframes ----------
 def display_dataframe(df):
@@ -1548,8 +1255,11 @@ if st.session_state.token is None:
     st.stop()
 
 # ============================================================
-# FROM HERE, USER IS AUTHENTICATED
+# FROM HERE, USER IS AUTHENTICATED - RENDER HEADER
 # ============================================================
+
+# Render the fixed header
+username = render_header()
 
 # Show success message with toast
 if st.session_state.success_message:
@@ -1566,7 +1276,6 @@ if "doc_id" in st.query_params and st.query_params["doc_id"]:
         pass
 
 if st.session_state.redirect_to_docs:
-    st.session_state.menu_parceiro_widget = "My Documents"
     st.session_state.redirect_to_docs = False
 
 # If close_doc_after_action is active, close the document
@@ -1575,54 +1284,17 @@ if st.session_state.get("close_doc_after_action", False):
     st.session_state.edit_data = None
     st.session_state.close_doc_after_action = False
 
-# Render notification badge
-if st.session_state.token is not None:
-    render_notificacoes_badge()
-    verificar_novas_notificacoes()
-
 # ============================================================
-# SIDEBAR - VISIBLE AFTER LOGIN - 270px
+# MAIN CONTENT
 # ============================================================
-with st.sidebar:
-    st.write(f"Logged in as: **{st.session_state.username}**")
-    st.divider()
-    
-    if st.session_state.token is not None:
-        try:
-            count = get_notificacoes_nao_lidas()
-            if count > 0:
-                if count == 1:
-                    st.warning(f"🔔 {count} unread notification")
-                else:
-                    st.warning(f"🔔 {count} unread notifications")
-            else:
-                st.info("🔔 No notifications")
-        except:
-            pass
-    
-    st.divider()
-    
-    # Only admin sees Dashboard
-    if st.session_state.perfil == "admin":
-        if st.button("Dashboard", use_container_width=True, key="app_dashboard"):
-            st.switch_page("pages/dashboard.py")
-    
-    if st.button("Notifications", use_container_width=True, key="app_notificacoes"):
-        st.switch_page("pages/notificacoes.py")
-    
-    st.divider()
-    
-    if st.button("Logout", use_container_width=True, key="app_logout"):
-        logout()
-        st.rerun()
 
-st.title("Document Management Platform")
+st.title("📄 Document Management Platform")
 
 # ---------- Document summary ----------
 if st.session_state.perfil != "admin":
     documentos = listar_documentos()
     if documentos:
-        st.subheader("Document summary")
+        st.subheader("📊 Document Summary")
         show_document_summary(documentos)
         st.divider()
     else:
@@ -1630,12 +1302,12 @@ if st.session_state.perfil != "admin":
 
 # ---------- Partner Area ----------
 if st.session_state.perfil == "parceiro":
-    st.header("Partner Area")
+    st.header("👤 Partner Area")
     st.caption("Documents are created by the company. You only fill in the data and submit.")
     
-    st.subheader("My Documents")
+    st.subheader("📋 My Documents")
     
-    if st.button("Refresh list", key="refresh_list_parceiro"):
+    if st.button("🔄 Refresh list", key="refresh_list_parceiro"):
         st.session_state.doc_selecionado = None
         st.session_state.edit_data = None
         st.session_state.parceiro_dropdown_key += 1
@@ -1664,7 +1336,7 @@ if st.session_state.perfil == "parceiro":
             placeholder="Choose an option"
         )
 
-        if st.button("Load document", key="parceiro_carregar_doc"):
+        if st.button("📂 Load document", key="parceiro_carregar_doc"):
             if not id_selecionado:
                 st.warning("Please select a document.")
             else:
@@ -1679,7 +1351,7 @@ if st.session_state.perfil == "parceiro":
             create_document_anchor(doc['id'])
             
             st.divider()
-            st.subheader(f"Document ID {doc['id']}: {doc['titulo']}")
+            st.subheader(f"📄 Document ID {doc['id']}: {doc['titulo']}")
             st.write(f"Status: **{doc['estado']}** | Version: {doc['versao_atual']}")
             st.caption(f"Created by: {doc.get('empresa_id', 'N/A')}")
             
@@ -1687,7 +1359,7 @@ if st.session_state.perfil == "parceiro":
             processos = get_processos_from_data(dados)
             
             # Use expander_aberto controlled by state
-            with st.expander("View data in tables", expanded=st.session_state.get("expander_aberto", False)):
+            with st.expander("📊 View data in tables", expanded=st.session_state.get("expander_aberto", False)):
                 st.subheader("LCA")
                 lca = dados.get("lca", {})
                 for proc in processos:
@@ -1718,7 +1390,7 @@ if st.session_state.perfil == "parceiro":
                         st.write("Outputs")
                         display_dataframe(pd.DataFrame(lcc["outputs"][proc]))
 
-            with st.expander("View raw JSON", expanded=False):
+            with st.expander("🔍 View raw JSON", expanded=False):
                 st.json(dados)
 
             st.markdown("---")
@@ -1829,7 +1501,7 @@ if st.session_state.perfil == "parceiro":
 
             st.markdown("---")
 
-            with st.expander("Version history", expanded=False):
+            with st.expander("📜 Version history", expanded=False):
                 versoes = listar_versoes(doc['id'])
                 if versoes:
                     for v in versoes:
@@ -1842,7 +1514,7 @@ if st.session_state.perfil == "parceiro":
 
 # ---------- Company Area ----------
 elif st.session_state.perfil == "empresa":
-    st.header("Company Area (Validation)")
+    st.header("🏢 Company Area (Validation)")
     
     # ---------- CREATE DOCUMENT (COMPANY) ----------
     # Control form state
@@ -1947,10 +1619,10 @@ elif st.session_state.perfil == "empresa":
     st.divider()
     
     # ---------- AVAILABLE DOCUMENTS ----------
-    st.subheader("Available Documents")
+    st.subheader("📋 Available Documents")
     render_filtros()
     
-    if st.button("Refresh list", key="refresh_list_empresa"):
+    if st.button("🔄 Refresh list", key="refresh_list_empresa"):
         st.session_state.doc_selecionado = None
         st.session_state.empresa_dropdown_key += 1
         st.session_state.refresh_counter += 1
@@ -1980,7 +1652,7 @@ elif st.session_state.perfil == "empresa":
             placeholder="Choose an option"
         )
 
-        if st.button("Load document", key="empresa_carregar_doc"):
+        if st.button("📂 Load document", key="empresa_carregar_doc"):
             if not id_selecionado:
                 st.warning("Please select a document.")
             else:
@@ -1995,14 +1667,14 @@ elif st.session_state.perfil == "empresa":
             create_document_anchor(doc['id'])
             
             st.divider()
-            st.subheader(f"Document ID {doc['id']}: {doc['titulo']} (Partner: {doc['parceiro_id']})")
+            st.subheader(f"📄 Document ID {doc['id']}: {doc['titulo']} (Partner: {doc['parceiro_id']})")
             st.write(f"Status: **{doc['estado']}** | Version: {doc['versao_atual']}")
 
             dados = doc['dados']
             processos = get_processos_from_data(dados)
             
             # Use expander_aberto controlled by state
-            with st.expander("View document data", expanded=st.session_state.get("expander_aberto", False)):
+            with st.expander("📊 View document data", expanded=st.session_state.get("expander_aberto", False)):
                 st.subheader("LCA")
                 lca = dados.get("lca", {})
                 for proc in processos:
@@ -2033,7 +1705,7 @@ elif st.session_state.perfil == "empresa":
                         st.write("Outputs")
                         display_dataframe(pd.DataFrame(lcc["outputs"][proc]))
 
-            with st.expander("View raw JSON", expanded=False):
+            with st.expander("🔍 View raw JSON", expanded=False):
                 st.json(dados)
 
             st.markdown("---")
@@ -2042,18 +1714,18 @@ elif st.session_state.perfil == "empresa":
 
             if doc['estado'] in ["Submitted", "Submetido"]:
                 with col_btn1:
-                    if st.button("Start Review", key="empresa_iniciar_revisao", use_container_width=True):
+                    if st.button("🔍 Start Review", key="empresa_iniciar_revisao", use_container_width=True):
                         if iniciar_revisao(doc['id']):
                             st.rerun()
             elif doc['estado'] in ["In Review", "Em Revisão"]:
                 comentario = st.text_area("Comment (required if requesting changes)", key="empresa_comentario")
                 col_aprov, col_alt = st.columns(2)
                 with col_aprov:
-                    if st.button("Approve", key="empresa_aprovar", use_container_width=True):
+                    if st.button("✅ Approve", key="empresa_aprovar", use_container_width=True):
                         if aprovar(doc['id']):
                             st.rerun()
                 with col_alt:
-                    if st.button("Request Changes", key="empresa_pedir_alteracoes", use_container_width=True):
+                    if st.button("🔄 Request Changes", key="empresa_pedir_alteracoes", use_container_width=True):
                         if not comentario.strip():
                             st.error("A comment is required to request changes")
                         else:
@@ -2061,30 +1733,30 @@ elif st.session_state.perfil == "empresa":
                                 st.rerun()
             elif doc['estado'] in ["Approved", "Aprovado"]:
                 with col_btn1:
-                    if st.button("Reopen", key="empresa_reabrir", use_container_width=True):
+                    if st.button("🔁 Reopen", key="empresa_reabrir", use_container_width=True):
                         if reabrir(doc['id']):
                             st.rerun()
                 with col_btn2:
-                    if st.button("Archive", key="empresa_arquivar", use_container_width=True):
+                    if st.button("📁 Archive", key="empresa_arquivar", use_container_width=True):
                         if arquivar(doc['id']):
                             st.rerun()
             elif doc['estado'] in ["Draft", "Rascunho"]:
                 with col_btn1:
-                    if st.button("Archive (draft)", key="empresa_arquivar_rascunho", use_container_width=True):
+                    if st.button("📁 Archive (draft)", key="empresa_arquivar_rascunho", use_container_width=True):
                         if arquivar(doc['id']):
                             st.rerun()
             elif doc['estado'] in ["Changes Requested", "Alterações"]:
                 with col_btn1:
-                    st.info("Waiting for partner to edit again.")
+                    st.info("⏳ Waiting for partner to edit again.")
             elif doc['estado'] in ["Archived", "Arquivado"]:
                 with col_btn1:
-                    st.warning("Document archived (view only).")
+                    st.warning("📁 Document archived (view only).")
 
             with col_btn2:
                 conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
                 if conteudo:
                     st.download_button(
-                        label="Export History",
+                        label="📊 Export History",
                         data=conteudo,
                         file_name=filename,
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -2093,14 +1765,14 @@ elif st.session_state.perfil == "empresa":
                     )
 
             with col_btn3:
-                if st.button("Close details", key="empresa_fechar_detalhes", use_container_width=True):
+                if st.button("✖ Close details", key="empresa_fechar_detalhes", use_container_width=True):
                     st.session_state.doc_selecionado = None
                     st.session_state.expander_aberto = False
                     st.rerun()
 
             st.markdown("---")
 
-            with st.expander("Version history", expanded=False):
+            with st.expander("📜 Version history", expanded=False):
                 versoes = listar_versoes(doc['id'])
                 if versoes:
                     for v in versoes:
@@ -2113,21 +1785,21 @@ elif st.session_state.perfil == "empresa":
 
 # ---------- Admin Area ----------
 elif st.session_state.perfil == "admin":
-    st.header("Administrative Panel")
+    st.header("⚙️ Administrative Panel")
     menu_admin = st.sidebar.radio("Admin", ["Users", "Documents (company)"], key="admin_menu")
 
     if menu_admin == "Users":
-        st.subheader("User Management")
+        st.subheader("👥 User Management")
         
         col1, col2 = st.columns([3, 1])
         with col1:
-            if st.button("Load users", use_container_width=True, key="admin_carregar_users"):
+            if st.button("🔄 Load users", use_container_width=True, key="admin_carregar_users"):
                 st.session_state.doc_selecionado = None
                 st.session_state.admin_user_dropdown_key += 1
                 st.session_state.refresh_counter += 1
                 st.rerun()
         with col2:
-            if st.button("New User", use_container_width=True, key="admin_novo_user"):
+            if st.button("➕ New User", use_container_width=True, key="admin_novo_user"):
                 st.session_state.show_create_user_form = not st.session_state.show_create_user_form
                 st.rerun()
         
@@ -2316,7 +1988,7 @@ elif st.session_state.perfil == "admin":
             st.error("Failed to load users")
 
     else:  # Documents (company) - Admin
-        st.header("Company Area (Validation) – Admin")
+        st.header("📋 Company Area (Validation) – Admin")
         
         # ---------- CREATE DOCUMENT (ADMIN) ----------
         # Control form state
@@ -2418,10 +2090,10 @@ elif st.session_state.perfil == "admin":
             
             st.divider()
 
-        st.subheader("Available Documents")
+        st.subheader("📋 Available Documents")
         render_filtros()
         
-        if st.button("Refresh list", key="refresh_list_admin"):
+        if st.button("🔄 Refresh list", key="refresh_list_admin"):
             st.session_state.doc_selecionado = None
             st.session_state.admin_dropdown_key += 1
             st.session_state.refresh_counter += 1
@@ -2451,7 +2123,7 @@ elif st.session_state.perfil == "admin":
                 placeholder="Choose an option"
             )
 
-            if st.button("Load document", key="admin_carregar_doc"):
+            if st.button("📂 Load document", key="admin_carregar_doc"):
                 if not id_selecionado:
                     st.warning("Please select a document.")
                 else:
@@ -2466,13 +2138,13 @@ elif st.session_state.perfil == "admin":
                 create_document_anchor(doc['id'])
                 
                 st.divider()
-                st.subheader(f"Document ID {doc['id']}: {doc['titulo']} (Partner: {doc['parceiro_id']})")
+                st.subheader(f"📄 Document ID {doc['id']}: {doc['titulo']} (Partner: {doc['parceiro_id']})")
                 st.write(f"Status: **{doc['estado']}** | Version: {doc['versao_atual']}")
 
                 dados = doc['dados']
                 processos = get_processos_from_data(dados)
                 
-                with st.expander("View document data", expanded=st.session_state.get("expander_aberto", False)):
+                with st.expander("📊 View document data", expanded=st.session_state.get("expander_aberto", False)):
                     st.subheader("LCA")
                     lca = dados.get("lca", {})
                     for proc in processos:
@@ -2503,7 +2175,7 @@ elif st.session_state.perfil == "admin":
                             st.write("Outputs")
                             display_dataframe(pd.DataFrame(lcc["outputs"][proc]))
 
-                with st.expander("View raw JSON", expanded=False):
+                with st.expander("🔍 View raw JSON", expanded=False):
                     st.json(dados)
 
                 st.markdown("---")
@@ -2512,18 +2184,18 @@ elif st.session_state.perfil == "admin":
 
                 if doc['estado'] in ["Submitted", "Submetido"]:
                     with col_btn1:
-                        if st.button("Start Review", key="admin_iniciar_revisao", use_container_width=True):
+                        if st.button("🔍 Start Review", key="admin_iniciar_revisao", use_container_width=True):
                             if iniciar_revisao(doc['id']):
                                 st.rerun()
                 elif doc['estado'] in ["In Review", "Em Revisão"]:
                     comentario = st.text_area("Comment (required if requesting changes)", key="admin_comentario")
                     col_aprov, col_alt = st.columns(2)
                     with col_aprov:
-                        if st.button("Approve", key="admin_aprovar", use_container_width=True):
+                        if st.button("✅ Approve", key="admin_aprovar", use_container_width=True):
                             if aprovar(doc['id']):
                                 st.rerun()
                     with col_alt:
-                        if st.button("Request Changes", key="admin_pedir_alteracoes", use_container_width=True):
+                        if st.button("🔄 Request Changes", key="admin_pedir_alteracoes", use_container_width=True):
                             if not comentario.strip():
                                 st.error("A comment is required to request changes")
                             else:
@@ -2531,30 +2203,30 @@ elif st.session_state.perfil == "admin":
                                     st.rerun()
                 elif doc['estado'] in ["Approved", "Aprovado"]:
                     with col_btn1:
-                        if st.button("Reopen", key="admin_reabrir", use_container_width=True):
+                        if st.button("🔁 Reopen", key="admin_reabrir", use_container_width=True):
                             if reabrir(doc['id']):
                                 st.rerun()
                     with col_btn2:
-                        if st.button("Archive", key="admin_arquivar", use_container_width=True):
+                        if st.button("📁 Archive", key="admin_arquivar", use_container_width=True):
                             if arquivar(doc['id']):
                                 st.rerun()
                 elif doc['estado'] in ["Draft", "Rascunho"]:
                     with col_btn1:
-                        if st.button("Archive (draft)", key="admin_arquivar_rascunho", use_container_width=True):
+                        if st.button("📁 Archive (draft)", key="admin_arquivar_rascunho", use_container_width=True):
                             if arquivar(doc['id']):
                                 st.rerun()
                 elif doc['estado'] in ["Changes Requested", "Alterações"]:
                     with col_btn1:
-                        st.info("Waiting for partner to edit again.")
+                        st.info("⏳ Waiting for partner to edit again.")
                 elif doc['estado'] in ["Archived", "Arquivado"]:
                     with col_btn1:
-                        st.warning("Document archived (view only).")
+                        st.warning("📁 Document archived (view only).")
 
                 with col_btn2:
                     conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
                     if conteudo:
                         st.download_button(
-                            label="Export History",
+                            label="📊 Export History",
                             data=conteudo,
                             file_name=filename,
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -2563,14 +2235,14 @@ elif st.session_state.perfil == "admin":
                         )
 
                 with col_btn3:
-                    if st.button("Close details", key="admin_fechar_detalhes", use_container_width=True):
+                    if st.button("✖ Close details", key="admin_fechar_detalhes", use_container_width=True):
                         st.session_state.doc_selecionado = None
                         st.session_state.expander_aberto = False
                         st.rerun()
 
                 st.markdown("---")
 
-                with st.expander("Version history", expanded=False):
+                with st.expander("📜 Version history", expanded=False):
                     versoes = listar_versoes(doc['id'])
                     if versoes:
                         for v in versoes:
