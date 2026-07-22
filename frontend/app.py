@@ -9,7 +9,6 @@ import sys
 # ============================================================
 # ADD FRONTEND DIRECTORY TO PATH FOR IMPORTS
 # ============================================================
-# Ensure the frontend directory is in the path
 frontend_dir = os.path.dirname(os.path.abspath(__file__))
 if frontend_dir not in sys.path:
     sys.path.insert(0, frontend_dir)
@@ -17,32 +16,63 @@ if frontend_dir not in sys.path:
 # ============================================================
 # LOAD CSS
 # ============================================================
-# Try direct import first, then fallback to relative import
-try:
-    from components.load_css import load_css
-except ImportError:
-    # Try adding the components folder to path
-    components_dir = os.path.join(frontend_dir, 'components')
-    if components_dir not in sys.path:
-        sys.path.insert(0, components_dir)
+def load_css():
+    """Loads the external CSS file."""
     try:
-        from load_css import load_css
-    except ImportError:
-        # Fallback: define load_css inline
-        def load_css():
-            st.markdown("""
-            <style>
-                [data-testid="stSidebar"] { display: none !important; }
-                .main > div { padding: 0 !important; }
-                .block-container { padding: 0 !important; }
-                .main-content { margin-top: 80px; padding: 0 2rem 2rem 2rem; max-width: 1440px; margin-left: auto; margin-right: auto; }
-            </style>
-            """, unsafe_allow_html=True)
+        # Try to find style.css in the current directory
+        css_path = os.path.join(os.path.dirname(__file__), 'style.css')
+        if os.path.exists(css_path):
+            with open(css_path, 'r') as f:
+                css = f.read()
+                st.markdown(f'<style>{css}</style>', unsafe_allow_html=True)
+                print(f"✅ CSS loaded from: {css_path}")
+                return
+    except Exception as e:
+        print(f"Error loading CSS from file: {e}")
+    
+    # Fallback CSS inline
+    st.markdown("""
+    <style>
+        [data-testid="stSidebar"] { display: none !important; }
+        [data-testid="stSidebarNav"] { display: none !important; }
+        .main > div { padding: 0 !important; max-width: 100% !important; }
+        .block-container { padding: 0 !important; }
+        .main-content { margin-top: 80px; padding: 0 2rem 2rem 2rem; max-width: 1440px; margin-left: auto; margin-right: auto; }
+        
+        .main-header {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+            background: rgba(10,10,26,0.92); backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 0 2rem; height: 64px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .header-logo { display: flex; align-items: center; gap: 12px; font-size: 1.2rem; font-weight: 700; color: #ffffff; cursor: pointer; }
+        .header-logo .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; color: white; }
+        .header-nav { display: flex; align-items: center; gap: 4px; flex: 1; justify-content: center; }
+        .header-nav a { color: #a0a0b8; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-size: 0.9rem; font-weight: 500; transition: all 0.3s ease; cursor: pointer; }
+        .header-nav a:hover { color: #ffffff; background: rgba(255,255,255,0.06); }
+        .header-nav a.active { color: #ffffff; background: rgba(102,126,234,0.2); }
+        .header-user { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+        .header-user .user-name { color: #e8e8e8; font-size: 0.9rem; font-weight: 500; }
+        .header-user .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 600; color: #ffffff; }
+        .header-user .logout-btn { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; color: #a0a0b8; padding: 6px 14px; font-size: 0.85rem; cursor: pointer; transition: all 0.3s ease; }
+        .header-user .logout-btn:hover { color: #ffffff; background: rgba(255,255,255,0.10); }
+        .header-user .notification-bell { position: relative; cursor: pointer; font-size: 1.2rem; color: #a0a0b8; background: none; border: none; padding: 4px; }
+        .header-user .notification-bell .badge { position: absolute; top: -6px; right: -8px; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; border-radius: 50%; padding: 2px 6px; font-size: 9px; font-weight: 700; min-width: 18px; text-align: center; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        
+        .stat-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 1.5rem; border: 1px solid rgba(255,255,255,0.05); }
+        .stat-value { font-size: 2rem; font-weight: 700; color: white; }
+        .stat-label { font-size: 0.8rem; color: #80809a; text-transform: uppercase; }
+        .stButton button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; color: white !important; border: none !important; border-radius: 10px !important; padding: 0.6rem 1.5rem !important; font-weight: 500 !important; }
+    </style>
+    """, unsafe_allow_html=True)
+    print("⚠️ Using fallback inline CSS")
 
 load_css()
 
 # ============================================================
-# API URL CONFIGURATION - WORKS IN LOCAL AND PRODUCTION
+# API URL CONFIGURATION
 # ============================================================
 def get_api_url():
     """Returns the API URL based on the environment (local or production)."""
@@ -60,7 +90,7 @@ def get_api_url():
 
 API_URL = get_api_url()
 
-# Default processes (used as fallback)
+# Default processes
 PROCESSOS_PADRAO = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
 DATASOURCE_OPTIONS = ["Measured", "Calculated", "Estimated", "Literature"]
 
@@ -68,34 +98,20 @@ DATASOURCE_OPTIONS = ["Measured", "Calculated", "Estimated", "Literature"]
 # FUNCTION TO FORMAT DATE/TIME
 # ============================================================
 def formatar_data_hora(data_str):
-    """
-    Converts a date/time string to DD/MM/YYYY HH:MM format.
-    Supports ISO 8601 formats with T and Z.
-    Example: "2026-07-16T14:30:45.856282Z" -> "16/07/2026 14:30"
-    """
     if not data_str:
         return ""
     try:
         if isinstance(data_str, datetime):
             return data_str.strftime("%d/%m/%Y %H:%M")
         
-        data_str = str(data_str)
-        data_str = data_str.replace('Z', '').replace('T', ' ')
-        
-        formats = [
-            "%Y-%m-%d %H:%M:%S.%f",
-            "%Y-%m-%d %H:%M:%S",
-            "%Y-%m-%d %H:%M",
-            "%Y-%m-%d"
-        ]
-        
+        data_str = str(data_str).replace('Z', '').replace('T', ' ')
+        formats = ["%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"]
         for fmt in formats:
             try:
                 dt = datetime.strptime(data_str, fmt)
                 return dt.strftime("%d/%m/%Y %H:%M")
             except ValueError:
                 continue
-        
         return data_str
     except Exception:
         return str(data_str)
@@ -108,30 +124,29 @@ st.set_page_config(
 )
 
 # Import notification component
-from componentes.notificacoes import render_notificacoes_badge, get_notificacoes_nao_lidas
+try:
+    from componentes.notificacoes import render_notificacoes_badge, get_notificacoes_nao_lidas
+except ImportError:
+    # Fallback functions
+    def render_notificacoes_badge():
+        pass
+    def get_notificacoes_nao_lidas():
+        return 0
 
 # ============================================================
 # HEADER COMPONENT
 # ============================================================
 def render_header():
-    """
-    Renders the fixed header with logo, navigation and user profile.
-    """
     username = st.session_state.get("username", "User")
-    
-    # Get unread notifications count
     notif_count = get_notificacoes_nao_lidas() if st.session_state.get("token") else 0
     
-    # Determine active page
     current_page = st.query_params.get("page", "home")
     is_home = current_page == "home" or current_page == ""
     is_dashboard = current_page == "dashboard"
     is_notifications = current_page == "notificacoes"
     
-    # Build badge HTML
     badge_html = f'<span class="badge">{notif_count}</span>' if notif_count > 0 else ''
     
-    # HTML do header
     header_html = f'''
     <header class="main-header">
         <div class="header-logo" onclick="window.location.href='?page=home'">
@@ -161,13 +176,11 @@ def render_header():
     
     st.markdown(header_html, unsafe_allow_html=True)
     
-    # Process logout
     if st.query_params.get("logout") == "true":
         st.query_params.clear()
         logout()
         st.rerun()
     
-    # Process navigation
     if st.query_params.get("page") == "dashboard":
         st.switch_page("pages/dashboard.py")
     elif st.query_params.get("page") == "notificacoes":
@@ -268,7 +281,139 @@ if "empresa_mostrar_form" not in st.session_state:
 if "admin_mostrar_form" not in st.session_state:
     st.session_state.admin_mostrar_form = False
 
-# ... (resto do código igual, todas as funções permanecem)
+# Key to force recreation of filter widgets
+if "filtros_widget_key" not in st.session_state:
+    st.session_state.filtros_widget_key = 0
+
+# Filter state - current applied values
+if "filtros_aplicados" not in st.session_state:
+    st.session_state.filtros_aplicados = {
+        "q": "",
+        "estados": [],
+        "data_inicio": None,
+        "data_fim": None,
+        "order_by": "id",
+        "order_dir": "desc"
+    }
+
+# Temporary filter state (while user is adjusting)
+if "filtros_temporarios" not in st.session_state:
+    st.session_state.filtros_temporarios = {
+        "q": "",
+        "estados": [],
+        "data_inicio": None,
+        "data_fim": None,
+        "order_by": "id",
+        "order_dir": "desc"
+    }
+
+# ============================================================
+# HELPER FUNCTIONS
+# ============================================================
+def safe_copy(data):
+    return copy.deepcopy(data)
+
+def get_processos_from_data(data):
+    if data and "lca" in data and "inputs" in data["lca"]:
+        processos = list(data["lca"]["inputs"].keys())
+        if processos:
+            return processos
+    return PROCESSOS_PADRAO
+
+def ensure_new_structure(data, processos=None):
+    if processos is None:
+        processos = PROCESSOS_PADRAO
+    
+    if not data:
+        estrutura = {
+            "lca": {"inputs": {p: [] for p in processos}, "processes": {p: [] for p in processos}, "outputs": {p: [] for p in processos}},
+            "lcc": {"materials": {p: [] for p in processos}, "equipment": {p: [] for p in processos}, "labour": {p: [] for p in processos}, "outputs": {p: [] for p in processos}}
+        }
+        return estrutura
+
+    if "lca" in data and "lcc" in data:
+        for secao in ["lca", "lcc"]:
+            for campo in data[secao].keys():
+                if not isinstance(data[secao][campo], dict):
+                    data[secao][campo] = {}
+                for p in processos:
+                    if p not in data[secao][campo]:
+                        data[secao][campo][p] = []
+        return data
+
+    new_data = {
+        "lca": {"inputs": {p: [] for p in processos}, "processes": {p: [] for p in processos}, "outputs": {p: [] for p in processos}},
+        "lcc": {"materials": {p: [] for p in processos}, "equipment": {p: [] for p in processos}, "labour": {p: [] for p in processos}, "outputs": {p: [] for p in processos}}
+    }
+
+    if "lca" in data:
+        old_lca = data["lca"]
+        for campo in ["inputs", "processes", "outputs"]:
+            if campo in old_lca and isinstance(old_lca[campo], dict):
+                for p in processos:
+                    if p in old_lca[campo]:
+                        new_data["lca"][campo][p] = old_lca[campo][p]
+    if "lcc" in data:
+        old_lcc = data["lcc"]
+        for campo in ["materials", "equipment", "labour", "outputs"]:
+            if campo in old_lcc and isinstance(old_lcc[campo], dict):
+                for p in processos:
+                    if p in old_lcc[campo]:
+                        new_data["lcc"][campo][p] = old_lcc[campo][p]
+
+    return new_data
+
+# ============================================================
+# API FUNCTIONS
+# ============================================================
+def login(username, password):
+    resp = requests.post(f"{API_URL}/login", data={"username": username, "password": password})
+    if resp.status_code == 200:
+        dados = resp.json()
+        st.session_state.token = dados["access_token"]
+        headers = {"Authorization": f"Bearer {dados['access_token']}"}
+        me = requests.get(f"{API_URL}/me", headers=headers)
+        if me.status_code == 200:
+            user_info = me.json()
+            st.session_state.perfil = user_info["perfil"]
+            st.session_state.username = user_info["username"]
+        return True
+    else:
+        st.error("Invalid credentials")
+        return False
+
+def logout():
+    st.session_state.token = None
+    st.session_state.perfil = None
+    st.session_state.username = None
+    st.session_state.doc_selecionado = None
+    st.session_state.success_message = None
+    st.session_state.redirect_to_docs = False
+    st.session_state.edit_data = None
+    st.session_state.new_data = None
+    st.session_state.refresh_counter = 0
+    st.session_state.ultimo_count = 0
+    st.session_state.expander_aberto = False
+    st.session_state.show_create_user_form = False
+    st.session_state.processos_do_documento = []
+    st.session_state.empresa_mostrar_form = False
+    st.session_state.admin_mostrar_form = False
+
+def headers_auth():
+    return {"Authorization": f"Bearer {st.session_state.token}"}
+
+def listar_documentos(estado=None):
+    if st.session_state.token is None:
+        return []
+    params = {}
+    if estado:
+        params["estado"] = estado
+    resp = requests.get(f"{API_URL}/documentos", headers=headers_auth(), params=params)
+    if resp.status_code == 200:
+        return resp.json()
+    return []
+
+# ... (resto das funções API - criar_documento, obter_documento, editar_documento, etc. permanecem iguais)
 
 # ============================================================
 # MAIN INTERFACE
