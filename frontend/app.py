@@ -14,7 +14,7 @@ if frontend_dir not in sys.path:
     sys.path.insert(0, frontend_dir)
 
 # ============================================================
-# LOAD CSS
+# LOAD CSS - FROM EXTERNAL FILE
 # ============================================================
 def load_css():
     """Loads the external CSS file."""
@@ -29,327 +29,19 @@ def load_css():
     except Exception as e:
         print(f"Error loading CSS from file: {e}")
     
-    # Fallback CSS inline
+    # Fallback minimal CSS
     st.markdown("""
     <style>
-        /* Hide default sidebar */
         [data-testid="stSidebar"] { display: none !important; }
         [data-testid="stSidebarNav"] { display: none !important; }
-        
-        /* Remove default padding */
-        .main > div {
-            padding: 0 !important;
-            max-width: 100% !important;
-        }
-        .block-container {
-            padding: 0 !important;
-        }
-        
-        /* Main content with 3px margins */
-        .main-content {
-            margin-top: 80px;
-            padding: 0 3px 2rem 3px !important;
-            max-width: 1440px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        
-        body {
-            background: #0a0a1a;
-            color: #e8e8e8;
-        }
-        
-        /* Header styling */
-        .main-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            background: rgba(10,10,26,0.92);
-            backdrop-filter: blur(16px);
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-            padding: 0 2rem;
-            height: 64px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .header-logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #ffffff;
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-        .header-logo .logo-icon {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            color: white;
-        }
-        .header-nav {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            flex: 1;
-            justify-content: center;
-        }
-        .header-nav a {
-            color: #a0a0b8;
-            text-decoration: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            background: transparent;
-            border: none;
-            font-family: inherit;
-        }
-        .header-nav a:hover {
-            color: #ffffff;
-            background: rgba(255,255,255,0.06);
-        }
-        .header-nav a.active {
-            color: #ffffff;
-            background: linear-gradient(135deg, rgba(102,126,234,0.2) 0%, rgba(118,75,162,0.15) 100%);
-        }
-        .header-nav .nav-divider {
-            width: 1px;
-            height: 24px;
-            background: rgba(255,255,255,0.06);
-            margin: 0 8px;
-        }
-        .header-user {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            flex-shrink: 0;
-        }
-        .header-user .user-name {
-            color: #e8e8e8;
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-        .header-user .user-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #ffffff;
-        }
-        .header-user .notification-bell {
-            position: relative;
-            cursor: pointer;
-            font-size: 1.2rem;
-            color: #a0a0b8;
-            background: none;
-            border: none;
-            padding: 4px;
-        }
-        .header-user .notification-bell:hover {
-            color: #ffffff;
-        }
-        .header-user .notification-bell .badge {
-            position: absolute;
-            top: -6px;
-            right: -8px;
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-            color: white;
-            border-radius: 50%;
-            padding: 2px 6px;
-            font-size: 9px;
-            font-weight: 700;
-            min-width: 18px;
-            text-align: center;
-            animation: pulse 1s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-        .header-user .logout-btn {
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 8px;
-            color: #a0a0b8;
-            padding: 6px 14px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: inherit;
-        }
-        .header-user .logout-btn:hover {
-            color: #ffffff;
-            background: rgba(255,255,255,0.10);
-        }
-        
-        /* Stat cards */
-        .stat-card {
-            background: linear-gradient(135deg, rgba(102,126,234,0.10) 0%, rgba(118,75,162,0.06) 100%);
-            border-radius: 16px;
-            padding: 1.5rem 1.25rem;
-            border: 1px solid rgba(255,255,255,0.05);
-            transition: all 0.3s ease;
-            margin-bottom: 0.5rem;
-        }
-        .stat-card:hover {
-            transform: translateY(-4px);
-            border-color: rgba(102,126,234,0.25);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-        }
-        .stat-card .stat-value {
-            font-size: 2.2rem;
-            font-weight: 700;
-            color: #ffffff;
-            line-height: 1.2;
-        }
-        .stat-card .stat-label {
-            font-size: 0.8rem;
-            font-weight: 500;
-            color: #80809a;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-top: 4px;
-        }
-        
-        /* Buttons */
-        .stButton button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-            color: white !important;
-            border: none !important;
-            border-radius: 10px !important;
-            padding: 0.6rem 1.5rem !important;
-            font-weight: 500 !important;
-            transition: all 0.3s ease !important;
-            box-shadow: 0 4px 15px rgba(102,126,234,0.25) !important;
-        }
-        .stButton button:hover {
-            transform: translateY(-2px) !important;
-            box-shadow: 0 6px 25px rgba(102,126,234,0.4) !important;
-        }
-        
-        /* Inputs */
-        .stTextInput input, .stSelectbox select, .stTextArea textarea {
-            background: rgba(255,255,255,0.04) !important;
-            border: 1px solid rgba(255,255,255,0.06) !important;
-            border-radius: 8px !important;
-            color: #e8e8e8 !important;
-        }
-        .stTextInput input:focus, .stSelectbox select:focus, .stTextArea textarea:focus {
-            border-color: #667eea !important;
-            box-shadow: 0 0 0 3px rgba(102,126,234,0.15) !important;
-            outline: none !important;
-        }
-        
-        /* Expanders */
-        .streamlit-expanderHeader {
-            color: #e8e8e8 !important;
-            font-weight: 500 !important;
-            background: rgba(255,255,255,0.03) !important;
-            border-radius: 10px !important;
-            border: 1px solid rgba(255,255,255,0.05) !important;
-        }
-        .streamlit-expanderHeader:hover {
-            border-color: rgba(102,126,234,0.3) !important;
-        }
-        
-        /* Dataframes */
-        .dataframe {
-            background: rgba(255,255,255,0.02) !important;
-            border-radius: 12px !important;
-            overflow: hidden !important;
-        }
-        .dataframe thead tr th {
-            background: rgba(102,126,234,0.12) !important;
-            color: #e0e0e0 !important;
-            font-weight: 600 !important;
-            padding: 0.75rem 1rem !important;
-        }
-        .dataframe tbody tr td {
-            color: #c0c0d0 !important;
-            padding: 0.6rem 1rem !important;
-            border-bottom: 1px solid rgba(255,255,255,0.03) !important;
-        }
-        .dataframe tbody tr:hover {
-            background: rgba(102,126,234,0.04) !important;
-        }
-        
-        /* Checkboxes */
-        .stCheckbox label {
-            color: #d0d0e0 !important;
-        }
-        .stCheckbox input[type="checkbox"] {
-            accent-color: #667eea !important;
-        }
-        
-        /* Alerts */
-        .stAlert {
-            border-radius: 12px !important;
-            border-left: 4px solid !important;
-            background: rgba(255,255,255,0.02) !important;
-        }
-        .stAlert [data-testid="stMarkdownContainer"] {
-            color: #e0e0e0 !important;
-        }
-        
-        /* Divider */
-        hr {
-            border-color: rgba(255,255,255,0.05) !important;
-            margin: 1.5rem 0 !important;
-        }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            .main-header {
-                padding: 0 1rem;
-                height: 56px;
-            }
-            .header-nav a {
-                padding: 6px 10px;
-                font-size: 0.8rem;
-            }
-            .header-user .user-name {
-                display: none;
-            }
-            .main-content {
-                margin-top: 72px;
-                padding: 0 3px 1rem 3px !important;
-            }
-            .stat-card .stat-value {
-                font-size: 1.8rem;
-            }
-        }
-        @media (max-width: 480px) {
-            .header-nav a {
-                padding: 4px 8px;
-                font-size: 0.7rem;
-            }
-            .header-nav .nav-divider {
-                margin: 0 4px;
-            }
-            .header-user {
-                gap: 8px;
-            }
-        }
+        .main > div { padding: 0 !important; max-width: 100% !important; }
+        .block-container { padding: 0 !important; max-width: 100% !important; }
+        .main-content { margin-top: 80px; padding: 0 2rem 2rem 2rem; max-width: 1100px; margin-left: auto; margin-right: auto; }
+        .stat-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 1.5rem; border: 1px solid rgba(255,255,255,0.05); }
+        .stat-value { font-size: 2rem; font-weight: 700; color: white; }
+        .stat-label { font-size: 0.8rem; color: #80809a; text-transform: uppercase; }
     </style>
     """, unsafe_allow_html=True)
-    print("⚠️ Using fallback inline CSS")
 
 load_css()
 
@@ -357,17 +49,14 @@ load_css()
 # API URL CONFIGURATION
 # ============================================================
 def get_api_url():
-    """Returns the API URL based on the environment (local or production)."""
     try:
         if hasattr(st, 'secrets') and st.secrets and 'API_URL' in st.secrets:
             return st.secrets['API_URL']
     except Exception:
         pass
-    
     api_url = os.getenv('API_URL')
     if api_url:
         return api_url
-    
     return "http://127.0.0.1:8000"
 
 API_URL = get_api_url()
@@ -385,7 +74,6 @@ def formatar_data_hora(data_str):
     try:
         if isinstance(data_str, datetime):
             return data_str.strftime("%d/%m/%Y %H:%M")
-        
         data_str = str(data_str).replace('Z', '').replace('T', ' ')
         formats = ["%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"]
         for fmt in formats:
@@ -407,10 +95,8 @@ st.set_page_config(
 
 # Import notification component
 try:
-    from componentes.notificacoes import render_notificacoes_badge, get_notificacoes_nao_lidas
+    from componentes.notificacoes import get_notificacoes_nao_lidas
 except ImportError:
-    def render_notificacoes_badge():
-        pass
     def get_notificacoes_nao_lidas():
         return 0
 
@@ -448,11 +134,9 @@ st.markdown("""
             }, 1000);
         }
     }
-    
     window.addEventListener('load', function() {
         setTimeout(checkScrollParam, 200);
     });
-    
     document.addEventListener('DOMContentLoaded', function() {
         setTimeout(checkScrollParam, 300);
     });
@@ -514,25 +198,17 @@ if "filtros_widget_key" not in st.session_state:
     st.session_state.filtros_widget_key = 0
 if "filtros_aplicados" not in st.session_state:
     st.session_state.filtros_aplicados = {
-        "q": "",
-        "estados": [],
-        "data_inicio": None,
-        "data_fim": None,
-        "order_by": "id",
-        "order_dir": "desc"
+        "q": "", "estados": [], "data_inicio": None, "data_fim": None,
+        "order_by": "id", "order_dir": "desc"
     }
 if "filtros_temporarios" not in st.session_state:
     st.session_state.filtros_temporarios = {
-        "q": "",
-        "estados": [],
-        "data_inicio": None,
-        "data_fim": None,
-        "order_by": "id",
-        "order_dir": "desc"
+        "q": "", "estados": [], "data_inicio": None, "data_fim": None,
+        "order_by": "id", "order_dir": "desc"
     }
 
 # ============================================================
-# HEADER COMPONENT - RENDERED AS HTML
+# HEADER COMPONENT
 # ============================================================
 def render_header():
     username = st.session_state.get("username", "User")
@@ -545,7 +221,6 @@ def render_header():
     
     badge_html = f'<span class="badge">{notif_count}</span>' if notif_count > 0 else ''
     
-    # HTML do header - usando st.html para renderizar corretamente
     header_html = f'''
     <header class="main-header">
         <div class="header-logo" onclick="window.location.href='?page=home'">
@@ -570,16 +245,13 @@ def render_header():
     <div class="main-content">
     '''
     
-    # Usar st.markdown com unsafe_allow_html=True para renderizar HTML
     st.markdown(header_html, unsafe_allow_html=True)
     
-    # Processar logout
     if st.query_params.get("logout") == "true":
         st.query_params.clear()
         logout()
         st.rerun()
     
-    # Processar navegação
     if st.query_params.get("page") == "dashboard":
         st.switch_page("pages/dashboard.py")
     elif st.query_params.get("page") == "notificacoes":
@@ -603,14 +275,11 @@ def get_processos_from_data(data):
 def ensure_new_structure(data, processos=None):
     if processos is None:
         processos = PROCESSOS_PADRAO
-    
     if not data:
-        estrutura = {
+        return {
             "lca": {"inputs": {p: [] for p in processos}, "processes": {p: [] for p in processos}, "outputs": {p: [] for p in processos}},
             "lcc": {"materials": {p: [] for p in processos}, "equipment": {p: [] for p in processos}, "labour": {p: [] for p in processos}, "outputs": {p: [] for p in processos}}
         }
-        return estrutura
-
     if "lca" in data and "lcc" in data:
         for secao in ["lca", "lcc"]:
             for campo in data[secao].keys():
@@ -620,27 +289,22 @@ def ensure_new_structure(data, processos=None):
                     if p not in data[secao][campo]:
                         data[secao][campo][p] = []
         return data
-
     new_data = {
         "lca": {"inputs": {p: [] for p in processos}, "processes": {p: [] for p in processos}, "outputs": {p: [] for p in processos}},
         "lcc": {"materials": {p: [] for p in processos}, "equipment": {p: [] for p in processos}, "labour": {p: [] for p in processos}, "outputs": {p: [] for p in processos}}
     }
-
     if "lca" in data:
-        old_lca = data["lca"]
         for campo in ["inputs", "processes", "outputs"]:
-            if campo in old_lca and isinstance(old_lca[campo], dict):
+            if campo in data["lca"] and isinstance(data["lca"][campo], dict):
                 for p in processos:
-                    if p in old_lca[campo]:
-                        new_data["lca"][campo][p] = old_lca[campo][p]
+                    if p in data["lca"][campo]:
+                        new_data["lca"][campo][p] = data["lca"][campo][p]
     if "lcc" in data:
-        old_lcc = data["lcc"]
         for campo in ["materials", "equipment", "labour", "outputs"]:
-            if campo in old_lcc and isinstance(old_lcc[campo], dict):
+            if campo in data["lcc"] and isinstance(data["lcc"][campo], dict):
                 for p in processos:
-                    if p in old_lcc[campo]:
-                        new_data["lcc"][campo][p] = old_lcc[campo][p]
-
+                    if p in data["lcc"][campo]:
+                        new_data["lcc"][campo][p] = data["lcc"][campo][p]
     return new_data
 
 # ============================================================
@@ -715,12 +379,7 @@ def listar_documentos_com_filtros(filtros):
     return []
 
 def criar_documento(titulo, parceiro_id, dados):
-    payload = {
-        "titulo": titulo,
-        "parceiro_id": parceiro_id,
-        "empresa_id": st.session_state.username,
-        "dados": dados
-    }
+    payload = {"titulo": titulo, "parceiro_id": parceiro_id, "empresa_id": st.session_state.username, "dados": dados}
     resp = requests.post(f"{API_URL}/documentos/", json=payload, headers=headers_auth())
     if resp.status_code == 200:
         return resp.json()
@@ -851,7 +510,7 @@ def exportar_excel(doc_id, titulo):
         return None, None
 
 # ============================================================
-# FUNCTION TO GET NOTIFICATIONS
+# UI FUNCTIONS
 # ============================================================
 def get_notificacoes_nao_lidas():
     if st.session_state.token is None:
@@ -864,25 +523,10 @@ def get_notificacoes_nao_lidas():
         print(f"Error getting notifications: {e}")
     return 0
 
-def verificar_novas_notificacoes():
-    if st.session_state.token is None:
-        return
-    try:
-        count = get_notificacoes_nao_lidas()
-        if count > st.session_state.ultimo_count:
-            st.toast(f"🔔 {count - st.session_state.ultimo_count} new notification(s)!", icon="🔔")
-        st.session_state.ultimo_count = count
-    except:
-        pass
-
-# ============================================================
-# UI FUNCTIONS
-# ============================================================
 def show_document_summary(documentos):
     if not documentos:
         st.info("No documents found.")
         return
-
     estado_groups = {
         "Draft": ["Draft", "Rascunho"],
         "Submitted": ["Submitted", "Submetido"],
@@ -891,16 +535,13 @@ def show_document_summary(documentos):
         "Approved": ["Approved", "Aprovado"],
         "Archived": ["Archived", "Arquivado"]
     }
-    
     contagens = {group: 0 for group in estado_groups.keys()}
-    
     for doc in documentos:
         estado = doc.get("estado", "")
         for group, values in estado_groups.items():
             if estado in values:
                 contagens[group] += 1
                 break
-
     cols = st.columns(len(contagens))
     for i, (estado, count) in enumerate(contagens.items()):
         with cols[i]:
@@ -924,42 +565,17 @@ def render_filtros():
     with st.expander("Search Filters", expanded=False):
         col1, col2 = st.columns(2)
         key_suffix = st.session_state.filtros_widget_key
-        
         with col1:
-            q = st.text_input(
-                "Search",
-                value=st.session_state.filtros_temporarios.get("q", ""),
-                placeholder="Title, partner or ID...",
-                key=f"filtro_q_{key_suffix}"
-            )
+            q = st.text_input("Search", value=st.session_state.filtros_temporarios.get("q", ""), placeholder="Title, partner or ID...", key=f"filtro_q_{key_suffix}")
             st.session_state.filtros_temporarios["q"] = q
-            
             estados_disponiveis = ["Draft", "Submitted", "In Review", "Changes Requested", "Approved", "Archived"]
-            estados_selecionados = st.multiselect(
-                "Status",
-                options=estados_disponiveis,
-                default=st.session_state.filtros_temporarios.get("estados", []),
-                key=f"filtro_estados_{key_suffix}"
-            )
+            estados_selecionados = st.multiselect("Status", options=estados_disponiveis, default=st.session_state.filtros_temporarios.get("estados", []), key=f"filtro_estados_{key_suffix}")
             st.session_state.filtros_temporarios["estados"] = estados_selecionados
-        
         with col2:
-            data_inicio = st.date_input(
-                "Start Date",
-                value=st.session_state.filtros_temporarios.get("data_inicio"),
-                format="DD/MM/YYYY",
-                key=f"filtro_data_inicio_{key_suffix}"
-            )
+            data_inicio = st.date_input("Start Date", value=st.session_state.filtros_temporarios.get("data_inicio"), format="DD/MM/YYYY", key=f"filtro_data_inicio_{key_suffix}")
             st.session_state.filtros_temporarios["data_inicio"] = data_inicio.strftime("%Y-%m-%d") if data_inicio else None
-            
-            data_fim = st.date_input(
-                "End Date",
-                value=st.session_state.filtros_temporarios.get("data_fim"),
-                format="DD/MM/YYYY",
-                key=f"filtro_data_fim_{key_suffix}"
-            )
+            data_fim = st.date_input("End Date", value=st.session_state.filtros_temporarios.get("data_fim"), format="DD/MM/YYYY", key=f"filtro_data_fim_{key_suffix}")
             st.session_state.filtros_temporarios["data_fim"] = data_fim.strftime("%Y-%m-%d") if data_fim else None
-        
         col5, col6 = st.columns(2)
         with col5:
             if st.button("Apply Filters", use_container_width=True):
@@ -967,21 +583,16 @@ def render_filtros():
                 st.rerun()
         with col6:
             if st.button("Clear Filters", use_container_width=True):
-                st.session_state.filtros_temporarios = {
-                    "q": "", "estados": [], "data_inicio": None, "data_fim": None,
-                    "order_by": "id", "order_dir": "desc"
-                }
-                st.session_state.filtros_aplicados = {
-                    "q": "", "estados": [], "data_inicio": None, "data_fim": None,
-                    "order_by": "id", "order_dir": "desc"
-                }
+                st.session_state.filtros_temporarios = {"q": "", "estados": [], "data_inicio": None, "data_fim": None, "order_by": "id", "order_dir": "desc"}
+                st.session_state.filtros_aplicados = {"q": "", "estados": [], "data_inicio": None, "data_fim": None, "order_by": "id", "order_dir": "desc"}
                 st.session_state.filtros_widget_key += 1
                 st.rerun()
 
 # ============================================================
-# RENDER FUNCTIONS - LCA/LCC FORMS (resumidas para brevidade)
+# RENDER FUNCTIONS - LCA/LCC FORMS
 # ============================================================
-# ... (as funções render_lca_* e render_lcc_* permanecem iguais)
+# (As funções render_lca_* e render_lcc_* permanecem iguais ao código anterior)
+# Para não repetir todo o código, mantenha as funções existentes.
 
 # ============================================================
 # FUNCTION TO CREATE ANCHOR AND TRIGGER SCROLL
@@ -1012,14 +623,11 @@ def listar_parceiros_disponiveis():
 # ============================================================
 def render_processos_selecao(key_prefix="empresa"):
     processos_disponiveis = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
-    
     session_key = f"processos_selecionados_{key_prefix}"
     if session_key not in st.session_state:
         st.session_state[session_key] = []
-    
     input_key = f"{key_prefix}_novo_processo_input"
     processos_selecionados = st.session_state[session_key]
-    
     st.write("**Default processes:**")
     col1, col2 = st.columns(2)
     with col1:
@@ -1036,10 +644,8 @@ def render_processos_selecao(key_prefix="empresa"):
                 processos_selecionados.append(proc)
             elif not checked and proc in processos_selecionados:
                 processos_selecionados.remove(proc)
-    
     st.divider()
     st.write("**Add new process:**")
-    
     col_add1, col_add2 = st.columns([3, 1])
     with col_add1:
         novo_processo = st.text_input("New process name", placeholder="Ex: Drying, Milling, etc.", key=input_key)
@@ -1055,7 +661,6 @@ def render_processos_selecao(key_prefix="empresa"):
                     st.rerun()
             else:
                 st.warning("⚠️ Please enter a name for the process.")
-    
     if processos_selecionados:
         st.divider()
         st.write("**Selected processes:**")
@@ -1071,7 +676,6 @@ def render_processos_selecao(key_prefix="empresa"):
             st.rerun()
     else:
         st.info("No process selected. Select the checkboxes above or add a new process.")
-    
     st.session_state[session_key] = processos_selecionados
     return processos_selecionados
 
