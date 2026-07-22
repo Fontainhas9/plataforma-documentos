@@ -1355,6 +1355,7 @@ if st.session_state.perfil == "parceiro":
             st.markdown("---")
 
             # ---------- ACTION BUTTONS ----------
+            # Check if document is in Draft status (RASCUNHO)
             if doc['estado'] == "Draft":
                 st.subheader("Edit document")
                 if st.session_state.edit_data is None:
@@ -1363,37 +1364,44 @@ if st.session_state.perfil == "parceiro":
                 
                 col_btn1, col_btn2, col_btn3 = st.columns(3)
                 with col_btn1:
-                    if st.button("Save", key="parceiro_save_edit", use_container_width=True):
-                        novos_dados = st.session_state.edit_data
-                        resultado = editar_documento(doc['id'], novos_dados)
-                        if resultado:
-                            st.session_state.edit_data = None
-                            st.session_state.doc_selecionado = None
-                            st.session_state.expander_aberto = False
-                            st.session_state.close_doc_after_action = True
-                            st.success("Document updated successfully!")
-                            st.rerun()
-                with col_btn2:
-                    if st.button("Submit", key="parceiro_submeter", use_container_width=True):
-                        novos_dados = st.session_state.edit_data
-                        resultado_edicao = editar_documento(doc['id'], novos_dados)
-                        if resultado_edicao:
-                            resultado_sub = submeter(doc['id'])
-                            if resultado_sub:
+                    if st.button("💾 Save", key="parceiro_save_edit", use_container_width=True):
+                        try:
+                            novos_dados = st.session_state.edit_data
+                            resultado = editar_documento(doc['id'], novos_dados)
+                            if resultado:
                                 st.session_state.edit_data = None
                                 st.session_state.doc_selecionado = None
                                 st.session_state.expander_aberto = False
                                 st.session_state.close_doc_after_action = True
-                                st.success("Document submitted!")
+                                st.success("Document updated successfully!")
                                 st.rerun()
+                        except Exception as e:
+                            st.error(f"Error saving: {str(e)}")
+                with col_btn2:
+                    if st.button("📤 Submit", key="parceiro_submeter", use_container_width=True):
+                        try:
+                            novos_dados = st.session_state.edit_data
+                            resultado_edicao = editar_documento(doc['id'], novos_dados)
+                            if resultado_edicao:
+                                resultado_sub = submeter(doc['id'])
+                                if resultado_sub:
+                                    st.session_state.edit_data = None
+                                    st.session_state.doc_selecionado = None
+                                    st.session_state.expander_aberto = False
+                                    st.session_state.close_doc_after_action = True
+                                    st.success("Document submitted successfully!")
+                                    st.rerun()
+                        except Exception as e:
+                            st.error(f"Error submitting: {str(e)}")
                 with col_btn3:
-                    if st.button("Close", key="parceiro_fechar_detalhes", use_container_width=True):
+                    if st.button("✖ Close", key="parceiro_fechar_detalhes", use_container_width=True):
                         st.session_state.doc_selecionado = None
                         st.session_state.edit_data = None
                         st.session_state.expander_aberto = False
                         st.rerun()
 
             else:
+                # Document is not in Draft status - show view-only with Export History
                 col_btn1, col_btn2, col_btn3 = st.columns(3)
                 
                 if doc['estado'] == "Changes Requested":
@@ -1404,24 +1412,27 @@ if st.session_state.perfil == "parceiro":
                             ultima = versoes[-1]
                             if ultima['comentario']:
                                 st.info(f"Reason: {ultima['comentario']}")
-                        if st.button("Edit again", key="parceiro_editar_novamente", use_container_width=True):
+                        if st.button("✏️ Edit again", key="parceiro_editar_novamente", use_container_width=True):
                             if editar_novamente(doc['id']):
                                 st.rerun()
                 elif doc['estado'] == "Approved":
                     with col_btn1:
-                        st.success("Document approved. Cannot be edited.")
+                        st.success("✅ Document approved. Cannot be edited.")
                 elif doc['estado'] in ["Submitted", "In Review"]:
                     with col_btn1:
-                        st.info("Document under review by the company.")
+                        st.info("📋 Document under review by the company.")
                 elif doc['estado'] == "Archived":
                     with col_btn1:
-                        st.warning("Document archived (view only).")
+                        st.warning("📁 Document archived (view only).")
+                else:
+                    with col_btn1:
+                        st.info(f"Document is in status: {doc['estado']}")
                 
                 with col_btn2:
                     conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
                     if conteudo:
                         st.download_button(
-                            label="Export History",
+                            label="📊 Export History",
                             data=conteudo,
                             file_name=filename,
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1430,7 +1441,7 @@ if st.session_state.perfil == "parceiro":
                         )
                 
                 with col_btn3:
-                    if st.button("Close", key="parceiro_fechar_detalhes", use_container_width=True):
+                    if st.button("✖ Close", key="parceiro_fechar_detalhes", use_container_width=True):
                         st.session_state.doc_selecionado = None
                         st.session_state.edit_data = None
                         st.session_state.expander_aberto = False
