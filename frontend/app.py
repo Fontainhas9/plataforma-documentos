@@ -570,17 +570,44 @@ def show_document_summary(documentos):
         st.info("No documents found.")
         return
 
-    estados = ["Draft", "Submitted", "In Review", "Changes Requested", "Approved", "Archived"]
-    contagens = {estado: 0 for estado in estados}
+    # Define both English and Portuguese status names
+    estados_map = {
+        "Draft": "Rascunho",
+        "Submitted": "Submetido",
+        "In Review": "Em Revisão",
+        "Changes Requested": "Alterações",
+        "Approved": "Aprovado",
+        "Archived": "Arquivado"
+    }
+    
+    # Use English names for display (they will be mapped)
+    estados_display = ["Draft", "Submitted", "In Review", "Changes Requested", "Approved", "Archived"]
+    contagens = {estado: 0 for estado in estados_display}
+    
     for doc in documentos:
-        estado = doc.get("estado")
-        if estado in contagens:
-            contagens[estado] += 1
+        estado = doc.get("estado", "")
+        # Check if the status matches any display status or its Portuguese equivalent
+        found = False
+        for display_estado, portugues_estado in estados_map.items():
+            if estado == display_estado or estado == portugues_estado:
+                contagens[display_estado] += 1
+                found = True
+                break
+        if not found:
+            # If status not recognized, try to add it anyway
+            if estado in contagens:
+                contagens[estado] += 1
+            else:
+                # Add unknown status to the list
+                contagens[estado] = 1
 
-    cols = st.columns(len(estados))
-    for i, estado in enumerate(estados):
+    # Create columns for all statuses
+    cols = st.columns(len(contagens))
+    for i, (estado, count) in enumerate(contagens.items()):
         with cols[i]:
-            st.metric(label=estado, value=contagens[estado])
+            # Use the display name (English)
+            label = estado
+            st.metric(label=label, value=count)
 
 # ---------- Function to display dataframes ----------
 def display_dataframe(df):
