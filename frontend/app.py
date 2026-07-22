@@ -79,9 +79,12 @@ from componentes.notificacoes import render_notificacoes_badge, get_notificacoes
 # ============================================================
 st.markdown("""
 <style>
+    /* Hide default Streamlit navigation */
     [data-testid="stSidebarNav"] {
         display: none !important;
     }
+    
+    /* Sidebar styling */
     [data-testid="stSidebar"] {
         display: flex !important;
         visibility: visible !important;
@@ -91,15 +94,36 @@ st.markdown("""
         max-width: 270px !important;
         overflow: auto !important;
         pointer-events: auto !important;
+        background: linear-gradient(180deg, #0a0a1a 0%, #1a1a2e 100%) !important;
+        border-right: 1px solid rgba(255,255,255,0.05) !important;
     }
+    
+    [data-testid="stSidebar"] .stButton button {
+        background: rgba(255,255,255,0.05) !important;
+        border: 1px solid rgba(255,255,255,0.08) !important;
+        border-radius: 10px !important;
+        color: #e0e0e0 !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    [data-testid="stSidebar"] .stButton button:hover {
+        background: rgba(255,255,255,0.1) !important;
+        border-color: rgba(255,255,255,0.2) !important;
+        transform: translateY(-1px);
+    }
+    
+    /* Main content */
     .main > div {
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
+        padding-left: 2rem !important;
+        padding-right: 2rem !important;
         max-width: 100% !important;
     }
+    
+    /* Smooth scroll */
     html {
         scroll-behavior: smooth;
     }
+    
     .doc-anchor {
         display: block;
         position: relative;
@@ -107,17 +131,319 @@ st.markdown("""
         visibility: hidden;
         height: 0;
     }
+    
+    /* ============================================================
+       NEW MODERN DASHBOARD STYLING
+       ============================================================ */
+    
+    /* Headers */
+    .main h1 {
+        font-size: 2.5rem !important;
+        font-weight: 700 !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        background-clip: text !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .main h2, .main h3 {
+        color: #e8e8e8 !important;
+        font-weight: 600 !important;
+        letter-spacing: -0.01em !important;
+    }
+    
+    /* Metric cards */
+    [data-testid="stMetric"] {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.10) 100%) !important;
+        border-radius: 16px !important;
+        padding: 1.5rem !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        backdrop-filter: blur(10px) !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2) !important;
+    }
+    
+    [data-testid="stMetric"]:hover {
+        transform: translateY(-4px) !important;
+        box-shadow: 0 8px 30px rgba(102, 126, 234, 0.25) !important;
+        border-color: rgba(102, 126, 234, 0.3) !important;
+    }
+    
+    [data-testid="stMetric"] label {
+        color: #a0a0b8 !important;
+        font-size: 0.85rem !important;
+        font-weight: 500 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+    }
+    
+    [data-testid="stMetric"] [data-testid="stMetricValue"] {
+        color: #ffffff !important;
+        font-size: 2.2rem !important;
+        font-weight: 700 !important;
+    }
+    
+    /* Card-like containers */
+    .element-container:has(.stExpander) {
+        background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%) !important;
+        border-radius: 16px !important;
+        border: 1px solid rgba(255,255,255,0.06) !important;
+        padding: 0.5rem !important;
+        margin-bottom: 1rem !important;
+    }
+    
+    /* Expander styling */
+    .stExpander {
+        background: transparent !important;
+        border: none !important;
+    }
+    
+    .stExpander details {
+        background: rgba(255,255,255,0.03) !important;
+        border-radius: 12px !important;
+        border: 1px solid rgba(255,255,255,0.06) !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .stExpander details:hover {
+        border-color: rgba(102, 126, 234, 0.3) !important;
+    }
+    
+    .stExpander summary {
+        color: #e8e8e8 !important;
+        font-weight: 500 !important;
+        padding: 0.75rem 1rem !important;
+    }
+    
+    /* Buttons */
+    .stButton button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 10px !important;
+        padding: 0.6rem 1.5rem !important;
+        font-weight: 500 !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+    }
+    
+    .stButton button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4) !important;
+    }
+    
+    .stButton button:active {
+        transform: translateY(0px) !important;
+    }
+    
+    /* Secondary buttons */
+    .stButton button[kind="secondary"] {
+        background: rgba(255,255,255,0.08) !important;
+        box-shadow: none !important;
+    }
+    
+    .stButton button[kind="secondary"]:hover {
+        background: rgba(255,255,255,0.12) !important;
+    }
+    
+    /* Dataframes / Tables */
+    .stDataFrame {
+        background: rgba(255,255,255,0.03) !important;
+        border-radius: 12px !important;
+        border: 1px solid rgba(255,255,255,0.06) !important;
+        overflow: hidden !important;
+    }
+    
+    .stDataFrame thead tr th {
+        background: rgba(102, 126, 234, 0.15) !important;
+        color: #e0e0e0 !important;
+        font-weight: 600 !important;
+        padding: 0.75rem 1rem !important;
+    }
+    
+    .stDataFrame tbody tr td {
+        color: #c0c0d0 !important;
+        padding: 0.6rem 1rem !important;
+        border-bottom: 1px solid rgba(255,255,255,0.03) !important;
+    }
+    
+    .stDataFrame tbody tr:hover {
+        background: rgba(102, 126, 234, 0.05) !important;
+    }
+    
+    /* Select boxes and inputs */
+    .stSelectbox select, .stTextInput input, .stTextArea textarea {
+        background: rgba(255,255,255,0.05) !important;
+        border: 1px solid rgba(255,255,255,0.08) !important;
+        border-radius: 8px !important;
+        color: #e8e8e8 !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .stSelectbox select:focus, .stTextInput input:focus, .stTextArea textarea:focus {
+        border-color: #667eea !important;
+        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2) !important;
+    }
+    
+    .stSelectbox select, .stTextInput input {
+        padding: 0.6rem 0.75rem !important;
+    }
+    
     /* Force white text on disabled inputs */
     .stTextInput input:disabled {
         color: white !important;
         opacity: 1 !important;
-        background-color: #262730 !important;
+        background-color: rgba(255,255,255,0.05) !important;
     }
-    /* Ensure disabled select boxes also have white text */
+    
     .stSelectbox select:disabled {
         color: white !important;
         opacity: 1 !important;
-        background-color: #262730 !important;
+        background-color: rgba(255,255,255,0.05) !important;
+    }
+    
+    /* Checkboxes */
+    .stCheckbox label {
+        color: #d0d0e0 !important;
+    }
+    
+    .stCheckbox input[type="checkbox"] {
+        accent-color: #667eea !important;
+    }
+    
+    /* Info, Warning, Success, Error boxes */
+    .stAlert {
+        border-radius: 12px !important;
+        border-left: 4px solid !important;
+        background: rgba(255,255,255,0.03) !important;
+        backdrop-filter: blur(10px) !important;
+    }
+    
+    .stAlert [data-testid="stMarkdownContainer"] {
+        color: #e0e0e0 !important;
+    }
+    
+    /* Info */
+    .stAlert.info {
+        border-left-color: #667eea !important;
+    }
+    
+    /* Success */
+    .stAlert.success {
+        border-left-color: #00d4ff !important;
+    }
+    
+    /* Warning */
+    .stAlert.warning {
+        border-left-color: #f59e0b !important;
+    }
+    
+    /* Error */
+    .stAlert.error {
+        border-left-color: #ef4444 !important;
+    }
+    
+    /* Dividers */
+    hr {
+        border-color: rgba(255,255,255,0.06) !important;
+        margin: 1.5rem 0 !important;
+    }
+    
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0.5rem !important;
+        background: rgba(255,255,255,0.03) !important;
+        border-radius: 12px !important;
+        padding: 0.25rem !important;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 8px !important;
+        padding: 0.5rem 1.5rem !important;
+        color: #a0a0b8 !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        color: white !important;
+    }
+    
+    .stTabs [data-baseweb="tab"]:hover {
+        color: #e8e8e8 !important;
+    }
+    
+    /* Badge / notification styling */
+    .notification-badge {
+        position: fixed;
+        top: 10px;
+        right: 20px;
+        z-index: 999;
+        cursor: pointer;
+        font-size: 28px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .notification-badge .badge {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%) !important;
+        color: white !important;
+        border-radius: 50% !important;
+        padding: 2px 8px !important;
+        font-size: 12px !important;
+        font-weight: bold !important;
+        min-width: 20px !important;
+        text-align: center !important;
+        animation: pulse 1s infinite !important;
+        box-shadow: 0 2px 10px rgba(238, 90, 36, 0.4) !important;
+    }
+    
+    .notification-badge .badge-zero {
+        background: transparent !important;
+        color: #888 !important;
+        border-radius: 50% !important;
+        padding: 2px 8px !important;
+        font-size: 12px !important;
+        min-width: 20px !important;
+        text-align: center !important;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+    
+    .notification-badge:hover {
+        opacity: 0.8;
+    }
+    
+    /* Caption / small text */
+    .stCaption, caption, .caption {
+        color: #80809a !important;
+        font-size: 0.85rem !important;
+    }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+        width: 6px !important;
+        height: 6px !important;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.03) !important;
+        border-radius: 10px !important;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        border-radius: 10px !important;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: #667eea !important;
     }
 </style>
 
