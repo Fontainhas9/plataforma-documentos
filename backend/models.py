@@ -33,7 +33,8 @@ class Documento(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     titulo = Column(String, nullable=False)
-    parceiro_id = Column(String, nullable=False)
+    parceiro_id = Column(String, nullable=False)  # Parceiro associado ao documento
+    empresa_id = Column(String, nullable=False)   # Empresa que criou o documento
     estado = Column(Enum(EstadoDocumento), default=EstadoDocumento.RASCUNHO)
     versao_atual = Column(Integer, default=1)
     dados = Column(JSON, default={})

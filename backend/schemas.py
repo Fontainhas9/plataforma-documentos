@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 from models import EstadoDocumento, PerfilUtilizador
 
@@ -24,6 +24,7 @@ class TokenData(BaseModel):
 class DocumentoBase(BaseModel):
     titulo: str
     parceiro_id: str
+    empresa_id: str
     dados: Dict[str, Any] = {}
 
 class DocumentoCreate(DocumentoBase):
@@ -39,6 +40,7 @@ class DocumentoOut(BaseModel):
     id: int
     titulo: str
     parceiro_id: str
+    empresa_id: str
     estado: EstadoDocumento
     versao_atual: int
     dados: Dict[str, Any]

@@ -14,7 +14,7 @@ import json
 import traceback
 
 from database import SessionLocal, engine
-from models import Base, Documento, VersaoDocumento, EstadoDocumento, Utilizador, PerfilUtilizador, Notificacao  # <-- ADICIONAR Notificacao
+from models import Base, Documento, VersaoDocumento, EstadoDocumento, Utilizador, PerfilUtilizador, Notificacao
 from schemas import (
     DocumentoCreate, DocumentoUpdate, DocumentoOut,
     VersaoOut, MudancaEstado, UtilizadorCreate, Token,
@@ -27,6 +27,7 @@ from auth import (
     get_current_user,
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
+from templates import PROCESSOS_PADRAO, get_processos_from_data
 
 # Importar funções do dashboard
 from dashboard import (
@@ -39,12 +40,10 @@ from dashboard import (
 from notificacoes import (
     criar_notificacao_para_empresa,
     criar_notificacao_para_parceiro,
+    criar_notificacao_para_utilizador,
     get_notificacoes_utilizador,
     get_notificacoes_nao_lidas_count
 )
-
-# EMAIL DESATIVADO - manter para futuro
-# from email_utils import enviar_email, DESTINATARIO_PADRAO
 
 # Criar tabelas (se não existirem)
 Base.metadata.create_all(bind=engine)
@@ -54,7 +53,7 @@ app = FastAPI()
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8501", "http://127.0.0.1:8501"],
+    allow_origins=["http://localhost:8501", "http://127.0.0.1:8501", "https://*.onrender.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -122,6 +121,30 @@ def quem_sou_eu(current_user: Utilizador = Depends(get_current_user)):
         "nome_completo": current_user.nome_completo
     }
 
+# -------------------- Parceiros disponíveis para empresas --------------------
+@app.get("/parceiros/disponiveis")
+def listar_parceiros_disponiveis(
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    """
+    Lista todos os parceiros disponíveis para empresas.
+    Apenas empresas e admin podem aceder.
+    """
+    if current_user.perfil not in [PerfilUtilizador.EMPRESA, PerfilUtilizador.ADMIN]:
+        raise HTTPException(status_code=403, detail="Apenas empresas e administradores podem listar parceiros")
+    
+    parceiros = db.query(Utilizador).filter(Utilizador.perfil == PerfilUtilizador.PARCEIRO).all()
+    
+    return [
+        {
+            "username": p.username,
+            "perfil": p.perfil.value,
+            "nome_completo": p.nome_completo
+        }
+        for p in parceiros
+    ]
+
 # -------------------- Documentos --------------------
 @app.get("/documentos", response_model=List[DocumentoOut])
 def listar_documentos(
@@ -135,6 +158,10 @@ def listar_documentos(
 
     if current_user.perfil == PerfilUtilizador.PARCEIRO:
         query = query.filter(Documento.parceiro_id == current_user.username)
+    elif current_user.perfil == PerfilUtilizador.EMPRESA:
+        query = query.filter(Documento.empresa_id == current_user.username)
+    # ADMIN vê todos
+    
     documentos = query.order_by(Documento.id.desc()).all()
     return documentos
 
@@ -158,21 +185,22 @@ def pesquisar_documentos(
     # -------------------- Filtro por pesquisa de texto --------------------
     if q:
         q = f"%{q}%"
-        # Tenta converter para inteiro para pesquisar por ID
         try:
             id_int = int(q.replace("%", ""))
             query = query.filter(
                 or_(
                     Documento.id == id_int,
                     Documento.titulo.ilike(q),
-                    Documento.parceiro_id.ilike(q)
+                    Documento.parceiro_id.ilike(q),
+                    Documento.empresa_id.ilike(q)
                 )
             )
         except ValueError:
             query = query.filter(
                 or_(
                     Documento.titulo.ilike(q),
-                    Documento.parceiro_id.ilike(q)
+                    Documento.parceiro_id.ilike(q),
+                    Documento.empresa_id.ilike(q)
                 )
             )
 
@@ -188,27 +216,28 @@ def pesquisar_documentos(
             data_inicio_dt = datetime.strptime(data_inicio, "%Y-%m-%d")
             query = query.filter(Documento.created_at >= data_inicio_dt)
         except ValueError:
-            pass  # Ignora data inválida
+            pass
 
     if data_fim:
         try:
             data_fim_dt = datetime.strptime(data_fim, "%Y-%m-%d")
-            # Adicionar um dia para incluir todo o dia
             data_fim_dt = data_fim_dt.replace(hour=23, minute=59, second=59)
             query = query.filter(Documento.created_at <= data_fim_dt)
         except ValueError:
-            pass  # Ignora data inválida
+            pass
 
     # -------------------- Filtro por perfil --------------------
     if current_user.perfil == PerfilUtilizador.PARCEIRO:
         query = query.filter(Documento.parceiro_id == current_user.username)
+    elif current_user.perfil == PerfilUtilizador.EMPRESA:
+        query = query.filter(Documento.empresa_id == current_user.username)
 
     # -------------------- Ordenação --------------------
-    # Mapeamento de campos para ordenação segura
     order_map = {
         "id": Documento.id,
         "titulo": Documento.titulo,
         "parceiro_id": Documento.parceiro_id,
+        "empresa_id": Documento.empresa_id,
         "estado": Documento.estado,
         "created_at": Documento.created_at,
         "updated_at": Documento.updated_at,
@@ -230,20 +259,61 @@ def criar_documento(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
-    if current_user.perfil != PerfilUtilizador.PARCEIRO:
-        raise HTTPException(status_code=403, detail="Apenas parceiros podem criar documentos")
-    documento = Documento(
-        titulo=doc.titulo,
-        parceiro_id=current_user.username,
-        dados=doc.dados,
-        estado=EstadoDocumento.RASCUNHO,
-        versao_atual=1
-    )
-    db.add(documento)
-    db.commit()
-    db.refresh(documento)
-    criar_versao(db, documento, EstadoDocumento.RASCUNHO, criado_por=current_user.username)
-    return documento
+    """
+    Cria um novo documento.
+    Apenas empresa ou admin podem criar documentos.
+    """
+    try:
+        if current_user.perfil not in [PerfilUtilizador.EMPRESA, PerfilUtilizador.ADMIN]:
+            raise HTTPException(status_code=403, detail="Apenas empresas e administradores podem criar documentos")
+
+        # Verificar se o parceiro existe
+        parceiro = db.query(Utilizador).filter(
+            Utilizador.username == doc.parceiro_id,
+            Utilizador.perfil == PerfilUtilizador.PARCEIRO
+        ).first()
+        if not parceiro:
+            raise HTTPException(status_code=400, detail="Parceiro não encontrado ou não é um parceiro válido")
+
+        # Verificar se os dados estão vazios e criar estrutura se necessário
+        if not doc.dados or doc.dados == {}:
+            from templates import criar_estrutura_com_processos
+            dados = criar_estrutura_com_processos(PROCESSOS_PADRAO)
+        else:
+            dados = doc.dados
+
+        documento = Documento(
+            titulo=doc.titulo,
+            parceiro_id=doc.parceiro_id,
+            empresa_id=current_user.username,
+            dados=dados,
+            estado=EstadoDocumento.RASCUNHO,
+            versao_atual=1
+        )
+        db.add(documento)
+        db.commit()
+        db.refresh(documento)
+        
+        # Criar versão inicial
+        criar_versao(db, documento, EstadoDocumento.RASCUNHO, criado_por=current_user.username)
+        
+        # Notificar o parceiro
+        criar_notificacao_para_utilizador(
+            db=db,
+            username=doc.parceiro_id,
+            titulo="📄 Novo documento criado para si",
+            mensagem=f"A empresa {current_user.username} criou o documento '{doc.titulo}' para si.",
+            link=f"/documentos?doc_id={documento.id}",
+            icone="📄"
+        )
+        
+        return documento
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Erro ao criar documento: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Erro ao criar documento: {str(e)}")
 
 @app.get("/documentos/{doc_id}", response_model=DocumentoOut)
 def obter_documento(
@@ -254,8 +324,12 @@ def obter_documento(
     doc = db.query(Documento).filter(Documento.id == doc_id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Documento não encontrado")
+    
     if current_user.perfil == PerfilUtilizador.PARCEIRO and doc.parceiro_id != current_user.username:
         raise HTTPException(status_code=403, detail="Acesso negado")
+    if current_user.perfil == PerfilUtilizador.EMPRESA and doc.empresa_id != current_user.username:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
     return doc
 
 @app.put("/documentos/{doc_id}/editar", response_model=DocumentoOut)
@@ -269,10 +343,19 @@ def editar_documento(
         doc = db.query(Documento).filter(Documento.id == doc_id).first()
         if not doc:
             raise HTTPException(status_code=404, detail="Documento não encontrado")
-        if current_user.perfil != PerfilUtilizador.PARCEIRO or doc.parceiro_id != current_user.username:
-            raise HTTPException(status_code=403, detail="Apenas o parceiro pode editar")
+        
+        # Verificar permissões
+        if current_user.perfil == PerfilUtilizador.PARCEIRO:
+            if doc.parceiro_id != current_user.username:
+                raise HTTPException(status_code=403, detail="Apenas o parceiro associado pode editar")
+        elif current_user.perfil == PerfilUtilizador.EMPRESA:
+            if doc.empresa_id != current_user.username:
+                raise HTTPException(status_code=403, detail="Apenas a empresa que criou pode editar")
+        # ADMIN pode editar qualquer documento
+            
         if doc.estado != EstadoDocumento.RASCUNHO:
             raise HTTPException(400, detail=f"Documento está em estado '{doc.estado}'. Só é possível editar em Rascunho.")
+        
         doc.dados = update.dados
         db.commit()
         db.refresh(doc)
@@ -289,10 +372,14 @@ def submeter_documento(
     doc = db.query(Documento).filter(Documento.id == doc_id).first()
     if not doc:
         raise HTTPException(status_code=404)
+    
+    # Apenas o parceiro associado pode submeter
     if current_user.perfil != PerfilUtilizador.PARCEIRO or doc.parceiro_id != current_user.username:
         raise HTTPException(status_code=403)
+    
     if doc.estado != EstadoDocumento.RASCUNHO:
         raise HTTPException(400, detail="Só pode submeter a partir de rascunho")
+    
     doc.versao_atual += 1
     doc.estado = EstadoDocumento.SUBMETIDO
     criar_versao(db, doc, EstadoDocumento.SUBMETIDO, criado_por=current_user.username, comentario="Submissão para validação")
@@ -319,10 +406,17 @@ def iniciar_revisao(
     doc = db.query(Documento).filter(Documento.id == doc_id).first()
     if not doc:
         raise HTTPException(status_code=404)
+    
     if current_user.perfil not in [PerfilUtilizador.EMPRESA, PerfilUtilizador.ADMIN]:
         raise HTTPException(status_code=403)
+    
+    # Verificar se a empresa que está a iniciar revisão é a que criou o documento
+    if current_user.perfil == PerfilUtilizador.EMPRESA and doc.empresa_id != current_user.username:
+        raise HTTPException(status_code=403, detail="Apenas a empresa que criou o documento pode iniciar a revisão")
+    
     if doc.estado != EstadoDocumento.SUBMETIDO:
         raise HTTPException(400, detail="Documento não está submetido")
+    
     doc.estado = EstadoDocumento.EM_REVISAO
     criar_versao(db, doc, EstadoDocumento.EM_REVISAO, criado_por=current_user.username, comentario="Revisão iniciada")
     db.commit()
@@ -350,10 +444,16 @@ def pedir_alteracoes(
     doc = db.query(Documento).filter(Documento.id == doc_id).first()
     if not doc:
         raise HTTPException(status_code=404)
+    
     if current_user.perfil not in [PerfilUtilizador.EMPRESA, PerfilUtilizador.ADMIN]:
         raise HTTPException(status_code=403)
+    
+    if current_user.perfil == PerfilUtilizador.EMPRESA and doc.empresa_id != current_user.username:
+        raise HTTPException(status_code=403, detail="Apenas a empresa que criou o documento pode pedir alterações")
+    
     if doc.estado != EstadoDocumento.EM_REVISAO:
         raise HTTPException(400, detail="Só pode pedir alterações durante a revisão")
+    
     doc.estado = EstadoDocumento.ALTERACOES
     criar_versao(db, doc, EstadoDocumento.ALTERACOES, criado_por=current_user.username, comentario=motivo.comentario or "Alterações solicitadas")
     db.commit()
@@ -379,10 +479,13 @@ def editar_novamente(
     doc = db.query(Documento).filter(Documento.id == doc_id).first()
     if not doc:
         raise HTTPException(status_code=404)
+    
     if current_user.perfil != PerfilUtilizador.PARCEIRO or doc.parceiro_id != current_user.username:
         raise HTTPException(status_code=403)
+    
     if doc.estado != EstadoDocumento.ALTERACOES:
         raise HTTPException(400, detail="Ação permitida apenas no estado 'Alterações'")
+    
     doc.estado = EstadoDocumento.RASCUNHO
     doc.versao_atual += 1
     criar_versao(db, doc, EstadoDocumento.RASCUNHO, criado_por=current_user.username, comentario="Iniciada correção após pedido de alterações")
@@ -399,10 +502,16 @@ def aprovar_documento(
     doc = db.query(Documento).filter(Documento.id == doc_id).first()
     if not doc:
         raise HTTPException(status_code=404)
+    
     if current_user.perfil not in [PerfilUtilizador.EMPRESA, PerfilUtilizador.ADMIN]:
         raise HTTPException(status_code=403)
+    
+    if current_user.perfil == PerfilUtilizador.EMPRESA and doc.empresa_id != current_user.username:
+        raise HTTPException(status_code=403, detail="Apenas a empresa que criou o documento pode aprovar")
+    
     if doc.estado != EstadoDocumento.EM_REVISAO:
         raise HTTPException(400, detail="Só pode aprovar durante a revisão")
+    
     doc.estado = EstadoDocumento.APROVADO
     criar_versao(db, doc, EstadoDocumento.APROVADO, criado_por=current_user.username, comentario="Documento aprovado")
     db.commit()
@@ -417,18 +526,6 @@ def aprovar_documento(
         icone="✅"
     )
 
-    # EMAIL DESATIVADO - manter para futuro
-    # assunto = f"Documento '{doc.titulo}' aprovado (ID {doc.id})"
-    # corpo = (
-    #     f"O documento '{doc.titulo}' (ID {doc.id}) foi aprovado.\n\n"
-    #     f"Parceiro: {doc.parceiro_id}\n"
-    #     f"Última versão: {doc.versao_atual}\n"
-    #     f"Aprovado por: {current_user.username}\n"
-    #     f"Data: {doc.updated_at or doc.created_at}\n\n"
-    #     "Aceda à plataforma para consultar os detalhes."
-    # )
-    # enviar_email(DESTINATARIO_PADRAO, assunto, corpo)
-
     return doc
 
 @app.post("/documentos/{doc_id}/reabrir", response_model=DocumentoOut)
@@ -440,10 +537,16 @@ def reabrir_documento(
     doc = db.query(Documento).filter(Documento.id == doc_id).first()
     if not doc:
         raise HTTPException(status_code=404)
+    
     if current_user.perfil not in [PerfilUtilizador.EMPRESA, PerfilUtilizador.ADMIN]:
         raise HTTPException(status_code=403)
+    
+    if current_user.perfil == PerfilUtilizador.EMPRESA and doc.empresa_id != current_user.username:
+        raise HTTPException(status_code=403, detail="Apenas a empresa que criou o documento pode reabrir")
+    
     if doc.estado != EstadoDocumento.APROVADO:
         raise HTTPException(400, detail="Só pode reabrir um documento aprovado")
+    
     doc.estado = EstadoDocumento.RASCUNHO
     doc.versao_atual += 1
     criar_versao(db, doc, EstadoDocumento.RASCUNHO, criado_por=current_user.username, comentario="Documento reaberto para nova edição")
@@ -460,10 +563,16 @@ def arquivar_documento(
     doc = db.query(Documento).filter(Documento.id == doc_id).first()
     if not doc:
         raise HTTPException(status_code=404)
+    
     if current_user.perfil not in [PerfilUtilizador.EMPRESA, PerfilUtilizador.ADMIN]:
         raise HTTPException(status_code=403, detail="Apenas a empresa pode arquivar documentos")
+    
+    if current_user.perfil == PerfilUtilizador.EMPRESA and doc.empresa_id != current_user.username:
+        raise HTTPException(status_code=403, detail="Apenas a empresa que criou o documento pode arquivar")
+    
     if doc.estado not in [EstadoDocumento.RASCUNHO, EstadoDocumento.APROVADO]:
         raise HTTPException(400, detail="Só é possível arquivar documentos em rascunho ou aprovados")
+    
     doc.estado = EstadoDocumento.ARQUIVADO
     criar_versao(db, doc, EstadoDocumento.ARQUIVADO, criado_por=current_user.username, comentario="Documento arquivado")
     db.commit()
@@ -478,18 +587,6 @@ def arquivar_documento(
         icone="📁"
     )
 
-    # EMAIL DESATIVADO - manter para futuro
-    # assunto = f"Documento '{doc.titulo}' arquivado (ID {doc.id})"
-    # corpo = (
-    #     f"O documento '{doc.titulo}' (ID {doc.id}) foi arquivado.\n\n"
-    #     f"Parceiro: {doc.parceiro_id}\n"
-    #     f"Última versão: {doc.versao_atual}\n"
-    #     f"Arquivado por: {current_user.username}\n"
-    #     f"Data: {doc.updated_at or doc.created_at}\n\n"
-    #     "O documento está disponível apenas para consulta na plataforma."
-    # )
-    # enviar_email(DESTINATARIO_PADRAO, assunto, corpo)
-
     return doc
 
 @app.get("/documentos/{doc_id}/versoes", response_model=List[VersaoOut])
@@ -501,8 +598,12 @@ def listar_versoes(
     doc = db.query(Documento).filter(Documento.id == doc_id).first()
     if not doc:
         raise HTTPException(status_code=404)
+    
     if current_user.perfil == PerfilUtilizador.PARCEIRO and doc.parceiro_id != current_user.username:
         raise HTTPException(status_code=403)
+    if current_user.perfil == PerfilUtilizador.EMPRESA and doc.empresa_id != current_user.username:
+        raise HTTPException(status_code=403)
+    
     versoes = db.query(VersaoDocumento).filter(VersaoDocumento.documento_id == doc_id).order_by(VersaoDocumento.numero_versao).all()
     return versoes
 
@@ -564,21 +665,7 @@ def dashboard_kpis(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
-    """
-    Obtém os KPIs principais para o dashboard.
-    """
     return get_dashboard_kpis(db, current_user.username, current_user.perfil)
-
-@app.get("/dashboard/evolucao")
-def dashboard_evolucao(
-    meses: int = 12,
-    db: Session = Depends(get_db),
-    current_user: Utilizador = Depends(get_current_user)
-):
-    """
-    Obtém a evolução mensal de documentos.
-    """
-    return get_evolucao_mensal(db, current_user.username, current_user.perfil, meses)
 
 @app.get("/dashboard/top-parceiros")
 def dashboard_top_parceiros(
@@ -586,22 +673,9 @@ def dashboard_top_parceiros(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
-    """
-    Obtém os parceiros com mais documentos (apenas para empresa/admin).
-    """
     if current_user.perfil == PerfilUtilizador.PARCEIRO:
         raise HTTPException(status_code=403, detail="Apenas empresa/admin podem ver top parceiros")
     return get_top_parceiros(db, limit)
-
-@app.get("/dashboard/tempo-medio-estado")
-def dashboard_tempo_medio_estado(
-    db: Session = Depends(get_db),
-    current_user: Utilizador = Depends(get_current_user)
-):
-    """
-    Obtém o tempo médio em cada estado.
-    """
-    return get_tempo_medio_por_estado(db, current_user.username, current_user.perfil)
 
 @app.get("/dashboard/documentos-recentes")
 def dashboard_documentos_recentes(
@@ -609,11 +683,8 @@ def dashboard_documentos_recentes(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
-    """
-    Obtém os documentos mais recentes.
-    Se limit não for especificado, retorna todos os documentos.
-    """
     return get_documentos_recentes(db, current_user.username, current_user.perfil, limit)
+
 # -------------------- Notificações --------------------
 @app.get("/notificacoes")
 def listar_notificacoes(
@@ -621,9 +692,6 @@ def listar_notificacoes(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
-    """
-    Lista as notificações do utilizador atual.
-    """
     return get_notificacoes_utilizador(db, current_user.username, limit)
 
 @app.get("/notificacoes/nao-lidas")
@@ -631,9 +699,6 @@ def contar_notificacoes_nao_lidas(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
-    """
-    Conta as notificações não lidas do utilizador atual.
-    """
     count = get_notificacoes_nao_lidas_count(db, current_user.username)
     return {"count": count}
 
@@ -643,11 +708,7 @@ def marcar_notificacao_lida(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
-    """
-    Marca uma notificação como lida.
-    """
     try:
-        # Verificar se a notificação existe e pertence ao utilizador
         notificacao = db.query(Notificacao).filter(
             Notificacao.id == notificacao_id,
             Notificacao.username == current_user.username
@@ -658,7 +719,6 @@ def marcar_notificacao_lida(
         
         notificacao.lida = True
         db.commit()
-        
         return {"ok": True}
     except HTTPException:
         raise
@@ -671,15 +731,11 @@ def marcar_todas_notificacoes_lidas(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
-    """
-    Marca todas as notificações como lidas.
-    """
     try:
         count = db.query(Notificacao).filter(
             Notificacao.username == current_user.username,
             Notificacao.lida == False
         ).update({"lida": True})
-        
         db.commit()
         return {"ok": True, "count": count}
     except Exception as e:
@@ -697,12 +753,17 @@ def exportar_versoes_excel(
         doc = db.query(Documento).filter(Documento.id == doc_id).first()
         if not doc:
             raise HTTPException(status_code=404, detail="Documento não encontrado")
+        
         if current_user.perfil == PerfilUtilizador.PARCEIRO and doc.parceiro_id != current_user.username:
+            raise HTTPException(status_code=403, detail="Acesso negado")
+        if current_user.perfil == PerfilUtilizador.EMPRESA and doc.empresa_id != current_user.username:
             raise HTTPException(status_code=403, detail="Acesso negado")
 
         dados = doc.dados
         wb = openpyxl.Workbook()
-        processos = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
+        
+        # Obter processos dos dados
+        processos = get_processos_from_data(dados)
 
         # ---------- Folha LCA ----------
         ws_lca = wb.active
@@ -769,7 +830,6 @@ def exportar_versoes_excel(
                 ws_lca.cell(row=row, column=9, value=item.get("datasource", ""))
                 row += 1
 
-        # Ajustar colunas LCA
         for col in ws_lca.columns:
             max_length = 0
             for cell in col:
@@ -903,9 +963,7 @@ def exportar_versoes_excel(
         wb.save(output)
         output.seek(0)
 
-        # Usar o título do documento para o nome do ficheiro
         filename = f"{doc.titulo}.xlsx"
-        # Remover caracteres inválidos
         filename = "".join(c for c in filename if c.isalnum() or c in " ._-")
         
         headers = {"Content-Disposition": f"attachment; filename={filename}"}

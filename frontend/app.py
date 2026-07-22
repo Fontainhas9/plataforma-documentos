@@ -24,7 +24,8 @@ def get_api_url():
 
 API_URL = get_api_url()
 
-PROCESSOS = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
+# Processos padrão (usados como fallback)
+PROCESSOS_PADRAO = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
 DATASOURCE_OPTIONS = ["Medido", "Calculado", "Estimado", "Literatura"]
 
 # ============================================================
@@ -188,6 +189,16 @@ if "close_doc_after_action" not in st.session_state:
     st.session_state.close_doc_after_action = False
 if "expander_aberto" not in st.session_state:
     st.session_state.expander_aberto = False
+if "processos_do_documento" not in st.session_state:
+    st.session_state.processos_do_documento = []
+if "empresa_form_key" not in st.session_state:
+    st.session_state.empresa_form_key = 0
+if "admin_form_key" not in st.session_state:
+    st.session_state.admin_form_key = 0
+if "empresa_mostrar_form" not in st.session_state:
+    st.session_state.empresa_mostrar_form = False
+if "admin_mostrar_form" not in st.session_state:
+    st.session_state.admin_mostrar_form = False
 
 # Chave para forçar recriação dos widgets de filtro
 if "filtros_widget_key" not in st.session_state:
@@ -219,63 +230,79 @@ if "filtros_temporarios" not in st.session_state:
 def safe_copy(data):
     return copy.deepcopy(data)
 
-def ensure_new_structure(data):
+def get_processos_from_data(data):
+    """Obtém a lista de processos a partir dos dados do documento."""
+    if data and "lca" in data and "inputs" in data["lca"]:
+        processos = list(data["lca"]["inputs"].keys())
+        if processos:
+            return processos
+    return PROCESSOS_PADRAO
+
+def ensure_new_structure(data, processos=None):
+    """Garante que a estrutura do documento tem todos os campos e processos necessários."""
+    if processos is None:
+        processos = PROCESSOS_PADRAO
+    
     if not data:
-        return {
+        # Criar estrutura vazia com os processos
+        estrutura = {
             "lca": {
-                "inputs": {p: [] for p in PROCESSOS},
-                "processes": {p: [] for p in PROCESSOS},
-                "outputs": {p: [] for p in PROCESSOS}
+                "inputs": {p: [] for p in processos},
+                "processes": {p: [] for p in processos},
+                "outputs": {p: [] for p in processos}
             },
             "lcc": {
-                "materials": {p: [] for p in PROCESSOS},
-                "equipment": {p: [] for p in PROCESSOS},
-                "labour": {p: [] for p in PROCESSOS},
-                "outputs": {p: [] for p in PROCESSOS}
+                "materials": {p: [] for p in processos},
+                "equipment": {p: [] for p in processos},
+                "labour": {p: [] for p in processos},
+                "outputs": {p: [] for p in processos}
             }
         }
+        return estrutura
 
     if "lca" in data and "lcc" in data:
-        if all(p in data["lca"].get("inputs", {}) for p in PROCESSOS):
-            for secao in ["lca", "lcc"]:
-                for categoria in data[secao].keys():
-                    for p in PROCESSOS:
-                        if p not in data[secao][categoria]:
-                            data[secao][categoria][p] = []
-            return data
+        # Verificar se todos os processos existem
+        for secao in ["lca", "lcc"]:
+            for campo in data[secao].keys():
+                if not isinstance(data[secao][campo], dict):
+                    data[secao][campo] = {}
+                for p in processos:
+                    if p not in data[secao][campo]:
+                        data[secao][campo][p] = []
+        return data
 
+    # Se a estrutura não estiver no formato correto, recriar
     new_data = {
         "lca": {
-            "inputs": {p: [] for p in PROCESSOS},
-            "processes": {p: [] for p in PROCESSOS},
-            "outputs": {p: [] for p in PROCESSOS}
+            "inputs": {p: [] for p in processos},
+            "processes": {p: [] for p in processos},
+            "outputs": {p: [] for p in processos}
         },
         "lcc": {
-            "materials": {p: [] for p in PROCESSOS},
-            "equipment": {p: [] for p in PROCESSOS},
-            "labour": {p: [] for p in PROCESSOS},
-            "outputs": {p: [] for p in PROCESSOS}
+            "materials": {p: [] for p in processos},
+            "equipment": {p: [] for p in processos},
+            "labour": {p: [] for p in processos},
+            "outputs": {p: [] for p in processos}
         }
     }
 
+    # Tentar preservar dados existentes
     if "lca" in data:
         old_lca = data["lca"]
-        if "inputs" in old_lca and isinstance(old_lca["inputs"], list):
-            new_data["lca"]["inputs"]["Demagnetisation"] = old_lca["inputs"]
-        if "processes" in old_lca and isinstance(old_lca["processes"], list):
-            new_data["lca"]["processes"]["Demagnetisation"] = old_lca["processes"]
-        if "outputs" in old_lca and isinstance(old_lca["outputs"], list):
-            new_data["lca"]["outputs"]["Demagnetisation"] = old_lca["outputs"]
+        for campo in ["inputs", "processes", "outputs"]:
+            if campo in old_lca:
+                if isinstance(old_lca[campo], dict):
+                    for p in processos:
+                        if p in old_lca[campo]:
+                            new_data["lca"][campo][p] = old_lca[campo][p]
     if "lcc" in data:
         old_lcc = data["lcc"]
-        if "materials" in old_lcc and isinstance(old_lcc["materials"], list):
-            new_data["lcc"]["materials"]["Demagnetisation"] = old_lcc["materials"]
-        if "equipment" in old_lcc and isinstance(old_lcc["equipment"], list):
-            new_data["lcc"]["equipment"]["Demagnetisation"] = old_lcc["equipment"]
-        if "labour" in old_lcc and isinstance(old_lcc["labour"], list):
-            new_data["lcc"]["labour"]["Demagnetisation"] = old_lcc["labour"]
-        if "outputs" in old_lcc and isinstance(old_lcc["outputs"], list):
-            new_data["lcc"]["outputs"]["Demagnetisation"] = old_lcc["outputs"]
+        for campo in ["materials", "equipment", "labour", "outputs"]:
+            if campo in old_lcc:
+                if isinstance(old_lcc[campo], dict):
+                    for p in processos:
+                        if p in old_lcc[campo]:
+                            new_data["lcc"][campo][p] = old_lcc[campo][p]
 
     return new_data
 
@@ -310,6 +337,9 @@ def logout():
     st.session_state.ultimo_count = 0
     st.session_state.expander_aberto = False
     st.session_state.show_create_user_form = False
+    st.session_state.processos_do_documento = []
+    st.session_state.empresa_mostrar_form = False
+    st.session_state.admin_mostrar_form = False
 
 def headers_auth():
     return {"Authorization": f"Bearer {st.session_state.token}"}
@@ -349,16 +379,28 @@ def listar_documentos_com_filtros(filtros):
         return resp.json()
     return []
 
-def criar_documento(titulo, dados):
+def criar_documento(titulo, parceiro_id, dados):
+    """Cria um novo documento (empresa ou admin)."""
+    payload = {
+        "titulo": titulo,
+        "parceiro_id": parceiro_id,
+        "empresa_id": st.session_state.username,
+        "dados": dados
+    }
+    
     resp = requests.post(
         f"{API_URL}/documentos/",
-        json={"titulo": titulo, "parceiro_id": st.session_state.username, "dados": dados},
+        json=payload,
         headers=headers_auth()
     )
     if resp.status_code == 200:
         return resp.json()
     else:
-        st.error(f"Erro ao criar documento: {resp.text}")
+        try:
+            erro = resp.json().get("detail", "Erro desconhecido")
+        except:
+            erro = resp.text
+        st.error(f"Erro ao criar documento: {erro}")
         return None
 
 def obter_documento(doc_id):
@@ -606,11 +648,13 @@ def render_filtros():
                 st.session_state.filtros_widget_key += 1
                 st.rerun()
 
-# ---------- Funções de renderização com auto-add ----------
-def render_lca_inputs(data_key, prefix=""):
+# ---------- Funções de renderização com processos dinâmicos ----------
+def render_lca_inputs(data_key, prefix="", processos=None):
+    if processos is None:
+        processos = PROCESSOS_PADRAO
     st.subheader("Inputs")
-    for proc in PROCESSOS:
-        items = st.session_state[data_key]["lca"]["inputs"][proc]
+    for proc in processos:
+        items = st.session_state[data_key]["lca"]["inputs"].get(proc, [])
         
         if not items:
             items.append({})
@@ -653,10 +697,12 @@ def render_lca_inputs(data_key, prefix=""):
                     items.pop()
                     st.rerun()
 
-def render_lca_processes(data_key, prefix=""):
+def render_lca_processes(data_key, prefix="", processos=None):
+    if processos is None:
+        processos = PROCESSOS_PADRAO
     st.subheader("Processes")
-    for proc in PROCESSOS:
-        items = st.session_state[data_key]["lca"]["processes"][proc]
+    for proc in processos:
+        items = st.session_state[data_key]["lca"]["processes"].get(proc, [])
         
         if not items:
             items.append({"tipo": "Energy Consumption (kWh)", "qty": "", "unit": "", "description": "", "comments": "", "datasource": ""})
@@ -714,10 +760,12 @@ def render_lca_processes(data_key, prefix=""):
                             items.pop()
                     st.rerun()
 
-def render_lca_outputs(data_key, prefix=""):
+def render_lca_outputs(data_key, prefix="", processos=None):
+    if processos is None:
+        processos = PROCESSOS_PADRAO
     st.subheader("Outputs")
-    for proc in PROCESSOS:
-        items = st.session_state[data_key]["lca"]["outputs"][proc]
+    for proc in processos:
+        items = st.session_state[data_key]["lca"]["outputs"].get(proc, [])
         
         if not items:
             items.append({})
@@ -773,10 +821,12 @@ def render_lca_outputs(data_key, prefix=""):
                     items.pop()
                     st.rerun()
 
-def render_lcc_materials(data_key, prefix=""):
+def render_lcc_materials(data_key, prefix="", processos=None):
+    if processos is None:
+        processos = PROCESSOS_PADRAO
     st.subheader("Cost Breakdown Material")
-    for proc in PROCESSOS:
-        items = st.session_state[data_key]["lcc"]["materials"][proc]
+    for proc in processos:
+        items = st.session_state[data_key]["lcc"]["materials"].get(proc, [])
         
         if not items:
             items.append({})
@@ -819,10 +869,12 @@ def render_lcc_materials(data_key, prefix=""):
                     items.pop()
                     st.rerun()
 
-def render_lcc_equipment(data_key, prefix=""):
+def render_lcc_equipment(data_key, prefix="", processos=None):
+    if processos is None:
+        processos = PROCESSOS_PADRAO
     st.subheader("Equipment")
-    for proc in PROCESSOS:
-        items = st.session_state[data_key]["lcc"]["equipment"][proc]
+    for proc in processos:
+        items = st.session_state[data_key]["lcc"]["equipment"].get(proc, [])
         
         if not items:
             items.append({})
@@ -864,10 +916,12 @@ def render_lcc_equipment(data_key, prefix=""):
                     items.pop()
                     st.rerun()
 
-def render_lcc_labour(data_key, prefix=""):
+def render_lcc_labour(data_key, prefix="", processos=None):
+    if processos is None:
+        processos = PROCESSOS_PADRAO
     st.subheader("Labour")
-    for proc in PROCESSOS:
-        items = st.session_state[data_key]["lcc"]["labour"][proc]
+    for proc in processos:
+        items = st.session_state[data_key]["lcc"]["labour"].get(proc, [])
         
         if not items:
             items.append({})
@@ -912,10 +966,12 @@ def render_lcc_labour(data_key, prefix=""):
                     items.pop()
                     st.rerun()
 
-def render_lcc_outputs(data_key, prefix=""):
+def render_lcc_outputs(data_key, prefix="", processos=None):
+    if processos is None:
+        processos = PROCESSOS_PADRAO
     st.subheader("Outputs (produto final)")
-    for proc in PROCESSOS:
-        items = st.session_state[data_key]["lcc"]["outputs"][proc]
+    for proc in processos:
+        items = st.session_state[data_key]["lcc"]["outputs"].get(proc, [])
         
         if not items:
             items.append({})
@@ -956,34 +1012,25 @@ def render_lcc_outputs(data_key, prefix=""):
                     items.pop()
                     st.rerun()
 
-def render_full_form(data_key, prefix=""):
+def render_full_form(data_key, prefix="", processos=None):
+    if processos is None:
+        processos = PROCESSOS_PADRAO
+    
     if st.session_state[data_key] is None:
-        st.session_state[data_key] = {
-            "lca": {
-                "inputs": {p: [] for p in PROCESSOS},
-                "processes": {p: [] for p in PROCESSOS},
-                "outputs": {p: [] for p in PROCESSOS}
-            },
-            "lcc": {
-                "materials": {p: [] for p in PROCESSOS},
-                "equipment": {p: [] for p in PROCESSOS},
-                "labour": {p: [] for p in PROCESSOS},
-                "outputs": {p: [] for p in PROCESSOS}
-            }
-        }
+        st.session_state[data_key] = ensure_new_structure({}, processos)
     else:
-        st.session_state[data_key] = ensure_new_structure(st.session_state[data_key])
+        st.session_state[data_key] = ensure_new_structure(st.session_state[data_key], processos)
 
     st.subheader("LCA - Análise do Ciclo de Vida")
-    render_lca_inputs(data_key, prefix)
-    render_lca_processes(data_key, prefix)
-    render_lca_outputs(data_key, prefix)
+    render_lca_inputs(data_key, prefix, processos)
+    render_lca_processes(data_key, prefix, processos)
+    render_lca_outputs(data_key, prefix, processos)
 
     st.subheader("LCC - Custo do Ciclo de Vida")
-    render_lcc_materials(data_key, prefix)
-    render_lcc_equipment(data_key, prefix)
-    render_lcc_labour(data_key, prefix)
-    render_lcc_outputs(data_key, prefix)
+    render_lcc_materials(data_key, prefix, processos)
+    render_lcc_equipment(data_key, prefix, processos)
+    render_lcc_labour(data_key, prefix, processos)
+    render_lcc_outputs(data_key, prefix, processos)
 
 # ============================================================
 # FUNÇÃO PARA CRIAR ÂNCORA E TRIGGER SCROLL
@@ -995,6 +1042,121 @@ def create_document_anchor(doc_id):
 def trigger_scroll(doc_id):
     """Adiciona parâmetro à URL para forçar scroll após recarregar."""
     st.query_params["scroll_to"] = str(doc_id)
+
+# ============================================================
+# FUNÇÃO PARA LISTAR PARCEIROS DISPONÍVEIS
+# ============================================================
+def listar_parceiros_disponiveis():
+    """
+    Lista os parceiros disponíveis para empresas.
+    Usa a rota específica /parceiros/disponiveis
+    """
+    try:
+        resp = requests.get(f"{API_URL}/parceiros/disponiveis", headers=headers_auth())
+        if resp.status_code == 200:
+            return resp.json()
+        else:
+            st.error(f"Erro ao carregar parceiros: {resp.status_code} - {resp.text}")
+            return []
+    except Exception as e:
+        st.error(f"Erro ao carregar parceiros: {e}")
+        return []
+
+# ============================================================
+# FUNÇÃO PARA RENDERIZAR SELEÇÃO DE PROCESSOS
+# ============================================================
+def render_processos_selecao(key_prefix="empresa"):
+    """
+    Renderiza a interface de seleção de processos com checkboxes e adição de novos processos.
+    Retorna a lista de processos selecionados.
+    """
+    processos_disponiveis = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
+    
+    # Verificar se existe uma lista de processos selecionados no session_state para esta chave
+    session_key = f"processos_selecionados_{key_prefix}"
+    if session_key not in st.session_state:
+        st.session_state[session_key] = []
+    
+    # Chave para o campo de input do novo processo
+    input_key = f"{key_prefix}_novo_processo_input"
+    
+    processos_selecionados = st.session_state[session_key]
+    
+    # Checkboxes para processos padrão
+    st.write("**Processos padrão:**")
+    col1, col2 = st.columns(2)
+    with col1:
+        for i, proc in enumerate(processos_disponiveis[:2]):
+            checked = st.checkbox(
+                proc, 
+                key=f"{key_prefix}_proc_{i}", 
+                value=proc in processos_selecionados
+            )
+            if checked and proc not in processos_selecionados:
+                processos_selecionados.append(proc)
+            elif not checked and proc in processos_selecionados:
+                processos_selecionados.remove(proc)
+    with col2:
+        for i, proc in enumerate(processos_disponiveis[2:]):
+            checked = st.checkbox(
+                proc, 
+                key=f"{key_prefix}_proc_{i+2}", 
+                value=proc in processos_selecionados
+            )
+            if checked and proc not in processos_selecionados:
+                processos_selecionados.append(proc)
+            elif not checked and proc in processos_selecionados:
+                processos_selecionados.remove(proc)
+    
+    st.divider()
+    st.write("**Adicionar novo processo:**")
+    
+    # Campo para adicionar novo processo
+    col_add1, col_add2 = st.columns([3, 1])
+    with col_add1:
+        novo_processo = st.text_input(
+            "Nome do novo processo", 
+            placeholder="Ex: Secagem, Moagem, etc.",
+            key=input_key
+        )
+    with col_add2:
+        if st.button("Adicionar novo processo", key=f"{key_prefix}_add_processo_btn"):
+            if novo_processo and novo_processo.strip():
+                if novo_processo not in processos_selecionados:
+                    processos_selecionados.append(novo_processo.strip())
+                    st.success(f"✅ Processo '{novo_processo}' adicionado!")
+                    st.rerun()
+                else:
+                    st.warning(f"⚠️ Processo '{novo_processo}' já está na lista.")
+                    st.rerun()
+            else:
+                st.warning("⚠️ Por favor, insira um nome para o processo.")
+    
+    # Mostrar processos selecionados com opção de remover
+    if processos_selecionados:
+        st.divider()
+        st.write("**Processos selecionados:**")
+        
+        # Para cada processo, mostrar um botão de remover individual (usando colunas)
+        cols = st.columns(min(len(processos_selecionados), 4))
+        for i, proc in enumerate(processos_selecionados):
+            col_idx = i % len(cols) if len(cols) > 0 else 0
+            with cols[col_idx]:
+                if st.button(f"✖ {proc}", key=f"{key_prefix}_remover_{proc}_{i}"):
+                    processos_selecionados.remove(proc)
+                    st.rerun()
+        
+        # Botão para limpar todos os processos
+        if st.button("🗑️ Limpar todos", key=f"{key_prefix}_limpar_processos"):
+            st.session_state[session_key] = []
+            st.rerun()
+    else:
+        st.info("Nenhum processo selecionado. Selecione os checkboxes acima ou adicione um novo processo.")
+    
+    # Atualizar o session_state
+    st.session_state[session_key] = processos_selecionados
+    
+    return processos_selecionados
 
 # ============================================================
 # INTERFACE PRINCIPAL
@@ -1097,216 +1259,301 @@ if st.session_state.perfil != "admin":
 # ---------- Área do Parceiro ----------
 if st.session_state.perfil == "parceiro":
     st.header("Área do Parceiro")
-    menu = st.sidebar.radio("Menu", ["Meus Documentos", "Criar Documento"], key="menu_parceiro_widget")
+    st.caption("Os documentos são criados pela empresa. Você apenas preenche os dados e submete.")
+    
+    st.subheader("Os meus documentos")
+    
+    if st.button("Atualizar lista", key="refresh_list_parceiro"):
+        st.session_state.doc_selecionado = None
+        st.session_state.edit_data = None
+        st.session_state.parceiro_dropdown_key += 1
+        st.session_state.refresh_counter += 1
+        st.rerun()
+    st.write("")
 
-    if menu == "Criar Documento":
-        st.subheader("Novo Documento LCA/LCC")
-        titulo = st.text_input("Título do documento (ex: LCA/LCC NEO-CYCLE)")
-        st.info("Preencha os dados nas tabelas abaixo. Cada processo tem a sua própria secção.")
-        if st.session_state.new_data is None:
-            st.session_state.new_data = ensure_new_structure({})
-        render_full_form("new_data", prefix="new_")
-        if st.button("Criar documento", key="create_doc_btn"):
-            if not titulo.strip():
-                st.error("O título é obrigatório.")
+    documentos = listar_documentos()
+    if not documentos:
+        st.info("Nenhum documento encontrado. Aguarde que a empresa crie um documento para si.")
+    else:
+        df = pd.DataFrame(documentos)
+        if "updated_at" in df.columns:
+            df["updated_at"] = pd.to_datetime(df["updated_at"]).dt.strftime("%d/%m/%Y %H:%M")
+        df = df[["id", "titulo", "estado", "versao_atual", "updated_at"]]
+        df.columns = ["ID", "Título", "Estado", "Versão", "Última Atualização"]
+        st.dataframe(df, use_container_width=True, hide_index=True)
+
+        ids = [""] + [doc["id"] for doc in documentos]
+
+        id_selecionado = st.selectbox(
+            "Seleciona um documento:",
+            ids,
+            format_func=lambda x: "Selecione um documento..." if x == "" else f"ID {x}",
+            key=f"parceiro_selectbox_{st.session_state.parceiro_dropdown_key}",
+            placeholder="Escolha uma destas opções"
+        )
+
+        if st.button("Carregar documento", key="parceiro_carregar_doc"):
+            if not id_selecionado:
+                st.warning("Selecione um documento.")
             else:
-                dados = st.session_state.new_data
-                novo = criar_documento(titulo, dados)
-                if novo:
-                    st.session_state.success_message = f"Documento criado com sucesso! ID: {novo['id']}"
-                    st.session_state.new_data = None
-                    st.session_state.doc_selecionado = None
-                    st.session_state.redirect_to_docs = True
-                    st.rerun()
+                st.session_state.doc_selecionado = id_selecionado
+                st.session_state.expander_aberto = False
+                trigger_scroll(id_selecionado)
+                st.rerun()
 
-    elif menu == "Meus Documentos":
-        st.subheader("Os meus documentos")
-        
-        if st.button("Atualizar lista", key="refresh_list_parceiro"):
-            st.session_state.doc_selecionado = None
-            st.session_state.edit_data = None
-            st.session_state.parceiro_dropdown_key += 1
-            st.session_state.refresh_counter += 1
-            st.rerun()
-        st.write("")
+    if st.session_state.doc_selecionado:
+        doc = obter_documento(st.session_state.doc_selecionado)
+        if doc:
+            create_document_anchor(doc['id'])
+            
+            st.divider()
+            st.subheader(f"Documento ID {doc['id']}: {doc['titulo']}")
+            st.write(f"Estado: **{doc['estado']}** | Versão: {doc['versao_atual']}")
+            st.caption(f"Criado por: {doc.get('empresa_id', 'N/A')}")
+            
+            dados = doc['dados']
+            processos = get_processos_from_data(dados)
+            
+            # Usar expander_aberto controlado pelo estado
+            with st.expander("Ver dados em tabelas", expanded=st.session_state.get("expander_aberto", False)):
+                st.subheader("LCA")
+                lca = dados.get("lca", {})
+                for proc in processos:
+                    st.write(f"**{proc}**")
+                    if lca.get("inputs", {}).get(proc):
+                        st.write("Inputs")
+                        display_dataframe(pd.DataFrame(lca["inputs"][proc]))
+                    if lca.get("processes", {}).get(proc):
+                        st.write("Processes")
+                        display_dataframe(pd.DataFrame(lca["processes"][proc]))
+                    if lca.get("outputs", {}).get(proc):
+                        st.write("Outputs")
+                        display_dataframe(pd.DataFrame(lca["outputs"][proc]))
+                st.subheader("LCC")
+                lcc = dados.get("lcc", {})
+                for proc in processos:
+                    st.write(f"**{proc}**")
+                    if lcc.get("materials", {}).get(proc):
+                        st.write("Cost Breakdown Material")
+                        display_dataframe(pd.DataFrame(lcc["materials"][proc]))
+                    if lcc.get("equipment", {}).get(proc):
+                        st.write("Equipment")
+                        display_dataframe(pd.DataFrame(lcc["equipment"][proc]))
+                    if lcc.get("labour", {}).get(proc):
+                        st.write("Labour")
+                        display_dataframe(pd.DataFrame(lcc["labour"][proc]))
+                    if lcc.get("outputs", {}).get(proc):
+                        st.write("Outputs")
+                        display_dataframe(pd.DataFrame(lcc["outputs"][proc]))
 
-        documentos = listar_documentos()
-        if not documentos:
-            st.info("Nenhum documento encontrado.")
-        else:
-            df = pd.DataFrame(documentos)
-            if "updated_at" in df.columns:
-                df["updated_at"] = pd.to_datetime(df["updated_at"]).dt.strftime("%d/%m/%Y %H:%M")
-            df = df[["id", "titulo", "estado", "versao_atual", "updated_at"]]
-            df.columns = ["ID", "Título", "Estado", "Versão", "Última Atualização"]
-            st.dataframe(df, use_container_width=True, hide_index=True)
+            with st.expander("Ver JSON bruto", expanded=False):
+                st.json(dados)
 
-            ids = [""] + [doc["id"] for doc in documentos]
+            st.markdown("---")
 
-            id_selecionado = st.selectbox(
-                "Seleciona um documento:",
-                ids,
-                format_func=lambda x: "Selecione um documento..." if x == "" else f"ID {x}",
-                key=f"parceiro_selectbox_{st.session_state.parceiro_dropdown_key}",
-                placeholder="Escolha uma destas opções"
-            )
-
-            if st.button("Carregar documento", key="parceiro_carregar_doc"):
-                if not id_selecionado:
-                    st.warning("Selecione um documento.")
-                else:
-                    st.session_state.doc_selecionado = id_selecionado
-                    st.session_state.expander_aberto = False
-                    trigger_scroll(id_selecionado)
-                    st.rerun()
-
-        if st.session_state.doc_selecionado:
-            doc = obter_documento(st.session_state.doc_selecionado)
-            if doc:
-                create_document_anchor(doc['id'])
+            # ---------- BOTÕES DE AÇÃO ----------
+            if doc['estado'] == "Rascunho":
+                st.subheader("Editar documento")
+                if st.session_state.edit_data is None:
+                    st.session_state.edit_data = ensure_new_structure(safe_copy(dados), processos)
+                render_full_form("edit_data", prefix="edit_", processos=processos)
                 
-                st.divider()
-                st.subheader(f"Documento ID {doc['id']}: {doc['titulo']}")
-                st.write(f"Estado: **{doc['estado']}** | Versão: {doc['versao_atual']}")
-                
-                dados = doc['dados']
-                
-                # Usar expander_aberto controlado pelo estado
-                with st.expander("Ver dados em tabelas", expanded=st.session_state.get("expander_aberto", False)):
-                    st.subheader("LCA")
-                    lca = dados.get("lca", {})
-                    for proc in PROCESSOS:
-                        st.write(f"**{proc}**")
-                        if lca.get("inputs", {}).get(proc):
-                            st.write("Inputs")
-                            display_dataframe(pd.DataFrame(lca["inputs"][proc]))
-                        if lca.get("processes", {}).get(proc):
-                            st.write("Processes")
-                            display_dataframe(pd.DataFrame(lca["processes"][proc]))
-                        if lca.get("outputs", {}).get(proc):
-                            st.write("Outputs")
-                            display_dataframe(pd.DataFrame(lca["outputs"][proc]))
-                    st.subheader("LCC")
-                    lcc = dados.get("lcc", {})
-                    for proc in PROCESSOS:
-                        st.write(f"**{proc}**")
-                        if lcc.get("materials", {}).get(proc):
-                            st.write("Cost Breakdown Material")
-                            display_dataframe(pd.DataFrame(lcc["materials"][proc]))
-                        if lcc.get("equipment", {}).get(proc):
-                            st.write("Equipment")
-                            display_dataframe(pd.DataFrame(lcc["equipment"][proc]))
-                        if lcc.get("labour", {}).get(proc):
-                            st.write("Labour")
-                            display_dataframe(pd.DataFrame(lcc["labour"][proc]))
-                        if lcc.get("outputs", {}).get(proc):
-                            st.write("Outputs")
-                            display_dataframe(pd.DataFrame(lcc["outputs"][proc]))
-
-                with st.expander("Ver JSON bruto", expanded=False):
-                    st.json(dados)
-
-                st.markdown("---")
-
-                # ---------- BOTÕES DE AÇÃO ----------
-                if doc['estado'] == "Rascunho":
-                    st.subheader("Editar documento")
-                    if st.session_state.edit_data is None:
-                        st.session_state.edit_data = ensure_new_structure(safe_copy(dados))
-                    render_full_form("edit_data", prefix="edit_")
-                    
-                    col_btn1, col_btn2, col_btn3 = st.columns(3)
-                    with col_btn1:
-                        if st.button("Guardar", key="parceiro_save_edit", use_container_width=True):
-                            novos_dados = st.session_state.edit_data
-                            resultado = editar_documento(doc['id'], novos_dados)
-                            if resultado:
+                col_btn1, col_btn2, col_btn3 = st.columns(3)
+                with col_btn1:
+                    if st.button("Guardar", key="parceiro_save_edit", use_container_width=True):
+                        novos_dados = st.session_state.edit_data
+                        resultado = editar_documento(doc['id'], novos_dados)
+                        if resultado:
+                            st.session_state.edit_data = None
+                            st.session_state.doc_selecionado = None
+                            st.session_state.expander_aberto = False
+                            st.session_state.close_doc_after_action = True
+                            st.success("Documento atualizado com sucesso!")
+                            st.rerun()
+                with col_btn2:
+                    if st.button("Submeter", key="parceiro_submeter", use_container_width=True):
+                        novos_dados = st.session_state.edit_data
+                        resultado_edicao = editar_documento(doc['id'], novos_dados)
+                        if resultado_edicao:
+                            resultado_sub = submeter(doc['id'])
+                            if resultado_sub:
                                 st.session_state.edit_data = None
                                 st.session_state.doc_selecionado = None
                                 st.session_state.expander_aberto = False
                                 st.session_state.close_doc_after_action = True
-                                st.success("Documento atualizado com sucesso!")
+                                st.success("Documento submetido!")
                                 st.rerun()
-                    with col_btn2:
-                        if st.button("Submeter", key="parceiro_submeter", use_container_width=True):
-                            novos_dados = st.session_state.edit_data
-                            resultado_edicao = editar_documento(doc['id'], novos_dados)
-                            if resultado_edicao:
-                                resultado_sub = submeter(doc['id'])
-                                if resultado_sub:
-                                    st.session_state.edit_data = None
-                                    st.session_state.doc_selecionado = None
-                                    st.session_state.expander_aberto = False
-                                    st.session_state.close_doc_after_action = True
-                                    st.success("Documento submetido!")
-                                    st.rerun()
-                    with col_btn3:
-                        if st.button("Fechar", key="parceiro_fechar_detalhes", use_container_width=True):
-                            st.session_state.doc_selecionado = None
-                            st.session_state.edit_data = None
-                            st.session_state.expander_aberto = False
-                            st.rerun()
+                with col_btn3:
+                    if st.button("Fechar", key="parceiro_fechar_detalhes", use_container_width=True):
+                        st.session_state.doc_selecionado = None
+                        st.session_state.edit_data = None
+                        st.session_state.expander_aberto = False
+                        st.rerun()
 
+            else:
+                col_btn1, col_btn2, col_btn3 = st.columns(3)
+                
+                if doc['estado'] == "Alterações":
+                    with col_btn1:
+                        st.warning("A empresa pediu alterações.")
+                        versoes = listar_versoes(doc['id'])
+                        if versoes:
+                            ultima = versoes[-1]
+                            if ultima['comentario']:
+                                st.info(f"Motivo: {ultima['comentario']}")
+                        if st.button("Editar novamente", key="parceiro_editar_novamente", use_container_width=True):
+                            if editar_novamente(doc['id']):
+                                st.rerun()
+                elif doc['estado'] == "Aprovado":
+                    with col_btn1:
+                        st.success("Documento aprovado. Não pode ser editado.")
+                elif doc['estado'] in ["Submetido", "Em Revisão"]:
+                    with col_btn1:
+                        st.info("Documento em análise pela empresa.")
+                elif doc['estado'] == "Arquivado":
+                    with col_btn1:
+                        st.warning("Documento arquivado (apenas consulta).")
+                
+                with col_btn2:
+                    conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
+                    if conteudo:
+                        st.download_button(
+                            label="Exportar Histórico",
+                            data=conteudo,
+                            file_name=filename,
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            key=f"download_parceiro_{doc['id']}_{st.session_state.refresh_counter}",
+                            use_container_width=True
+                        )
+                
+                with col_btn3:
+                    if st.button("Fechar", key="parceiro_fechar_detalhes", use_container_width=True):
+                        st.session_state.doc_selecionado = None
+                        st.session_state.edit_data = None
+                        st.session_state.expander_aberto = False
+                        st.rerun()
+
+            st.markdown("---")
+
+            with st.expander("Histórico de versões", expanded=False):
+                versoes = listar_versoes(doc['id'])
+                if versoes:
+                    for v in versoes:
+                        data_formatada = formatar_data_hora(v['created_at'])
+                        st.write(f"v{v['numero_versao']} - {v['estado']} por {v['criado_por']} em {data_formatada}")
+                        if v['comentario']:
+                            st.caption(f"  Comentário: {v['comentario']}")
                 else:
-                    col_btn1, col_btn2, col_btn3 = st.columns(3)
-                    
-                    if doc['estado'] == "Alterações":
-                        with col_btn1:
-                            st.warning("A empresa pediu alterações.")
-                            versoes = listar_versoes(doc['id'])
-                            if versoes:
-                                ultima = versoes[-1]
-                                if ultima['comentario']:
-                                    st.info(f"Motivo: {ultima['comentario']}")
-                            if st.button("Editar novamente", key="parceiro_editar_novamente", use_container_width=True):
-                                if editar_novamente(doc['id']):
-                                    st.rerun()
-                    elif doc['estado'] == "Aprovado":
-                        with col_btn1:
-                            st.success("Documento aprovado. Não pode ser editado.")
-                    elif doc['estado'] in ["Submetido", "Em Revisão"]:
-                        with col_btn1:
-                            st.info("Documento em análise pela empresa.")
-                    elif doc['estado'] == "Arquivado":
-                        with col_btn1:
-                            st.warning("Documento arquivado (apenas consulta).")
-                    
-                    with col_btn2:
-                        conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
-                        if conteudo:
-                            st.download_button(
-                                label="Exportar Histórico",
-                                data=conteudo,
-                                file_name=filename,
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                key=f"download_parceiro_{doc['id']}_{st.session_state.refresh_counter}",
-                                use_container_width=True
-                            )
-                    
-                    with col_btn3:
-                        if st.button("Fechar", key="parceiro_fechar_detalhes", use_container_width=True):
-                            st.session_state.doc_selecionado = None
-                            st.session_state.edit_data = None
-                            st.session_state.expander_aberto = False
-                            st.rerun()
-
-                st.markdown("---")
-
-                with st.expander("Histórico de versões", expanded=False):
-                    versoes = listar_versoes(doc['id'])
-                    if versoes:
-                        for v in versoes:
-                            data_formatada = formatar_data_hora(v['created_at'])
-                            st.write(f"v{v['numero_versao']} - {v['estado']} por {v['criado_por']} em {data_formatada}")
-                            if v['comentario']:
-                                st.caption(f"  Comentário: {v['comentario']}")
-                    else:
-                        st.info("Sem histórico disponível.")
+                    st.info("Sem histórico disponível.")
 
 # ---------- Área da Empresa ----------
 elif st.session_state.perfil == "empresa":
     st.header("Área da Empresa (Validação)")
-
+    
+    # ---------- CRIAR DOCUMENTO (EMPRESA) ----------
+    # Controlar o estado do formulário
+    if "empresa_mostrar_form" not in st.session_state:
+        st.session_state.empresa_mostrar_form = False
+    
+    # Botão para abrir o formulário
+    if not st.session_state.empresa_mostrar_form:
+        if st.button("➕ Criar novo documento para parceiro", use_container_width=True, key="empresa_abrir_form"):
+            st.session_state.empresa_mostrar_form = True
+            st.rerun()
+    else:
+        # Mostrar o formulário
+        with st.container():
+            st.subheader("Criar Documento")
+            st.info("A empresa cria o esqueleto do documento. O parceiro irá preencher os dados posteriormente.")
+            
+            # Gerar uma chave única para forçar recriação dos widgets
+            form_key = st.session_state.get("empresa_form_key", 0)
+            
+            titulo = st.text_input("Título do documento (ex: LCA/LCC NEO-CYCLE)", key=f"empresa_titulo_{form_key}")
+            
+            # Selecionar parceiro
+            parceiros = listar_parceiros_disponiveis()
+            
+            if not parceiros:
+                st.warning("Nenhum parceiro disponível. Crie um parceiro primeiro na área de Admin.")
+                if st.button("🔄 Recarregar lista de parceiros"):
+                    st.rerun()
+                # Botão para fechar o formulário
+                if st.button("✖ Fechar", key="empresa_fechar_sem_parceiros"):
+                    st.session_state.empresa_mostrar_form = False
+                    st.rerun()
+            else:
+                # Placeholder para o selectbox
+                parceiro_selecionado = st.selectbox(
+                    "Selecionar Parceiro",
+                    options=[""] + [p["username"] for p in parceiros],
+                    format_func=lambda x: "Selecione um parceiro da lista" if x == "" else f"{x} - {next((p['nome_completo'] for p in parceiros if p['username'] == x), '')}",
+                    placeholder="Selecione um parceiro da lista",
+                    key=f"empresa_parceiro_{form_key}"
+                )
+                
+                # Selecionar processos usando a nova função
+                st.info("Selecione os processos que estarão disponíveis neste documento para o parceiro preencher.")
+                processos_selecionados = render_processos_selecao(key_prefix=f"empresa_{form_key}")
+                
+                # Botões de ação
+                col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
+                
+                with col_btn1:
+                    # Mostrar botão de criar documento apenas se houver processos selecionados e parceiro selecionado
+                    if processos_selecionados and parceiro_selecionado and parceiro_selecionado != "":
+                        if st.button("✅ Criar documento", key=f"empresa_create_doc_btn_{form_key}", use_container_width=True):
+                            if not titulo.strip():
+                                st.error("O título é obrigatório.")
+                            else:
+                                try:
+                                    # Criar estrutura vazia com os processos selecionados
+                                    dados = ensure_new_structure({}, processos_selecionados)
+                                    
+                                    novo = criar_documento(titulo, parceiro_selecionado, dados)
+                                    if novo:
+                                        # Incrementar a chave do formulário para limpar todos os campos
+                                        st.session_state.empresa_form_key = form_key + 1
+                                        # Limpar a lista de processos selecionados
+                                        session_key = f"processos_selecionados_empresa_{form_key}"
+                                        if session_key in st.session_state:
+                                            del st.session_state[session_key]
+                                        # Fechar o formulário
+                                        st.session_state.empresa_mostrar_form = False
+                                        st.session_state.success_message = f"Documento criado com sucesso! ID: {novo['id']}"
+                                        st.session_state.new_data = None
+                                        st.session_state.doc_selecionado = None
+                                        st.rerun()
+                                except Exception as e:
+                                    st.error(f"Erro ao criar documento: {str(e)}")
+                    elif processos_selecionados and (not parceiro_selecionado or parceiro_selecionado == ""):
+                        st.warning("Selecione um parceiro para continuar.")
+                    elif parceiro_selecionado and parceiro_selecionado != "" and not processos_selecionados:
+                        st.warning("Selecione pelo menos um processo para continuar.")
+                
+                with col_btn2:
+                    if st.button("❌ Cancelar", key=f"empresa_cancel_btn_{form_key}", use_container_width=True):
+                        # Limpar os dados do formulário
+                        session_key = f"processos_selecionados_empresa_{form_key}"
+                        if session_key in st.session_state:
+                            del st.session_state[session_key]
+                        st.session_state.empresa_mostrar_form = False
+                        st.rerun()
+                
+                with col_btn3:
+                    # Botão para fechar o formulário (mesmo que Cancelar)
+                    if st.button("✖ Fechar", key=f"empresa_fechar_btn_{form_key}", use_container_width=True):
+                        session_key = f"processos_selecionados_empresa_{form_key}"
+                        if session_key in st.session_state:
+                            del st.session_state[session_key]
+                        st.session_state.empresa_mostrar_form = False
+                        st.rerun()
+        
+        st.divider()
+    
+    st.divider()
+    
+    # ---------- DOCUMENTOS DISPONÍVEIS ----------
     st.subheader("Documentos disponíveis")
     render_filtros()
     
@@ -1359,12 +1606,13 @@ elif st.session_state.perfil == "empresa":
             st.write(f"Estado: **{doc['estado']}** | Versão: {doc['versao_atual']}")
 
             dados = doc['dados']
+            processos = get_processos_from_data(dados)
             
             # Usar expander_aberto controlado pelo estado
             with st.expander("Ver dados do documento", expanded=st.session_state.get("expander_aberto", False)):
                 st.subheader("LCA")
                 lca = dados.get("lca", {})
-                for proc in PROCESSOS:
+                for proc in processos:
                     st.write(f"**{proc}**")
                     if lca.get("inputs", {}).get(proc):
                         st.write("Inputs")
@@ -1377,7 +1625,7 @@ elif st.session_state.perfil == "empresa":
                         display_dataframe(pd.DataFrame(lca["outputs"][proc]))
                 st.subheader("LCC")
                 lcc = dados.get("lcc", {})
-                for proc in PROCESSOS:
+                for proc in processos:
                     st.write(f"**{proc}**")
                     if lcc.get("materials", {}).get(proc):
                         st.write("Cost Breakdown Material")
@@ -1478,9 +1726,6 @@ elif st.session_state.perfil == "admin":
     if menu_admin == "Utilizadores":
         st.subheader("Gestão de Utilizadores")
         
-        # ============================================================
-        # BOTÃO E FORMULÁRIO DE CRIAÇÃO - APARECEM NO TOPO
-        # ============================================================
         col1, col2 = st.columns([3, 1])
         with col1:
             if st.button("Carregar utilizadores", use_container_width=True, key="admin_carregar_users"):
@@ -1495,7 +1740,6 @@ elif st.session_state.perfil == "admin":
         
         st.write("")
         
-        # Formulário de criação (aparece imediatamente abaixo do botão)
         if st.session_state.show_create_user_form:
             st.divider()
             st.subheader("Criar Novo Utilizador")
@@ -1533,7 +1777,6 @@ elif st.session_state.perfil == "admin":
                     elif not new_perfil:
                         st.error("Perfil é obrigatório")
                     else:
-                        # Verificar se o utilizador já existe
                         resp_check = requests.get(f"{API_URL}/admin/usuarios", headers=headers_auth())
                         if resp_check.status_code == 200:
                             users_existentes = resp_check.json()
@@ -1569,9 +1812,6 @@ elif st.session_state.perfil == "admin":
             
             st.divider()
         
-        # ============================================================
-        # TABELA DE UTILIZADORES - APARECE DEPOIS DO FORMULÁRIO
-        # ============================================================
         resp = requests.get(f"{API_URL}/admin/usuarios", headers=headers_auth())
         if resp.status_code == 200:
             users = resp.json()
@@ -1684,6 +1924,106 @@ elif st.session_state.perfil == "admin":
 
     else:  # Documentos (empresa) - Admin
         st.header("Área da Empresa (Validação) – Admin")
+        
+        # ---------- CRIAR DOCUMENTO (ADMIN) ----------
+        # Controlar o estado do formulário
+        if "admin_mostrar_form" not in st.session_state:
+            st.session_state.admin_mostrar_form = False
+        
+        # Botão para abrir o formulário
+        if not st.session_state.admin_mostrar_form:
+            if st.button("➕ Criar novo documento para parceiro", use_container_width=True, key="admin_abrir_form"):
+                st.session_state.admin_mostrar_form = True
+                st.rerun()
+        else:
+            # Mostrar o formulário
+            with st.container():
+                st.subheader("Criar Documento")
+                st.info("A empresa/administrador cria o esqueleto do documento. O parceiro irá preencher os dados posteriormente.")
+                
+                # Gerar uma chave única para forçar recriação dos widgets
+                form_key = st.session_state.get("admin_form_key", 0)
+                
+                titulo = st.text_input("Título do documento (ex: LCA/LCC NEO-CYCLE)", key=f"admin_titulo_{form_key}")
+                
+                # Selecionar parceiro
+                parceiros = listar_parceiros_disponiveis()
+                
+                if not parceiros:
+                    st.warning("Nenhum parceiro disponível. Crie um parceiro primeiro.")
+                    if st.button("🔄 Recarregar lista de parceiros", key="admin_reload_parceiros"):
+                        st.rerun()
+                    # Botão para fechar o formulário
+                    if st.button("✖ Fechar", key="admin_fechar_sem_parceiros"):
+                        st.session_state.admin_mostrar_form = False
+                        st.rerun()
+                else:
+                    # Placeholder para o selectbox
+                    parceiro_selecionado = st.selectbox(
+                        "Selecionar Parceiro",
+                        options=[""] + [p["username"] for p in parceiros],
+                        format_func=lambda x: "Selecione um parceiro da lista" if x == "" else f"{x} - {next((p['nome_completo'] for p in parceiros if p['username'] == x), '')}",
+                        placeholder="Selecione um parceiro da lista",
+                        key=f"admin_parceiro_{form_key}"
+                    )
+                    
+                    # Selecionar processos usando a nova função
+                    st.info("Selecione os processos que estarão disponíveis neste documento para o parceiro preencher.")
+                    processos_selecionados = render_processos_selecao(key_prefix=f"admin_{form_key}")
+                    
+                    # Botões de ação
+                    col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
+                    
+                    with col_btn1:
+                        # Mostrar botão de criar documento apenas se houver processos selecionados e parceiro selecionado
+                        if processos_selecionados and parceiro_selecionado and parceiro_selecionado != "":
+                            if st.button("✅ Criar documento", key=f"admin_create_doc_btn_{form_key}", use_container_width=True):
+                                if not titulo.strip():
+                                    st.error("O título é obrigatório.")
+                                else:
+                                    try:
+                                        # Criar estrutura vazia com os processos selecionados
+                                        dados = ensure_new_structure({}, processos_selecionados)
+                                        
+                                        novo = criar_documento(titulo, parceiro_selecionado, dados)
+                                        if novo:
+                                            # Incrementar a chave do formulário para limpar todos os campos
+                                            st.session_state.admin_form_key = form_key + 1
+                                            # Limpar a lista de processos selecionados
+                                            session_key = f"processos_selecionados_admin_{form_key}"
+                                            if session_key in st.session_state:
+                                                del st.session_state[session_key]
+                                            # Fechar o formulário
+                                            st.session_state.admin_mostrar_form = False
+                                            st.session_state.success_message = f"Documento criado com sucesso! ID: {novo['id']}"
+                                            st.session_state.new_data = None
+                                            st.session_state.doc_selecionado = None
+                                            st.rerun()
+                                    except Exception as e:
+                                        st.error(f"Erro ao criar documento: {str(e)}")
+                        elif processos_selecionados and (not parceiro_selecionado or parceiro_selecionado == ""):
+                            st.warning("Selecione um parceiro para continuar.")
+                        elif parceiro_selecionado and parceiro_selecionado != "" and not processos_selecionados:
+                            st.warning("Selecione pelo menos um processo para continuar.")
+                    
+                    with col_btn2:
+                        if st.button("❌ Cancelar", key=f"admin_cancel_btn_{form_key}", use_container_width=True):
+                            # Limpar os dados do formulário
+                            session_key = f"processos_selecionados_admin_{form_key}"
+                            if session_key in st.session_state:
+                                del st.session_state[session_key]
+                            st.session_state.admin_mostrar_form = False
+                            st.rerun()
+                    
+                    with col_btn3:
+                        if st.button("✖ Fechar", key=f"admin_fechar_btn_{form_key}", use_container_width=True):
+                            session_key = f"processos_selecionados_admin_{form_key}"
+                            if session_key in st.session_state:
+                                del st.session_state[session_key]
+                            st.session_state.admin_mostrar_form = False
+                            st.rerun()
+            
+            st.divider()
 
         st.subheader("Documentos disponíveis")
         render_filtros()
@@ -1737,12 +2077,12 @@ elif st.session_state.perfil == "admin":
                 st.write(f"Estado: **{doc['estado']}** | Versão: {doc['versao_atual']}")
 
                 dados = doc['dados']
+                processos = get_processos_from_data(dados)
                 
-                # Usar expander_aberto controlado pelo estado
                 with st.expander("Ver dados do documento", expanded=st.session_state.get("expander_aberto", False)):
                     st.subheader("LCA")
                     lca = dados.get("lca", {})
-                    for proc in PROCESSOS:
+                    for proc in processos:
                         st.write(f"**{proc}**")
                         if lca.get("inputs", {}).get(proc):
                             st.write("Inputs")
@@ -1755,7 +2095,7 @@ elif st.session_state.perfil == "admin":
                             display_dataframe(pd.DataFrame(lca["outputs"][proc]))
                     st.subheader("LCC")
                     lcc = dados.get("lcc", {})
-                    for proc in PROCESSOS:
+                    for proc in processos:
                         st.write(f"**{proc}**")
                         if lcc.get("materials", {}).get(proc):
                             st.write("Cost Breakdown Material")

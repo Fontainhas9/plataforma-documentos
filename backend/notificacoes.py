@@ -25,6 +25,26 @@ def criar_notificacao(
     db.refresh(notificacao)
     return notificacao
 
+def criar_notificacao_para_utilizador(
+    db: Session,
+    username: str,
+    titulo: str,
+    mensagem: str,
+    link: Optional[str] = None,
+    icone: str = "📄"
+):
+    """
+    Cria uma notificação para um utilizador específico.
+    """
+    criar_notificacao(
+        db=db,
+        username=username,
+        titulo=titulo,
+        mensagem=mensagem,
+        link=link,
+        icone=icone
+    )
+
 def criar_notificacao_para_empresa(
     db: Session,
     documento: Documento,
@@ -34,15 +54,27 @@ def criar_notificacao_para_empresa(
 ):
     """
     Cria notificação para todos os utilizadores com perfil empresa e admin.
+    Também notifica a empresa específica que criou o documento.
     """
-    empresas = db.query(Utilizador).filter(
-        Utilizador.perfil.in_([PerfilUtilizador.EMPRESA, PerfilUtilizador.ADMIN])
+    # Notificar a empresa que criou o documento
+    criar_notificacao(
+        db=db,
+        username=documento.empresa_id,
+        titulo=titulo,
+        mensagem=mensagem,
+        link=f"/documentos?doc_id={documento.id}",
+        icone=icone
+    )
+    
+    # Notificar também os admins
+    admins = db.query(Utilizador).filter(
+        Utilizador.perfil == PerfilUtilizador.ADMIN
     ).all()
     
-    for empresa in empresas:
+    for admin in admins:
         criar_notificacao(
             db=db,
-            username=empresa.username,
+            username=admin.username,
             titulo=titulo,
             mensagem=mensagem,
             link=f"/documentos?doc_id={documento.id}",
