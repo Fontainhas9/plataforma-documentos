@@ -4,15 +4,41 @@ import pandas as pd
 import copy
 from datetime import datetime
 import os
+import sys
+
+# ============================================================
+# ADD FRONTEND DIRECTORY TO PATH FOR IMPORTS
+# ============================================================
+# Ensure the frontend directory is in the path
+frontend_dir = os.path.dirname(os.path.abspath(__file__))
+if frontend_dir not in sys.path:
+    sys.path.insert(0, frontend_dir)
 
 # ============================================================
 # LOAD CSS
 # ============================================================
-# Add the frontend directory to path for imports
-import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'frontend'))
+# Try direct import first, then fallback to relative import
+try:
+    from components.load_css import load_css
+except ImportError:
+    # Try adding the components folder to path
+    components_dir = os.path.join(frontend_dir, 'components')
+    if components_dir not in sys.path:
+        sys.path.insert(0, components_dir)
+    try:
+        from load_css import load_css
+    except ImportError:
+        # Fallback: define load_css inline
+        def load_css():
+            st.markdown("""
+            <style>
+                [data-testid="stSidebar"] { display: none !important; }
+                .main > div { padding: 0 !important; }
+                .block-container { padding: 0 !important; }
+                .main-content { margin-top: 80px; padding: 0 2rem 2rem 2rem; max-width: 1440px; margin-left: auto; margin-right: auto; }
+            </style>
+            """, unsafe_allow_html=True)
 
-from components.load_css import load_css
 load_css()
 
 # ============================================================
