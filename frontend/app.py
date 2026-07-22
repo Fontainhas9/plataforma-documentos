@@ -107,6 +107,18 @@ st.markdown("""
         visibility: hidden;
         height: 0;
     }
+    /* Force white text on disabled inputs */
+    .stTextInput input:disabled {
+        color: white !important;
+        opacity: 1 !important;
+        background-color: #262730 !important;
+    }
+    /* Ensure disabled select boxes also have white text */
+    .stSelectbox select:disabled {
+        color: white !important;
+        opacity: 1 !important;
+        background-color: #262730 !important;
+    }
 </style>
 
 <script>
@@ -728,8 +740,8 @@ def render_lca_processes(data_key, prefix="", processos=None):
                         col1, col2, col3 = st.columns(3)
                         with col1:
                             item["qty"] = st.text_input("QTY", item.get("qty",""), key=f"{prefix}lca_proc_{proc}_qty_{idx}")
-                            # Unit is locked - display as static text with same style
-                            st.text_input("Unit", value=unidades[j], key=f"{prefix}lca_proc_{proc}_unit_{idx}_display", disabled=True)
+                            # Unit is locked - display with custom style using st.markdown
+                            st.markdown(f'<div style="margin-bottom: 0.5rem;"><label style="font-size: 0.8rem; color: #afafaf;">Unit</label><div style="background-color: #262730; padding: 0.5rem 0.75rem; border-radius: 0.25rem; border: 1px solid #4a4a4a; color: white !important;">{unidades[j]}</div></div>', unsafe_allow_html=True)
                         with col2:
                             item["description"] = st.text_area("Description", item.get("description",""), key=f"{prefix}lca_proc_{proc}_desc_{idx}")
                         with col3:
@@ -761,104 +773,6 @@ def render_lca_processes(data_key, prefix="", processos=None):
                     for _ in range(3):
                         if items:
                             items.pop()
-                    st.rerun()
-
-def render_lcc_materials(data_key, prefix="", processos=None):
-    if processos is None:
-        processos = PROCESSOS_PADRAO
-    st.subheader("Cost Breakdown Material")
-    for proc in processos:
-        items = st.session_state[data_key]["lcc"]["materials"].get(proc, [])
-        
-        if not items:
-            items.append({})
-            st.session_state[data_key]["lcc"]["materials"][proc] = items
-        
-        with st.expander(f"Materials - {proc}", expanded=False):
-            for i, item in enumerate(items):
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    item["material"] = st.text_input("Material", item.get("material",""), key=f"{prefix}lcc_mat_{proc}_mat_{i}")
-                    item["price"] = st.text_input("Price €", item.get("price",""), key=f"{prefix}lcc_mat_{proc}_price_{i}")
-                with col2:
-                    item["qty"] = st.text_input("Qty", item.get("qty",""), key=f"{prefix}lcc_mat_{proc}_qty_{i}")
-                    # Unit is locked to € for materials (price is in euros)
-                    st.text_input("Unit", value="€", key=f"{prefix}lcc_mat_{proc}_unit_{i}_display", disabled=True)
-                    item["unit"] = "€"
-                    item["description"] = st.text_area("Material Description", item.get("description",""), key=f"{prefix}lcc_mat_{proc}_desc_{i}")
-                with col3:
-                    item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lcc_mat_{proc}_comments_{i}")
-                    item["distance"] = st.text_input("Distance (km)", item.get("distance",""), key=f"{prefix}lcc_mat_{proc}_dist_{i}")
-                    item["country"] = st.text_input("Country", item.get("country",""), key=f"{prefix}lcc_mat_{proc}_country_{i}")
-                    current_value = item.get("datasource", "")
-                    if current_value in DATASOURCE_OPTIONS:
-                        index = DATASOURCE_OPTIONS.index(current_value)
-                    else:
-                        index = None
-                    item["datasource"] = st.selectbox(
-                        "Data Source", 
-                        DATASOURCE_OPTIONS,
-                        index=index,
-                        key=f"{prefix}lcc_mat_{proc}_ds_{i}",
-                        placeholder="Choose an option"
-                    )
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button(f"Add material - {proc}", key=f"{prefix}add_lcc_mat_{proc}"):
-                    items.append({})
-                    st.rerun()
-            with col2:
-                if items and st.button(f"Remove last material - {proc}", key=f"{prefix}rem_lcc_mat_{proc}"):
-                    items.pop()
-                    st.rerun()
-
-def render_lcc_outputs(data_key, prefix="", processos=None):
-    if processos is None:
-        processos = PROCESSOS_PADRAO
-    st.subheader("Outputs (final product)")
-    for proc in processos:
-        items = st.session_state[data_key]["lcc"]["outputs"].get(proc, [])
-        
-        if not items:
-            items.append({})
-            st.session_state[data_key]["lcc"]["outputs"][proc] = items
-        
-        with st.expander(f"Outputs LCC - {proc}", expanded=False):
-            for i, item in enumerate(items):
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    item["material"] = st.text_input("Material", item.get("material",""), key=f"{prefix}lcc_out_{proc}_mat_{i}")
-                    item["market_price"] = st.text_input("Market Price €", item.get("market_price",""), key=f"{prefix}lcc_out_{proc}_price_{i}")
-                with col2:
-                    item["quantity"] = st.text_input("Quantity", item.get("quantity",""), key=f"{prefix}lcc_out_{proc}_qty_{i}")
-                    # Unit is locked to €
-                    st.text_input("Unit", value="€", key=f"{prefix}lcc_out_{proc}_unit_{i}_display", disabled=True)
-                    item["unit"] = "€"
-                with col3:
-                    item["amount_produced"] = st.text_input("Amount Of Product Produced", item.get("amount_produced",""), key=f"{prefix}lcc_out_{proc}_prod_{i}")
-                    item["comments"] = st.text_area("Comments", item.get("comments",""), key=f"{prefix}lcc_out_{proc}_comments_{i}")
-                    current_value = item.get("datasource", "")
-                    if current_value in DATASOURCE_OPTIONS:
-                        index = DATASOURCE_OPTIONS.index(current_value)
-                    else:
-                        index = None
-                    item["datasource"] = st.selectbox(
-                        "Data Source", 
-                        DATASOURCE_OPTIONS,
-                        index=index,
-                        key=f"{prefix}lcc_out_{proc}_ds_{i}",
-                        placeholder="Choose an option"
-                    )
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button(f"Add output LCC - {proc}", key=f"{prefix}add_lcc_out_{proc}"):
-                    items.append({})
-                    st.rerun()
-            with col2:
-                if items and st.button(f"Remove last output LCC - {proc}", key=f"{prefix}rem_lcc_out_{proc}"):
-                    items.pop()
                     st.rerun()
 
 def render_lca_outputs(data_key, prefix="", processos=None):
@@ -941,8 +855,8 @@ def render_lcc_materials(data_key, prefix="", processos=None):
                     item["price"] = st.text_input("Price €", item.get("price",""), key=f"{prefix}lcc_mat_{proc}_price_{i}")
                 with col2:
                     item["qty"] = st.text_input("Qty", item.get("qty",""), key=f"{prefix}lcc_mat_{proc}_qty_{i}")
-                    # Unit is locked to € for materials (price is in euros)
-                    st.text_input("Unit", value="€", key=f"{prefix}lcc_mat_{proc}_unit_{i}_display", disabled=True)
+                    # Unit is locked to € - display with custom style
+                    st.markdown(f'<div style="margin-bottom: 0.5rem;"><label style="font-size: 0.8rem; color: #afafaf;">Unit</label><div style="background-color: #262730; padding: 0.5rem 0.75rem; border-radius: 0.25rem; border: 1px solid #4a4a4a; color: white !important;">€</div></div>', unsafe_allow_html=True)
                     item["unit"] = "€"
                     item["description"] = st.text_area("Material Description", item.get("description",""), key=f"{prefix}lcc_mat_{proc}_desc_{i}")
                 with col3:
@@ -1088,8 +1002,8 @@ def render_lcc_outputs(data_key, prefix="", processos=None):
                     item["market_price"] = st.text_input("Market Price €", item.get("market_price",""), key=f"{prefix}lcc_out_{proc}_price_{i}")
                 with col2:
                     item["quantity"] = st.text_input("Quantity", item.get("quantity",""), key=f"{prefix}lcc_out_{proc}_qty_{i}")
-                    # Unit is locked to €
-                    st.text_input("Unit", value="€", key=f"{prefix}lcc_out_{proc}_unit_{i}_display", disabled=True)
+                    # Unit is locked to € - display with custom style
+                    st.markdown(f'<div style="margin-bottom: 0.5rem;"><label style="font-size: 0.8rem; color: #afafaf;">Unit</label><div style="background-color: #262730; padding: 0.5rem 0.75rem; border-radius: 0.25rem; border: 1px solid #4a4a4a; color: white !important;">€</div></div>', unsafe_allow_html=True)
                     item["unit"] = "€"
                 with col3:
                     item["amount_produced"] = st.text_input("Amount Of Product Produced", item.get("amount_produced",""), key=f"{prefix}lcc_out_{proc}_prod_{i}")
@@ -1116,7 +1030,7 @@ def render_lcc_outputs(data_key, prefix="", processos=None):
                 if items and st.button(f"Remove last output LCC - {proc}", key=f"{prefix}rem_lcc_out_{proc}"):
                     items.pop()
                     st.rerun()
-                    
+
 def render_full_form(data_key, prefix="", processos=None):
     if processos is None:
         processos = PROCESSOS_PADRAO
@@ -1773,12 +1687,12 @@ elif st.session_state.perfil == "empresa":
 
             col_btn1, col_btn2, col_btn3 = st.columns(3)
 
-            if doc['estado'] == "Submitted":
+            if doc['estado'] in ["Submitted", "Submetido"]:
                 with col_btn1:
                     if st.button("Start Review", key="empresa_iniciar_revisao", use_container_width=True):
                         if iniciar_revisao(doc['id']):
                             st.rerun()
-            elif doc['estado'] == "In Review":
+            elif doc['estado'] in ["In Review", "Em Revisão"]:
                 comentario = st.text_area("Comment (required if requesting changes)", key="empresa_comentario")
                 col_aprov, col_alt = st.columns(2)
                 with col_aprov:
@@ -1792,7 +1706,7 @@ elif st.session_state.perfil == "empresa":
                         else:
                             if pedir_alteracoes(doc['id'], comentario):
                                 st.rerun()
-            elif doc['estado'] == "Approved":
+            elif doc['estado'] in ["Approved", "Aprovado"]:
                 with col_btn1:
                     if st.button("Reopen", key="empresa_reabrir", use_container_width=True):
                         if reabrir(doc['id']):
@@ -1801,15 +1715,15 @@ elif st.session_state.perfil == "empresa":
                     if st.button("Archive", key="empresa_arquivar", use_container_width=True):
                         if arquivar(doc['id']):
                             st.rerun()
-            elif doc['estado'] == "Draft":
+            elif doc['estado'] in ["Draft", "Rascunho"]:
                 with col_btn1:
                     if st.button("Archive (draft)", key="empresa_arquivar_rascunho", use_container_width=True):
                         if arquivar(doc['id']):
                             st.rerun()
-            elif doc['estado'] == "Changes Requested":
+            elif doc['estado'] in ["Changes Requested", "Alterações"]:
                 with col_btn1:
                     st.info("Waiting for partner to edit again.")
-            elif doc['estado'] == "Archived":
+            elif doc['estado'] in ["Archived", "Arquivado"]:
                 with col_btn1:
                     st.warning("Document archived (view only).")
 
@@ -2243,12 +2157,12 @@ elif st.session_state.perfil == "admin":
 
                 col_btn1, col_btn2, col_btn3 = st.columns(3)
 
-                if doc['estado'] == "Submitted":
+                if doc['estado'] in ["Submitted", "Submetido"]:
                     with col_btn1:
                         if st.button("Start Review", key="admin_iniciar_revisao", use_container_width=True):
                             if iniciar_revisao(doc['id']):
                                 st.rerun()
-                elif doc['estado'] == "In Review":
+                elif doc['estado'] in ["In Review", "Em Revisão"]:
                     comentario = st.text_area("Comment (required if requesting changes)", key="admin_comentario")
                     col_aprov, col_alt = st.columns(2)
                     with col_aprov:
@@ -2262,7 +2176,7 @@ elif st.session_state.perfil == "admin":
                             else:
                                 if pedir_alteracoes(doc['id'], comentario):
                                     st.rerun()
-                elif doc['estado'] == "Approved":
+                elif doc['estado'] in ["Approved", "Aprovado"]:
                     with col_btn1:
                         if st.button("Reopen", key="admin_reabrir", use_container_width=True):
                             if reabrir(doc['id']):
@@ -2271,15 +2185,15 @@ elif st.session_state.perfil == "admin":
                         if st.button("Archive", key="admin_arquivar", use_container_width=True):
                             if arquivar(doc['id']):
                                 st.rerun()
-                elif doc['estado'] == "Draft":
+                elif doc['estado'] in ["Draft", "Rascunho"]:
                     with col_btn1:
                         if st.button("Archive (draft)", key="admin_arquivar_rascunho", use_container_width=True):
                             if arquivar(doc['id']):
                                 st.rerun()
-                elif doc['estado'] == "Changes Requested":
+                elif doc['estado'] in ["Changes Requested", "Alterações"]:
                     with col_btn1:
                         st.info("Waiting for partner to edit again.")
-                elif doc['estado'] == "Archived":
+                elif doc['estado'] in ["Archived", "Arquivado"]:
                     with col_btn1:
                         st.warning("Document archived (view only).")
 
