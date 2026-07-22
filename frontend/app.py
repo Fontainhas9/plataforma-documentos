@@ -1355,16 +1355,21 @@ if st.session_state.perfil == "parceiro":
             st.markdown("---")
 
             # ---------- ACTION BUTTONS ----------
-            # Check if document is in Draft status (RASCUNHO)
-            if doc['estado'] == "Draft":
-                st.subheader("Edit document")
+            # Check if document is in Draft status (either "Draft" or "Rascunho")
+            estado_doc = doc.get('estado', '')
+            is_draft = estado_doc in ["Draft", "Rascunho"]
+            
+            if is_draft:
+                st.subheader("✏️ Edit Document")
+                st.info("Fill in the data below and submit for validation.")
+                
                 if st.session_state.edit_data is None:
                     st.session_state.edit_data = ensure_new_structure(safe_copy(dados), processos)
                 render_full_form("edit_data", prefix="edit_", processos=processos)
                 
                 col_btn1, col_btn2, col_btn3 = st.columns(3)
                 with col_btn1:
-                    if st.button("💾 Save", key="parceiro_save_edit", use_container_width=True):
+                    if st.button("💾 Save Draft", key="parceiro_save_edit", use_container_width=True):
                         try:
                             novos_dados = st.session_state.edit_data
                             resultado = editar_documento(doc['id'], novos_dados)
@@ -1373,23 +1378,25 @@ if st.session_state.perfil == "parceiro":
                                 st.session_state.doc_selecionado = None
                                 st.session_state.expander_aberto = False
                                 st.session_state.close_doc_after_action = True
-                                st.success("Document updated successfully!")
+                                st.success("✅ Document updated successfully!")
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Error saving: {str(e)}")
                 with col_btn2:
-                    if st.button("📤 Submit", key="parceiro_submeter", use_container_width=True):
+                    if st.button("📤 Submit for Review", key="parceiro_submeter", use_container_width=True):
                         try:
+                            # First save the current data
                             novos_dados = st.session_state.edit_data
                             resultado_edicao = editar_documento(doc['id'], novos_dados)
                             if resultado_edicao:
+                                # Then submit
                                 resultado_sub = submeter(doc['id'])
                                 if resultado_sub:
                                     st.session_state.edit_data = None
                                     st.session_state.doc_selecionado = None
                                     st.session_state.expander_aberto = False
                                     st.session_state.close_doc_after_action = True
-                                    st.success("Document submitted successfully!")
+                                    st.success("✅ Document submitted successfully!")
                                     st.rerun()
                         except Exception as e:
                             st.error(f"Error submitting: {str(e)}")
@@ -1402,11 +1409,15 @@ if st.session_state.perfil == "parceiro":
 
             else:
                 # Document is not in Draft status - show view-only with Export History
+                st.subheader("📄 View Document")
+                st.info(f"This document is in status: **{estado_doc}**")
+                
                 col_btn1, col_btn2, col_btn3 = st.columns(3)
                 
-                if doc['estado'] == "Changes Requested":
+                # Show specific messages based on status
+                if estado_doc in ["Changes Requested", "Alterações"]:
                     with col_btn1:
-                        st.warning("The company has requested changes.")
+                        st.warning("⚠️ The company has requested changes.")
                         versoes = listar_versoes(doc['id'])
                         if versoes:
                             ultima = versoes[-1]
@@ -1415,18 +1426,18 @@ if st.session_state.perfil == "parceiro":
                         if st.button("✏️ Edit again", key="parceiro_editar_novamente", use_container_width=True):
                             if editar_novamente(doc['id']):
                                 st.rerun()
-                elif doc['estado'] == "Approved":
+                elif estado_doc in ["Approved", "Aprovado"]:
                     with col_btn1:
                         st.success("✅ Document approved. Cannot be edited.")
-                elif doc['estado'] in ["Submitted", "In Review"]:
+                elif estado_doc in ["Submitted", "Submetido", "In Review", "Em Revisão"]:
                     with col_btn1:
                         st.info("📋 Document under review by the company.")
-                elif doc['estado'] == "Archived":
+                elif estado_doc in ["Archived", "Arquivado"]:
                     with col_btn1:
                         st.warning("📁 Document archived (view only).")
                 else:
                     with col_btn1:
-                        st.info(f"Document is in status: {doc['estado']}")
+                        st.info(f"Document is in status: {estado_doc}")
                 
                 with col_btn2:
                     conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
