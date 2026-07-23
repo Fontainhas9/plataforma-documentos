@@ -29,21 +29,46 @@ def load_css():
     except Exception as e:
         print(f"Error loading CSS from file: {e}")
     
-    # Fallback minimal CSS with margins
+    # Fallback minimal CSS with strict width control
     st.markdown("""
     <style>
+        /* Hide sidebar */
         [data-testid="stSidebar"] { display: none !important; }
         [data-testid="stSidebarNav"] { display: none !important; }
-        .main > div { padding: 0 !important; max-width: 100% !important; }
-        .block-container { padding: 0 !important; max-width: 100% !important; }
-        .main-content { margin-top: 80px; padding: 0 3rem 2rem 3rem !important; max-width: 1000px; margin-left: auto; margin-right: auto; }
+        
+        /* Strict width control */
+        .stApp { max-width: 1100px !important; margin-left: auto !important; margin-right: auto !important; padding: 0 2rem !important; }
+        .main { max-width: 1100px !important; margin-left: auto !important; margin-right: auto !important; padding: 0 2rem !important; }
+        .main > div { padding: 0 !important; max-width: 1100px !important; margin-left: auto !important; margin-right: auto !important; }
+        .block-container { padding: 0 !important; max-width: 1100px !important; margin-left: auto !important; margin-right: auto !important; }
+        .row-widget.stColumns { max-width: 1100px !important; margin-left: auto !important; margin-right: auto !important; }
+        .stDataFrame { max-width: 100% !important; overflow-x: auto !important; }
+        
+        /* Header */
+        .main-header { position: fixed; top: 0; left: 50%; transform: translateX(-50%); z-index: 1000; width: 100%; max-width: 1100px; background: rgba(10,10,26,0.92); backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 2rem; height: 64px; display: flex; align-items: center; justify-content: space-between; }
+        .header-logo { display: flex; align-items: center; gap: 10px; font-size: 1.1rem; font-weight: 700; color: #ffffff; cursor: pointer; flex-shrink: 0; }
+        .header-logo .logo-icon { width: 30px; height: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; color: white; }
+        .header-nav { display: flex; align-items: center; gap: 2px; flex: 1; justify-content: center; }
+        .header-nav a { color: #a0a0b8; text-decoration: none; padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 500; transition: all 0.3s ease; cursor: pointer; background: transparent; border: none; font-family: inherit; }
+        .header-nav a:hover { color: #ffffff; background: rgba(255,255,255,0.06); }
+        .header-nav a.active { color: #ffffff; background: rgba(102,126,234,0.25); }
+        .header-user { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+        .header-user .user-name { color: #e8e8e8; font-size: 0.85rem; font-weight: 500; }
+        .header-user .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 600; color: #ffffff; }
+        .header-user .logout-btn { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; color: #a0a0b8; padding: 5px 12px; font-size: 0.8rem; cursor: pointer; transition: all 0.3s ease; font-family: inherit; }
+        .header-user .logout-btn:hover { color: #ffffff; background: rgba(255,255,255,0.10); }
+        .header-user .notification-bell { position: relative; cursor: pointer; font-size: 1.1rem; color: #a0a0b8; background: none; border: none; padding: 4px; }
+        .header-user .notification-bell .badge { position: absolute; top: -6px; right: -8px; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; border-radius: 50%; padding: 2px 6px; font-size: 9px; font-weight: 700; min-width: 18px; text-align: center; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        
+        .main-content { margin-top: 80px; padding: 0 0 2rem 0 !important; max-width: 1100px !important; margin-left: auto !important; margin-right: auto !important; width: 100% !important; }
         .stat-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 1.5rem; border: 1px solid rgba(255,255,255,0.05); }
         .stat-value { font-size: 2rem; font-weight: 700; color: white; }
         .stat-label { font-size: 0.8rem; color: #80809a; text-transform: uppercase; }
         .stButton button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; padding: 0.5rem 1.2rem !important; font-weight: 500 !important; }
-        .stDataFrame { max-width: 100% !important; overflow: auto !important; }
     </style>
     """, unsafe_allow_html=True)
+    print("⚠️ Using fallback CSS")
 
 load_css()
 

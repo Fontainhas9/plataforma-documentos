@@ -1,5 +1,5 @@
 /* ============================================================
-   MODERN DASHBOARD STYLES
+   MODERN DASHBOARD STYLES - WITH STRICT WIDTH CONTROL
    ============================================================ */
 
 /* ----- Reset & Base ----- */
@@ -17,13 +17,51 @@
     display: none !important;
 }
 
-/* Main content - remove default padding */
+/* ----- STRICT WIDTH CONTROL ----- */
+/* Force all content into a narrow container */
+.stApp {
+    max-width: 1100px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding: 0 2rem !important;
+}
+
+.main {
+    max-width: 1100px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding: 0 2rem !important;
+}
+
 .main > div {
     padding: 0 !important;
-    max-width: 100% !important;
+    max-width: 1100px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
 }
+
 .block-container {
     padding: 0 !important;
+    max-width: 1100px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+/* Force columns to respect width */
+.row-widget.stColumns {
+    max-width: 1100px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+/* Force dataframes to stay within container */
+.stDataFrame {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+}
+
+/* Force all elements to respect the container */
+.element-container {
     max-width: 100% !important;
 }
 
@@ -56,9 +94,11 @@ body {
 .main-header {
     position: fixed;
     top: 0;
-    left: 0;
-    right: 0;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 1000;
+    width: 100%;
+    max-width: 1100px;
     background: rgba(10, 10, 26, 0.92);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
@@ -226,26 +266,15 @@ body {
 }
 
 /* ============================================================
-   MAIN CONTENT - WITH GENEROUS MARGINS
+   MAIN CONTENT - STRICT WIDTH
    ============================================================ */
 .main-content {
     margin-top: 80px;
-    padding: 0 3rem 2rem 3rem !important;
-    max-width: 1000px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-/* Override Streamlit's default width for columns */
-.row-widget.stColumns {
-    max-width: 1000px !important;
+    padding: 0 0 2rem 0 !important;
+    max-width: 1100px !important;
     margin-left: auto !important;
     margin-right: auto !important;
-}
-
-/* Force all tables and elements to respect the max-width */
-.element-container {
-    max-width: 100% !important;
+    width: 100% !important;
 }
 
 /* ============================================================
@@ -342,6 +371,7 @@ body {
     color: #e8e8e8 !important;
     font-size: 0.85rem !important;
     transition: all 0.3s ease !important;
+    width: 100% !important;
 }
 .stTextInput input:focus, .stSelectbox select:focus, .stTextArea textarea:focus {
     border-color: #667eea !important;
@@ -370,7 +400,7 @@ body {
 }
 
 /* ============================================================
-   DATAFRAMES / TABLES - WITH SCROLL
+   DATAFRAMES / TABLES
    ============================================================ */
 .stDataFrame {
     background: rgba(255,255,255,0.02) !important;
@@ -449,16 +479,21 @@ hr {
 /* ============================================================
    RESPONSIVE
    ============================================================ */
-@media (max-width: 1024px) {
-    .main-content {
+@media (max-width: 1200px) {
+    .stApp, .main, .main > div, .block-container, .main-content {
         max-width: 100% !important;
-        padding: 0 2rem 1rem 2rem !important;
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+    }
+    .main-header {
+        max-width: 100% !important;
+        padding: 0 1.5rem !important;
     }
 }
 
 @media (max-width: 768px) {
     .main-header {
-        padding: 0 0.5rem;
+        padding: 0 0.5rem !important;
         height: 56px;
     }
     .header-nav a {
@@ -470,8 +505,11 @@ hr {
     }
     .main-content {
         margin-top: 72px;
-        padding: 0 1rem 1rem 1rem !important;
-        max-width: 100% !important;
+        padding: 0 0.5rem 1rem 0.5rem !important;
+    }
+    .stApp, .main, .main > div, .block-container {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
     }
     .stat-card .stat-value {
         font-size: 1.5rem;
@@ -504,6 +542,10 @@ hr {
         font-size: 0.7rem;
     }
     .main-content {
-        padding: 0 0.75rem 0.8rem 0.75rem !important;
+        padding: 0 0.3rem 0.8rem 0.3rem !important;
+    }
+    .stApp, .main, .main > div, .block-container {
+        padding-left: 0.3rem !important;
+        padding-right: 0.3rem !important;
     }
 }
