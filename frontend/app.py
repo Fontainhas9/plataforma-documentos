@@ -36,11 +36,14 @@ def load_css():
         [data-testid="stSidebarNav"] { display: none !important; }
         .main > div { padding: 0 !important; max-width: 100% !important; }
         .block-container { padding: 0 !important; max-width: 100% !important; }
-        .main-content { margin-top: 80px; padding: 0 2rem 2rem 2rem !important; max-width: 1200px !important; margin-left: auto !important; margin-right: auto !important; }
+        .main-content { margin-top: 80px; padding: 0 2rem 2rem 2rem !important; max-width: 1000px !important; margin-left: auto !important; margin-right: auto !important; }
         .stat-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 1.5rem; border: 1px solid rgba(255,255,255,0.05); }
         .stat-value { font-size: 2rem; font-weight: 700; color: white; }
         .stat-label { font-size: 0.8rem; color: #80809a; text-transform: uppercase; }
         .stButton button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; padding: 0.5rem 1.2rem !important; font-weight: 500 !important; }
+        .stDataFrame { max-width: 100% !important; overflow-x: auto !important; }
+        .stDataFrame thead tr th { font-size: 0.75rem !important; padding: 0.4rem 0.5rem !important; }
+        .stDataFrame tbody tr td { font-size: 0.75rem !important; padding: 0.35rem 0.5rem !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -204,7 +207,7 @@ if "filtros_temporarios" not in st.session_state:
     }
 
 # ============================================================
-# HEADER COMPONENT - COM st.html
+# HEADER COMPONENT - USING STREAMLIT NATIVE BUTTONS
 # ============================================================
 def render_header():
     username = st.session_state.get("username", "User")
@@ -217,56 +220,230 @@ def render_header():
     except:
         notif_count = 0
     
+    # CSS for header
+    st.markdown("""
+    <style>
+        .custom-header {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(10,10,26,0.92);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 0 2rem;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1000px;
+            width: 100%;
+        }
+        .custom-header .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #ffffff;
+            cursor: pointer;
+        }
+        .custom-header .logo .icon {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            color: white;
+        }
+        .custom-header .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex: 1;
+            justify-content: center;
+        }
+        .custom-header .nav-links a {
+            color: #a0a0b8;
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            font-family: inherit;
+        }
+        .custom-header .nav-links a:hover {
+            color: #ffffff;
+            background: rgba(255,255,255,0.06);
+        }
+        .custom-header .nav-links a.active {
+            color: #ffffff;
+            background: linear-gradient(135deg, rgba(102,126,234,0.25) 0%, rgba(118,75,162,0.18) 100%);
+        }
+        .custom-header .nav-links .divider {
+            width: 1px;
+            height: 24px;
+            background: rgba(255,255,255,0.06);
+            margin: 0 6px;
+        }
+        .custom-header .user-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        .custom-header .user-section .name {
+            color: #e8e8e8;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .custom-header .user-section .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #ffffff;
+        }
+        .custom-header .user-section .badge {
+            position: relative;
+            cursor: pointer;
+            font-size: 1.1rem;
+            color: #a0a0b8;
+            background: none;
+            border: none;
+            padding: 4px;
+        }
+        .custom-header .user-section .badge .count {
+            position: absolute;
+            top: -6px;
+            right: -8px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 9px;
+            font-weight: 700;
+            min-width: 18px;
+            text-align: center;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .custom-header .user-section .logout-btn {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            color: #a0a0b8;
+            padding: 5px 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        .custom-header .user-section .logout-btn:hover {
+            color: #ffffff;
+            background: rgba(255,255,255,0.10);
+        }
+        .admin-menu {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            padding: 2px;
+            margin-left: 4px;
+        }
+        .admin-menu a {
+            color: #a0a0b8;
+            text-decoration: none;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .admin-menu a:hover {
+            color: #ffffff;
+            background: rgba(255,255,255,0.06);
+        }
+        .admin-menu a.active {
+            color: #ffffff;
+            background: linear-gradient(135deg, rgba(102,126,234,0.25) 0%, rgba(118,75,162,0.18) 100%);
+        }
+        @media (max-width: 768px) {
+            .custom-header { padding: 0 0.5rem; height: 56px; max-width: 100%; }
+            .custom-header .nav-links a { padding: 4px 8px; font-size: 0.75rem; }
+            .custom-header .user-section .name { display: none; }
+        }
+        @media (max-width: 480px) {
+            .custom-header .nav-links a { padding: 3px 6px; font-size: 0.65rem; }
+            .custom-header .user-section { gap: 6px; }
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Get current page
     current_page = st.query_params.get("page", "home")
     is_home = current_page == "home" or current_page == ""
     is_dashboard = current_page == "dashboard"
     is_notifications = current_page == "notificacoes"
     
-    badge_html = f'<span class="badge">{notif_count}</span>' if notif_count > 0 else ''
-    
-    # Admin menu items (only for admin)
+    # Header HTML
     admin_menu_html = ""
     if perfil == "admin":
         is_users = st.session_state.admin_menu == "Users"
         is_docs = st.session_state.admin_menu == "Documents"
         admin_menu_html = f'''
         <div class="admin-menu">
-            <a class="{'active' if is_users else ''}" onclick="window.location.href='?admin=Users'">Users</a>
-            <a class="{'active' if is_docs else ''}" onclick="window.location.href='?admin=Documents'">Documents</a>
+            <a class="{'active' if is_users else ''}" href="?admin=Users">Users</a>
+            <a class="{'active' if is_docs else ''}" href="?admin=Documents">Documents</a>
         </div>
         '''
     
+    notif_badge = f'<span class="count">{notif_count}</span>' if notif_count > 0 else ''
+    
     header_html = f'''
-    <header class="main-header">
-        <div class="header-logo" onclick="window.location.href='?page=home'">
-            <div class="logo-icon">📄</div>
+    <header class="custom-header">
+        <div class="logo" onclick="window.location.href='?page=home'">
+            <div class="icon">📄</div>
             <span>DocPlatform</span>
         </div>
-        <nav class="header-nav">
-            <a class="{'active' if is_home else ''}" onclick="window.location.href='?page=home'">Home</a>
-            <a class="{'active' if is_dashboard else ''}" onclick="window.location.href='?page=dashboard'">Dashboard</a>
-            <span class="nav-divider"></span>
-            <a class="{'active' if is_notifications else ''}" onclick="window.location.href='?page=notificacoes'">Notifications</a>
+        <nav class="nav-links">
+            <a class="{'active' if is_home else ''}" href="?page=home">Home</a>
+            <a class="{'active' if is_dashboard else ''}" href="?page=dashboard">Dashboard</a>
+            <span class="divider"></span>
+            <a class="{'active' if is_notifications else ''}" href="?page=notificacoes">Notifications</a>
             {admin_menu_html}
         </nav>
-        <div class="header-user">
-            <span class="user-name">{username}</span>
-            <button class="notification-bell" onclick="window.location.href='?page=notificacoes'">
-                🔔{badge_html}
+        <div class="user-section">
+            <span class="name">{username}</span>
+            <button class="badge" onclick="window.location.href='?page=notificacoes'">
+                🔔{notif_badge}
             </button>
-            <div class="user-avatar">{username[0].upper() if username else 'U'}</div>
+            <div class="avatar">{username[0].upper() if username else 'U'}</div>
             <button class="logout-btn" onclick="window.location.href='?logout=true'">Logout</button>
         </div>
     </header>
     <div class="main-content">
     '''
     
-    # Try using st.html if available (Streamlit 1.33+)
-    try:
-        st.html(header_html)
-    except AttributeError:
-        # Fallback to st.markdown
-        st.markdown(header_html, unsafe_allow_html=True)
+    st.markdown(header_html, unsafe_allow_html=True)
     
     # Process logout
     if st.query_params.get("logout") == "true":
@@ -1095,8 +1272,6 @@ if st.session_state.get("close_doc_after_action", False):
 # ============================================================
 # MAIN CONTENT
 # ============================================================
-
-st.markdown('<div class="main-content">', unsafe_allow_html=True)
 
 st.title("📄 Document Management Platform")
 
@@ -2019,6 +2194,3 @@ if st.session_state.get("close_doc_after_action", False):
         st.session_state.doc_selecionado = None
         st.session_state.edit_data = None
     st.session_state.close_doc_after_action = False
-
-# Close main-content div
-st.markdown('</div>', unsafe_allow_html=True)

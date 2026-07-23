@@ -1,5 +1,5 @@
 /* ============================================================
-   MODERN DASHBOARD STYLES
+   MODERN DASHBOARD STYLES - DEFINITIVE
    ============================================================ */
 
 /* ----- Reset & Base ----- */
@@ -51,12 +51,12 @@ body {
 }
 
 /* ============================================================
-   MAIN CONTENT - STRICT WIDTH
+   MAIN CONTENT - STRICT WIDTH WITH MARGINS
    ============================================================ */
 .main-content {
     margin-top: 80px;
     padding: 0 2rem 2rem 2rem !important;
-    max-width: 1200px !important;
+    max-width: 1000px !important;
     margin-left: auto !important;
     margin-right: auto !important;
     width: 100% !important;
@@ -138,13 +138,6 @@ body {
 .stButton button:active {
     transform: translateY(0px) !important;
 }
-.stButton button[kind="secondary"] {
-    background: rgba(255,255,255,0.06) !important;
-    box-shadow: none !important;
-}
-.stButton button[kind="secondary"]:hover {
-    background: rgba(255,255,255,0.10) !important;
-}
 
 /* ============================================================
    INPUTS
@@ -185,14 +178,15 @@ body {
 }
 
 /* ============================================================
-   DATAFRAMES / TABLES - FIXED WIDTHS
+   DATAFRAMES / TABLES - FIXED WITH CONTAINER
    ============================================================ */
 .stDataFrame {
     background: rgba(255,255,255,0.02) !important;
     border-radius: 12px !important;
     overflow-x: auto !important;
-    font-size: 0.85rem !important;
+    font-size: 0.8rem !important;
     max-width: 100% !important;
+    border: 1px solid rgba(255,255,255,0.04) !important;
 }
 
 .stDataFrame table {
@@ -204,30 +198,35 @@ body {
     background: rgba(102,126,234,0.12) !important;
     color: #e0e0e0 !important;
     font-weight: 600 !important;
-    padding: 0.5rem 0.6rem !important;
+    padding: 0.4rem 0.5rem !important;
     white-space: nowrap !important;
-    font-size: 0.8rem !important;
+    font-size: 0.75rem !important;
+    text-align: left !important;
 }
 
 .stDataFrame tbody tr td {
     color: #c0c0d0 !important;
-    padding: 0.4rem 0.6rem !important;
+    padding: 0.35rem 0.5rem !important;
     border-bottom: 1px solid rgba(255,255,255,0.03) !important;
     white-space: nowrap !important;
-    font-size: 0.8rem !important;
+    font-size: 0.75rem !important;
 }
 
 .stDataFrame tbody tr:hover {
     background: rgba(102,126,234,0.04) !important;
 }
 
-/* Specific column widths for document tables */
+/* Limit column widths */
 .stDataFrame .col_heading {
-    max-width: 120px !important;
+    max-width: 150px !important;
+    min-width: 60px !important;
 }
 
 .stDataFrame .data {
-    max-width: 120px !important;
+    max-width: 150px !important;
+    min-width: 50px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
 }
 
 /* ============================================================
@@ -285,10 +284,17 @@ hr {
 /* ============================================================
    RESPONSIVE
    ============================================================ */
+@media (max-width: 1024px) {
+    .main-content {
+        max-width: 100% !important;
+        padding: 0 1.5rem 1rem 1.5rem !important;
+    }
+}
+
 @media (max-width: 768px) {
     .main-content {
         margin-top: 72px;
-        padding: 0 0.5rem 1rem 0.5rem !important;
+        padding: 0 0.75rem 1rem 0.75rem !important;
         max-width: 100% !important;
     }
     .stat-card .stat-value {
@@ -299,13 +305,13 @@ hr {
     }
     .stDataFrame thead tr th,
     .stDataFrame tbody tr td {
-        font-size: 0.7rem !important;
-        padding: 0.3rem 0.4rem !important;
+        font-size: 0.65rem !important;
+        padding: 0.25rem 0.3rem !important;
     }
 }
 
 @media (max-width: 480px) {
     .main-content {
-        padding: 0 0.3rem 0.8rem 0.3rem !important;
+        padding: 0 0.5rem 0.8rem 0.5rem !important;
     }
 }
