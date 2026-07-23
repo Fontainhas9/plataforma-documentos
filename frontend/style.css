@@ -549,3 +549,51 @@ hr {
         padding-right: 0.3rem !important;
     }
 }
+
+/* ============================================================
+   TABLES - FIXED WIDTH, NO SCROLL
+   ============================================================ */
+.stDataFrame {
+    background: rgba(255,255,255,0.02) !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    font-size: 0.85rem !important;
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+.stDataFrame .dataframe {
+    width: 100% !important;
+    table-layout: fixed !important;
+}
+
+.stDataFrame thead tr th {
+    background: rgba(102,126,234,0.12) !important;
+    color: #e0e0e0 !important;
+    font-weight: 600 !important;
+    padding: 0.6rem 0.8rem !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
+}
+
+.stDataFrame tbody tr td {
+    color: #c0c0d0 !important;
+    padding: 0.5rem 0.8rem !important;
+    border-bottom: 1px solid rgba(255,255,255,0.03) !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
+    word-wrap: break-word !important;
+}
+
+.stDataFrame tbody tr:hover {
+    background: rgba(102,126,234,0.04) !important;
+}
+
+/* Force columns to have fixed widths */
+.stDataFrame .col_heading {
+    max-width: 150px !important;
+}
+
+.stDataFrame .data {
+    max-width: 150px !important;
+}

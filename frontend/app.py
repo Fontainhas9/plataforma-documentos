@@ -230,7 +230,7 @@ if "filtros_temporarios" not in st.session_state:
     }
 
 # ============================================================
-# HEADER COMPONENT - COM st.html
+# HEADER COMPONENT - CORRIGIDO
 # ============================================================
 def render_header():
     username = st.session_state.get("username", "User")
@@ -256,43 +256,243 @@ def render_header():
         is_users = st.session_state.admin_menu == "Users"
         is_docs = st.session_state.admin_menu == "Documents"
         admin_menu_html = f'''
-        <div class="admin-menu">
-            <a class="{'active' if is_users else ''}" onclick="window.location.href='?admin=Users'">Users</a>
-            <a class="{'active' if is_docs else ''}" onclick="window.location.href='?admin=Documents'">Documents</a>
-        </div>
+        <a class="{'active' if is_users else ''}" onclick="window.parent.location.href='?admin=Users'">Users</a>
+        <a class="{'active' if is_docs else ''}" onclick="window.parent.location.href='?admin=Documents'">Documents</a>
         '''
     
+    # Build the complete header HTML
     header_html = f'''
-    <header class="main-header">
-        <div class="header-logo" onclick="window.location.href='?page=home'">
-            <div class="logo-icon">📄</div>
-            <span>DocPlatform</span>
-        </div>
-        <nav class="header-nav">
-            <a class="{'active' if is_home else ''}" onclick="window.location.href='?page=home'">Home</a>
-            <a class="{'active' if is_dashboard else ''}" onclick="window.location.href='?page=dashboard'">Dashboard</a>
-            <span class="nav-divider"></span>
-            <a class="{'active' if is_notifications else ''}" onclick="window.location.href='?page=notificacoes'">Notifications</a>
-            {admin_menu_html}
-        </nav>
-        <div class="header-user">
-            <span class="user-name">{username}</span>
-            <button class="notification-bell" onclick="window.location.href='?page=notificacoes'">
-                🔔{badge_html}
-            </button>
-            <div class="user-avatar">{username[0].upper() if username else 'U'}</div>
-            <button class="logout-btn" onclick="window.location.href='?logout=true'">Logout</button>
-        </div>
-    </header>
-    <div class="main-content">
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+            body {{ background: transparent; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
+            
+            .main-header {{
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                z-index: 1000;
+                background: rgba(10,10,26,0.92);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                border-bottom: 1px solid rgba(255,255,255,0.06);
+                padding: 0 2rem;
+                height: 64px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                max-width: 1100px;
+                margin: 0 auto;
+            }}
+            
+            .header-logo {{
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-size: 1.1rem;
+                font-weight: 700;
+                color: #ffffff;
+                cursor: pointer;
+                flex-shrink: 0;
+            }}
+            .header-logo .logo-icon {{
+                width: 30px;
+                height: 30px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.9rem;
+                color: white;
+            }}
+            
+            .header-nav {{
+                display: flex;
+                align-items: center;
+                gap: 2px;
+                flex: 1;
+                justify-content: center;
+            }}
+            .header-nav a {{
+                color: #a0a0b8;
+                text-decoration: none;
+                padding: 6px 14px;
+                border-radius: 8px;
+                font-size: 0.85rem;
+                font-weight: 500;
+                transition: all 0.3s ease;
+                cursor: pointer;
+                background: transparent;
+                border: none;
+                font-family: inherit;
+            }}
+            .header-nav a:hover {{
+                color: #ffffff;
+                background: rgba(255,255,255,0.06);
+            }}
+            .header-nav a.active {{
+                color: #ffffff;
+                background: linear-gradient(135deg, rgba(102,126,234,0.25) 0%, rgba(118,75,162,0.18) 100%);
+            }}
+            .header-nav .nav-divider {{
+                width: 1px;
+                height: 24px;
+                background: rgba(255,255,255,0.06);
+                margin: 0 6px;
+            }}
+            
+            .header-user {{
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                flex-shrink: 0;
+            }}
+            .header-user .user-name {{
+                color: #e8e8e8;
+                font-size: 0.85rem;
+                font-weight: 500;
+            }}
+            .header-user .user-avatar {{
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.8rem;
+                font-weight: 600;
+                color: #ffffff;
+            }}
+            .header-user .notification-bell {{
+                position: relative;
+                cursor: pointer;
+                font-size: 1.1rem;
+                color: #a0a0b8;
+                transition: color 0.3s ease;
+                background: none;
+                border: none;
+                padding: 4px;
+            }}
+            .header-user .notification-bell:hover {{
+                color: #ffffff;
+            }}
+            .header-user .notification-bell .badge {{
+                position: absolute;
+                top: -6px;
+                right: -8px;
+                background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+                color: white;
+                border-radius: 50%;
+                padding: 2px 6px;
+                font-size: 9px;
+                font-weight: 700;
+                min-width: 18px;
+                text-align: center;
+                animation: pulse 1s infinite;
+            }}
+            @keyframes pulse {{
+                0%, 100% {{ transform: scale(1); }}
+                50% {{ transform: scale(1.1); }}
+            }}
+            .header-user .logout-btn {{
+                background: rgba(255,255,255,0.06);
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 8px;
+                color: #a0a0b8;
+                padding: 5px 12px;
+                font-size: 0.8rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                font-family: inherit;
+            }}
+            .header-user .logout-btn:hover {{
+                color: #ffffff;
+                background: rgba(255,255,255,0.10);
+            }}
+            
+            /* Admin menu */
+            .admin-menu {{
+                display: flex;
+                align-items: center;
+                gap: 2px;
+                background: rgba(255,255,255,0.03);
+                border-radius: 8px;
+                padding: 2px;
+                margin-left: 4px;
+            }}
+            .admin-menu a {{
+                color: #a0a0b8;
+                text-decoration: none;
+                padding: 4px 10px;
+                border-radius: 6px;
+                font-size: 0.75rem;
+                font-weight: 500;
+                transition: all 0.3s ease;
+                cursor: pointer;
+            }}
+            .admin-menu a:hover {{
+                color: #ffffff;
+                background: rgba(255,255,255,0.06);
+            }}
+            .admin-menu a.active {{
+                color: #ffffff;
+                background: linear-gradient(135deg, rgba(102,126,234,0.25) 0%, rgba(118,75,162,0.18) 100%);
+            }}
+            
+            /* Responsive */
+            @media (max-width: 768px) {{
+                .main-header {{ padding: 0 0.5rem; height: 56px; }}
+                .header-nav a {{ padding: 4px 8px; font-size: 0.75rem; }}
+                .header-user .user-name {{ display: none; }}
+                .header-user .logout-btn {{ padding: 3px 8px; font-size: 0.7rem; }}
+                .admin-menu a {{ padding: 3px 6px; font-size: 0.65rem; }}
+            }}
+            @media (max-width: 480px) {{
+                .header-nav a {{ padding: 3px 6px; font-size: 0.65rem; }}
+                .header-nav .nav-divider {{ margin: 0 3px; }}
+                .header-user {{ gap: 6px; }}
+                .header-user .notification-bell {{ font-size: 0.9rem; }}
+            }}
+        </style>
+    </head>
+    <body>
+        <header class="main-header">
+            <div class="header-logo" onclick="window.parent.location.href='?page=home'">
+                <div class="logo-icon">📄</div>
+                <span>DocPlatform</span>
+            </div>
+            
+            <nav class="header-nav">
+                <a class="{'active' if is_home else ''}" onclick="window.parent.location.href='?page=home'">Home</a>
+                <a class="{'active' if is_dashboard else ''}" onclick="window.parent.location.href='?page=dashboard'">Dashboard</a>
+                <span class="nav-divider"></span>
+                <a class="{'active' if is_notifications else ''}" onclick="window.parent.location.href='?page=notificacoes'">Notifications</a>
+                <div class="admin-menu">
+                    {admin_menu_html}
+                </div>
+            </nav>
+            
+            <div class="header-user">
+                <span class="user-name">{username}</span>
+                <button class="notification-bell" onclick="window.parent.location.href='?page=notificacoes'">
+                    🔔{badge_html}
+                </button>
+                <div class="user-avatar">{username[0].upper() if username else 'U'}</div>
+                <button class="logout-btn" onclick="window.parent.location.href='?logout=true'">Logout</button>
+            </div>
+        </header>
+    </body>
+    </html>
     '''
     
-    # Try using st.html if available (Streamlit 1.33+)
-    try:
-        st.html(header_html)
-    except AttributeError:
-        # Fallback to st.markdown
-        st.markdown(header_html, unsafe_allow_html=True)
+    # Use components to render HTML
+    import streamlit.components.v1 as components
+    components.html(header_html, height=64, scrolling=False)
     
     # Process logout
     if st.query_params.get("logout") == "true":
@@ -616,7 +816,13 @@ def display_dataframe(df):
         df = df.copy()
         df.columns = [col.title() for col in df.columns]
         df = df.reset_index(drop=True)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        # Quando mostrares dataframes, usa esta configuração:
+        st.dataframe(
+            df,
+            use_container_width=False,  # <- MUDAR para False
+            hide_index=True,
+            height=400  # Altura fixa com scroll vertical
+)
     else:
         st.write("(no data)")
 
@@ -1158,7 +1364,7 @@ if st.session_state.perfil == "parceiro":
             df["updated_at"] = pd.to_datetime(df["updated_at"]).dt.strftime("%d/%m/%Y %H:%M")
         df = df[["id", "titulo", "estado", "versao_atual", "updated_at"]]
         df.columns = ["ID", "Title", "Status", "Version", "Last Update"]
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, use_container_width=False, hide_index=True, height=400)
 
         ids = [""] + [doc["id"] for doc in documentos]
         id_selecionado = st.selectbox(
@@ -1446,7 +1652,7 @@ elif st.session_state.perfil == "empresa":
             df["created_at"] = pd.to_datetime(df["created_at"]).dt.strftime("%d/%m/%Y %H:%M")
         df = df[["id", "titulo", "parceiro_id", "estado", "versao_atual", "updated_at"]]
         df.columns = ["ID", "Title", "Partner", "Status", "Version", "Last Update"]
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, use_container_width=False, hide_index=True, height=400)
 
         ids = [""] + [doc["id"] for doc in documentos]
         id_selecionado = st.selectbox(
@@ -1701,7 +1907,7 @@ elif st.session_state.perfil == "admin":
                 colunas_existentes = [col for col in colunas_desejadas if col in cols_disponiveis]
                 df = df[colunas_existentes]
                 df.columns = ["Username", "Profile", "Name", "Created At"]
-                st.dataframe(df, use_container_width=True, hide_index=True)
+                st.dataframe(df, use_container_width=False, hide_index=True, height=400)
 
                 st.divider()
                 st.subheader("Manage User")
@@ -1895,7 +2101,7 @@ elif st.session_state.perfil == "admin":
                 df["created_at"] = pd.to_datetime(df["created_at"]).dt.strftime("%d/%m/%Y %H:%M")
             df = df[["id", "titulo", "parceiro_id", "estado", "versao_atual", "updated_at"]]
             df.columns = ["ID", "Title", "Partner", "Status", "Version", "Last Update"]
-            st.dataframe(df, use_container_width=True, hide_index=True)
+            st.dataframe(df, use_container_width=False, hide_index=True, height=400)
 
             ids = [""] + [doc["id"] for doc in documentos]
             id_selecionado = st.selectbox(
