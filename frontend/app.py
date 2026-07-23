@@ -782,7 +782,6 @@ def trigger_scroll(doc_id):
 def render_topbar():
     """Renders the topbar with navigation and user info."""
     username = st.session_state.get("username", "User")
-    perfil = st.session_state.get("perfil", "")
     notif_count = get_notificacoes_nao_lidas() if st.session_state.get("token") else 0
     
     current_page = st.query_params.get("page", "home")
@@ -790,32 +789,45 @@ def render_topbar():
     is_dashboard = current_page == "dashboard"
     is_notifications = current_page == "notificacoes"
     
+    # JavaScript para navegação que funciona no Streamlit
+    js_code = '''
+    <script>
+    function navigateTo(page) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('page', page);
+        window.location.href = url.toString();
+    }
+    function logout() {
+        const url = new URL(window.location.href);
+        url.searchParams.set('logout', 'true');
+        window.location.href = url.toString();
+    }
+    </script>
+    '''
+    
     topbar_html = f'''
+    {js_code}
     <header class="dashboard-topbar">
         <div class="dashboard-topbar__inner">
-            <h1 class="dashboard-topbar__title" style="cursor:pointer;" onclick="window.location.href=window.location.origin + window.location.pathname + '?page=home'">📄 DocPlatform</h1>
+            <h1 class="dashboard-topbar__title" style="cursor:pointer;" onclick="navigateTo('home')">📄 DocPlatform</h1>
             <nav class="dashboard-topbar__nav">
                 <a class="dashboard-topbar__link {"active" if is_home else ""}" 
-                   href="javascript:void(0)" 
-                   onclick="window.location.href=window.location.origin + window.location.pathname + '?page=home'">
+                   onclick="navigateTo('home')" style="cursor:pointer;">
                     Home
                 </a>
                 <a class="dashboard-topbar__link {"active" if is_dashboard else ""}" 
-                   href="javascript:void(0)"
-                   onclick="window.location.href=window.location.origin + window.location.pathname + '?page=dashboard'">
+                   onclick="navigateTo('dashboard')" style="cursor:pointer;">
                     Dashboard
                 </a>
                 <a class="dashboard-topbar__link {"active" if is_notifications else ""}" 
-                   href="javascript:void(0)"
-                   onclick="window.location.href=window.location.origin + window.location.pathname + '?page=notificacoes'">
+                   onclick="navigateTo('notificacoes')" style="cursor:pointer;">
                     🔔 {notif_count if notif_count > 0 else ''}
                 </a>
                 <span style="color: rgba(255,255,255,0.3); font-size:14px;">|</span>
                 <span style="color: rgba(255,255,255,0.7); font-size:14px; font-weight:500;">{username}</span>
                 <a class="dashboard-topbar__link" 
-                   href="javascript:void(0)"
-                   onclick="window.location.href=window.location.origin + window.location.pathname + '?logout=true'"
-                   style="color:rgba(255,255,255,0.94) !important;">
+                   onclick="logout()" 
+                   style="cursor:pointer;color:rgba(255,255,255,0.94) !important;">
                     Logout
                 </a>
             </nav>
@@ -826,7 +838,7 @@ def render_topbar():
     
     st.markdown(topbar_html, unsafe_allow_html=True)
     
-    # Processar navegação via query params
+    # Processar navegação via query params (fallback)
     page = st.query_params.get("page", "home")
     if page == "dashboard":
         st.switch_page("pages/dashboard.py")
