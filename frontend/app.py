@@ -415,7 +415,8 @@ def criar_documento(titulo, parceiro_id, dados):
         try:
             erro = resp.json().get("detail", "Unknown error")
         except:
-            erro = resp.text        st.error(f"Error creating document: {erro}")
+            erro = resp.text
+        st.error(f"Error creating document: {erro}")
         return None
 
 def obter_documento(doc_id):
