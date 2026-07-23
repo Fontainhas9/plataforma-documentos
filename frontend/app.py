@@ -230,7 +230,7 @@ if "filtros_temporarios" not in st.session_state:
     }
 
 # ============================================================
-# HEADER COMPONENT
+# HEADER COMPONENT - CORRIGIDO
 # ============================================================
 def render_header():
     username = st.session_state.get("username", "User")
@@ -287,6 +287,7 @@ def render_header():
     <div class="main-content">
     '''
     
+    # Use st.markdown with unsafe_allow_html=True to render HTML
     st.markdown(header_html, unsafe_allow_html=True)
     
     # Process logout
