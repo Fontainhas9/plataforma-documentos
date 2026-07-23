@@ -230,7 +230,7 @@ if "filtros_temporarios" not in st.session_state:
     }
 
 # ============================================================
-# HEADER COMPONENT - CORRIGIDO
+# HEADER COMPONENT - COM st.html
 # ============================================================
 def render_header():
     username = st.session_state.get("username", "User")
@@ -287,8 +287,12 @@ def render_header():
     <div class="main-content">
     '''
     
-    # Use st.markdown with unsafe_allow_html=True to render HTML
-    st.markdown(header_html, unsafe_allow_html=True)
+    # Try using st.html if available (Streamlit 1.33+)
+    try:
+        st.html(header_html)
+    except AttributeError:
+        # Fallback to st.markdown
+        st.markdown(header_html, unsafe_allow_html=True)
     
     # Process logout
     if st.query_params.get("logout") == "true":
