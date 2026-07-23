@@ -64,7 +64,7 @@ body {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border-bottom: 1px solid rgba(255,255,255,0.06);
-    padding: 0 2rem;
+    padding: 0 1rem;
     height: 64px;
     display: flex;
     align-items: center;
@@ -74,41 +74,38 @@ body {
 .header-logo {
     display: flex;
     align-items: center;
-    gap: 12px;
-    font-size: 1.2rem;
+    gap: 10px;
+    font-size: 1.1rem;
     font-weight: 700;
     color: #ffffff;
-    text-decoration: none;
     cursor: pointer;
     flex-shrink: 0;
 }
-
 .header-logo .logo-icon {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
+    font-size: 0.9rem;
     color: white;
 }
 
 .header-nav {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
     flex: 1;
     justify-content: center;
 }
-
 .header-nav a {
     color: #a0a0b8;
     text-decoration: none;
-    padding: 8px 16px;
+    padding: 6px 14px;
     border-radius: 8px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 500;
     transition: all 0.3s ease;
     cursor: pointer;
@@ -116,66 +113,57 @@ body {
     border: none;
     font-family: inherit;
 }
-
 .header-nav a:hover {
     color: #ffffff;
     background: rgba(255,255,255,0.06);
 }
-
 .header-nav a.active {
     color: #ffffff;
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.25) 0%, rgba(118, 75, 162, 0.18) 100%);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+    background: linear-gradient(135deg, rgba(102,126,234,0.25) 0%, rgba(118,75,162,0.18) 100%);
 }
-
 .header-nav .nav-divider {
     width: 1px;
     height: 24px;
     background: rgba(255,255,255,0.06);
-    margin: 0 8px;
+    margin: 0 6px;
 }
 
 .header-user {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
     flex-shrink: 0;
 }
-
 .header-user .user-name {
     color: #e8e8e8;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 500;
 }
-
 .header-user .user-avatar {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     font-weight: 600;
     color: #ffffff;
 }
-
 .header-user .notification-bell {
     position: relative;
     cursor: pointer;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     color: #a0a0b8;
     transition: color 0.3s ease;
     background: none;
     border: none;
     padding: 4px;
 }
-
 .header-user .notification-bell:hover {
     color: #ffffff;
 }
-
 .header-user .notification-bell .badge {
     position: absolute;
     top: -6px;
@@ -188,30 +176,54 @@ body {
     font-weight: 700;
     min-width: 18px;
     text-align: center;
-    box-shadow: 0 2px 10px rgba(238, 90, 36, 0.4);
     animation: pulse 1s infinite;
 }
-
 @keyframes pulse {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.1); }
 }
-
 .header-user .logout-btn {
-    background: rgba(255,255,255,0.06) !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
-    border-radius: 8px !important;
-    color: #a0a0b8 !important;
-    padding: 6px 14px !important;
-    font-size: 0.85rem !important;
-    cursor: pointer !important;
-    transition: all 0.3s ease !important;
-    font-family: inherit !important;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    color: #a0a0b8;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+}
+.header-user .logout-btn:hover {
+    color: #ffffff;
+    background: rgba(255,255,255,0.10);
 }
 
-.header-user .logout-btn:hover {
-    color: #ffffff !important;
-    background: rgba(255,255,255,0.10) !important;
+/* Admin menu in header */
+.admin-menu {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    padding: 3px;
+}
+.admin-menu a {
+    color: #a0a0b8;
+    text-decoration: none;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+.admin-menu a:hover {
+    color: #ffffff;
+    background: rgba(255,255,255,0.06);
+}
+.admin-menu a.active {
+    color: #ffffff;
+    background: linear-gradient(135deg, rgba(102,126,234,0.25) 0%, rgba(118,75,162,0.18) 100%);
 }
 
 /* ============================================================
@@ -219,15 +231,15 @@ body {
    ============================================================ */
 .main-content {
     margin-top: 80px;
-    padding: 0 2rem 2rem 2rem !important;
-    max-width: 1100px;
+    padding: 0 1rem 2rem 1rem !important;
+    max-width: 1000px;
     margin-left: auto;
     margin-right: auto;
 }
 
 /* Override Streamlit's default width for columns */
 .row-widget.stColumns {
-    max-width: 1100px !important;
+    max-width: 1000px !important;
     margin-left: auto !important;
     margin-right: auto !important;
 }
@@ -236,7 +248,7 @@ body {
    HEADERS
    ============================================================ */
 .main-content h1 {
-    font-size: 2rem !important;
+    font-size: 1.8rem !important;
     font-weight: 700 !important;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
     -webkit-background-clip: text !important;
@@ -244,121 +256,47 @@ body {
     background-clip: text !important;
     margin-bottom: 0.5rem !important;
 }
-
 .main-content h2 {
-    font-size: 1.3rem !important;
+    font-size: 1.2rem !important;
     font-weight: 600 !important;
     color: #e8e8e8 !important;
-    margin-bottom: 1rem !important;
+    margin-bottom: 0.8rem !important;
 }
-
 .main-content h3 {
-    font-size: 1.1rem !important;
+    font-size: 1rem !important;
     font-weight: 600 !important;
     color: #d0d0e0 !important;
 }
 
 /* ============================================================
-   STAT CARDS - Like the image
+   STAT CARDS
    ============================================================ */
 .stat-card {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.12) 0%, rgba(118, 75, 162, 0.06) 100%);
-    border-radius: 16px;
-    padding: 1.5rem 1.25rem;
+    background: linear-gradient(135deg, rgba(102,126,234,0.10) 0%, rgba(118,75,162,0.06) 100%);
+    border-radius: 14px;
+    padding: 1rem 1rem;
     border: 1px solid rgba(255,255,255,0.05);
     transition: all 0.3s ease;
     margin-bottom: 0.5rem;
 }
-
 .stat-card:hover {
-    transform: translateY(-4px);
-    border-color: rgba(102, 126, 234, 0.25);
+    transform: translateY(-3px);
+    border-color: rgba(102,126,234,0.25);
     box-shadow: 0 8px 30px rgba(0,0,0,0.3);
 }
-
 .stat-card .stat-value {
-    font-size: 2.2rem;
+    font-size: 1.8rem;
     font-weight: 700;
     color: #ffffff;
     line-height: 1.2;
 }
-
 .stat-card .stat-label {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 500;
     color: #80809a;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-top: 4px;
-}
-
-.stat-card .stat-sub {
-    font-size: 0.7rem;
-    color: #667eea;
-    margin-top: 2px;
-}
-
-/* Stat card variations - like the image colors */
-.stat-card.primary {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.08) 100%);
-}
-.stat-card.success {
-    background: linear-gradient(135deg, rgba(0, 212, 255, 0.10) 0%, rgba(0, 200, 150, 0.05) 100%);
-}
-.stat-card.warning {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.10) 0%, rgba(245, 158, 11, 0.04) 100%);
-}
-.stat-card.danger {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.10) 0%, rgba(239, 68, 68, 0.04) 100%);
-}
-
-/* ============================================================
-   FEATURE CARDS - Like the image grid
-   ============================================================ */
-.feature-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
-}
-
-.feature-card {
-    background: rgba(255,255,255,0.03);
-    border-radius: 14px;
-    padding: 1.5rem 1.25rem;
-    border: 1px solid rgba(255,255,255,0.05);
-    transition: all 0.3s ease;
-    cursor: pointer;
-    text-decoration: none;
-    color: #e8e8e8;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-}
-
-.feature-card:hover {
-    background: rgba(255,255,255,0.06);
-    border-color: rgba(102, 126, 234, 0.3);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-}
-
-.feature-card .feature-icon {
-    font-size: 1.5rem;
-    opacity: 0.8;
-}
-
-.feature-card .feature-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #ffffff;
-}
-
-.feature-card .feature-desc {
-    font-size: 0.85rem;
-    color: #80809a;
-    line-height: 1.4;
 }
 
 /* ============================================================
@@ -368,27 +306,24 @@ body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
     color: white !important;
     border: none !important;
-    border-radius: 10px !important;
-    padding: 0.6rem 1.5rem !important;
+    border-radius: 8px !important;
+    padding: 0.5rem 1.2rem !important;
     font-weight: 500 !important;
     transition: all 0.3s ease !important;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.25) !important;
+    box-shadow: 0 4px 15px rgba(102,126,234,0.25) !important;
+    font-size: 0.85rem !important;
 }
-
 .stButton button:hover {
     transform: translateY(-2px) !important;
-    box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4) !important;
+    box-shadow: 0 6px 25px rgba(102,126,234,0.4) !important;
 }
-
 .stButton button:active {
     transform: translateY(0px) !important;
 }
-
 .stButton button[kind="secondary"] {
     background: rgba(255,255,255,0.06) !important;
     box-shadow: none !important;
 }
-
 .stButton button[kind="secondary"]:hover {
     background: rgba(255,255,255,0.10) !important;
 }
@@ -401,15 +336,14 @@ body {
     border: 1px solid rgba(255,255,255,0.06) !important;
     border-radius: 8px !important;
     color: #e8e8e8 !important;
+    font-size: 0.85rem !important;
     transition: all 0.3s ease !important;
 }
-
 .stTextInput input:focus, .stSelectbox select:focus, .stTextArea textarea:focus {
     border-color: #667eea !important;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15) !important;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.15) !important;
     outline: none !important;
 }
-
 .stTextInput input:disabled {
     color: white !important;
     opacity: 1 !important;
@@ -425,36 +359,34 @@ body {
     background: rgba(255,255,255,0.03) !important;
     border-radius: 10px !important;
     border: 1px solid rgba(255,255,255,0.05) !important;
+    font-size: 0.9rem !important;
 }
-
 .streamlit-expanderHeader:hover {
-    border-color: rgba(102, 126, 234, 0.3) !important;
+    border-color: rgba(102,126,234,0.3) !important;
 }
 
 /* ============================================================
    DATAFRAMES / TABLES
    ============================================================ */
-.dataframe, .stDataFrame {
+.stDataFrame {
     background: rgba(255,255,255,0.02) !important;
     border-radius: 12px !important;
     overflow: hidden !important;
+    font-size: 0.85rem !important;
 }
-
-.dataframe thead tr th, .stDataFrame thead tr th {
-    background: rgba(102, 126, 234, 0.12) !important;
+.stDataFrame thead tr th {
+    background: rgba(102,126,234,0.12) !important;
     color: #e0e0e0 !important;
     font-weight: 600 !important;
-    padding: 0.75rem 1rem !important;
+    padding: 0.6rem 0.8rem !important;
 }
-
-.dataframe tbody tr td, .stDataFrame tbody tr td {
+.stDataFrame tbody tr td {
     color: #c0c0d0 !important;
-    padding: 0.6rem 1rem !important;
+    padding: 0.5rem 0.8rem !important;
     border-bottom: 1px solid rgba(255,255,255,0.03) !important;
 }
-
-.dataframe tbody tr:hover, .stDataFrame tbody tr:hover {
-    background: rgba(102, 126, 234, 0.04) !important;
+.stDataFrame tbody tr:hover {
+    background: rgba(102,126,234,0.04) !important;
 }
 
 /* ============================================================
@@ -462,8 +394,8 @@ body {
    ============================================================ */
 .stCheckbox label {
     color: #d0d0e0 !important;
+    font-size: 0.85rem !important;
 }
-
 .stCheckbox input[type="checkbox"] {
     accent-color: #667eea !important;
 }
@@ -475,13 +407,11 @@ body {
     border-radius: 12px !important;
     border-left: 4px solid !important;
     background: rgba(255,255,255,0.02) !important;
-    backdrop-filter: blur(10px) !important;
+    font-size: 0.9rem !important;
 }
-
 .stAlert [data-testid="stMarkdownContainer"] {
     color: #e0e0e0 !important;
 }
-
 .stAlert.info {
     border-left-color: #667eea !important;
 }
@@ -500,35 +430,15 @@ body {
    ============================================================ */
 hr {
     border-color: rgba(255,255,255,0.05) !important;
-    margin: 1.5rem 0 !important;
+    margin: 1.2rem 0 !important;
 }
 
 /* ============================================================
-   BADGE / NOTIFICATIONS
+   CAPTION
    ============================================================ */
-.notification-badge {
-    position: fixed;
-    top: 10px;
-    right: 20px;
-    z-index: 999;
-    cursor: pointer;
-    font-size: 28px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.notification-badge .badge {
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%) !important;
-    color: white !important;
-    border-radius: 50% !important;
-    padding: 2px 8px !important;
-    font-size: 12px !important;
-    font-weight: bold !important;
-    min-width: 20px !important;
-    text-align: center !important;
-    animation: pulse 1s infinite !important;
-    box-shadow: 0 2px 10px rgba(238, 90, 36, 0.4) !important;
+.stCaption, .caption {
+    color: #80809a !important;
+    font-size: 0.8rem !important;
 }
 
 /* ============================================================
@@ -537,53 +447,58 @@ hr {
 @media (max-width: 1024px) {
     .main-content {
         max-width: 95% !important;
-        padding: 0 1rem 1rem 1rem !important;
+        padding: 0 0.75rem 1rem 0.75rem !important;
     }
 }
 
 @media (max-width: 768px) {
     .main-header {
-        padding: 0 1rem;
+        padding: 0 0.5rem;
         height: 56px;
     }
     .header-nav a {
-        padding: 6px 10px;
-        font-size: 0.8rem;
+        padding: 4px 10px;
+        font-size: 0.75rem;
     }
     .header-user .user-name {
         display: none;
     }
     .main-content {
         margin-top: 72px;
-        padding: 0 0.75rem 1rem 0.75rem !important;
+        padding: 0 0.5rem 1rem 0.5rem !important;
         max-width: 100% !important;
     }
     .stat-card .stat-value {
-        font-size: 1.8rem;
+        font-size: 1.5rem;
     }
     .stat-card {
-        padding: 1rem 0.75rem;
+        padding: 0.75rem 0.75rem;
+    }
+    .admin-menu a {
+        padding: 3px 8px;
+        font-size: 0.7rem;
     }
 }
 
 @media (max-width: 480px) {
     .header-nav a {
-        padding: 4px 8px;
-        font-size: 0.7rem;
+        padding: 3px 6px;
+        font-size: 0.65rem;
     }
     .header-nav .nav-divider {
-        margin: 0 4px;
+        margin: 0 3px;
     }
     .header-user {
-        gap: 8px;
+        gap: 6px;
     }
     .header-user .notification-bell {
-        font-size: 1rem;
+        font-size: 0.9rem;
+    }
+    .header-user .logout-btn {
+        padding: 3px 8px;
+        font-size: 0.7rem;
     }
     .main-content {
-        padding: 0 0.5rem 1rem 0.5rem !important;
-    }
-    .stat-card .stat-value {
-        font-size: 1.5rem;
+        padding: 0 0.3rem 0.8rem 0.3rem !important;
     }
 }
