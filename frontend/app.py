@@ -234,8 +234,8 @@ def render_header():
         is_users = st.session_state.admin_menu == "Users"
         is_docs = st.session_state.admin_menu == "Documents"
         admin_menu_html = f'''
-        <a class="{'active' if is_users else ''}" onclick="navigateTo('?admin=Users')">Users</a>
-        <a class="{'active' if is_docs else ''}" onclick="navigateTo('?admin=Documents')">Documents</a>
+        <a class="{'active' if is_users else ''}" onclick="window.parent.location.href='?admin=Users'">Users</a>
+        <a class="{'active' if is_docs else ''}" onclick="window.parent.location.href='?admin=Documents'">Documents</a>
         '''
     
     notif_badge = f'<span class="count">{notif_count}</span>' if notif_count > 0 else ''
@@ -256,11 +256,9 @@ def render_header():
             .custom-header {{
                 position: fixed;
                 top: 0;
-                left: 50%;
-                transform: translateX(-50%);
+                left: 0;
+                right: 0;
                 z-index: 1000;
-                width: 100%;
-                max-width: 100%;
                 background: rgba(10,10,26,0.92);
                 backdrop-filter: blur(16px);
                 border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -430,34 +428,29 @@ def render_header():
                 .admin-menu a {{ padding: 2px 5px; font-size: 0.6rem; }}
             }}
         </style>
-        <script>
-            function navigateTo(url) {{
-                window.location.href = window.location.origin + window.location.pathname + url;
-            }}
-        </script>
     </head>
     <body>
         <header class="custom-header">
-            <div class="logo" onclick="navigateTo('?page=home')">
+            <div class="logo" onclick="window.parent.location.href='?page=home'">
                 <div class="icon">📄</div>
                 <span>DocPlatform</span>
             </div>
             <nav class="nav-links">
-                <a class="{home_active}" onclick="navigateTo('?page=home')">Home</a>
-                <a class="{dash_active}" onclick="navigateTo('?page=dashboard')">Dashboard</a>
+                <a class="{home_active}" onclick="window.parent.location.href='?page=home'">Home</a>
+                <a class="{dash_active}" onclick="window.parent.location.href='?page=dashboard'">Dashboard</a>
                 <span class="divider"></span>
-                <a class="{notif_active}" onclick="navigateTo('?page=notificacoes')">Notifications</a>
+                <a class="{notif_active}" onclick="window.parent.location.href='?page=notificacoes'">Notifications</a>
                 <div class="admin-menu">
                     {admin_menu_html}
                 </div>
             </nav>
             <div class="user-section">
                 <span class="name">{username}</span>
-                <button class="badge" onclick="navigateTo('?page=notificacoes')">
+                <button class="badge" onclick="window.parent.location.href='?page=notificacoes'">
                     🔔{notif_badge}
                 </button>
                 <div class="avatar">{username[0].upper() if username else 'U'}</div>
-                <button class="logout-btn" onclick="navigateTo('?logout=true')">Logout</button>
+                <button class="logout-btn" onclick="window.parent.location.href='?logout=true'">Logout</button>
             </div>
         </header>
     </body>

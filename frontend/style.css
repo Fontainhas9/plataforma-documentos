@@ -176,41 +176,45 @@ body {
 }
 
 /* ============================================================
-   DATAFRAMES / TABLES - REDUCED WIDTH
+   DATAFRAMES / TABLES - EXTREMELY NARROW
    ============================================================ */
 .stDataFrame {
     background: rgba(255,255,255,0.02) !important;
     border-radius: 12px !important;
     overflow-x: auto !important;
-    font-size: 0.75rem !important;
+    font-size: 0.7rem !important;
     max-width: 100% !important;
     border: 1px solid rgba(255,255,255,0.04) !important;
 }
 
 .stDataFrame table {
     width: 100% !important;
-    table-layout: auto !important;
+    table-layout: fixed !important;
 }
 
 .stDataFrame thead tr th {
     background: rgba(102,126,234,0.12) !important;
     color: #e0e0e0 !important;
     font-weight: 600 !important;
-    padding: 0.3rem 0.4rem !important;
+    padding: 0.25rem 0.3rem !important;
     white-space: nowrap !important;
-    font-size: 0.7rem !important;
+    font-size: 0.65rem !important;
     text-align: left !important;
-    max-width: 80px !important;
+    width: 60px !important;
+    max-width: 60px !important;
     min-width: 40px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
 }
 
 .stDataFrame tbody tr td {
     color: #c0c0d0 !important;
-    padding: 0.25rem 0.4rem !important;
+    padding: 0.2rem 0.3rem !important;
     border-bottom: 1px solid rgba(255,255,255,0.03) !important;
     white-space: nowrap !important;
-    font-size: 0.7rem !important;
-    max-width: 80px !important;
+    font-size: 0.65rem !important;
+    width: 60px !important;
+    max-width: 60px !important;
     min-width: 30px !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
@@ -220,16 +224,23 @@ body {
     background: rgba(102,126,234,0.04) !important;
 }
 
+/* Force all columns to be narrow */
 .stDataFrame .col_heading {
-    max-width: 80px !important;
+    width: 60px !important;
+    max-width: 60px !important;
     min-width: 40px !important;
 }
 
 .stDataFrame .data {
-    max-width: 80px !important;
+    width: 60px !important;
+    max-width: 60px !important;
     min-width: 30px !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+}
+
+/* Specific column overrides for common tables */
+.stDataFrame .col_heading.level0 {
+    width: 50px !important;
+    max-width: 50px !important;
 }
 
 /* ============================================================
@@ -291,12 +302,19 @@ hr {
     .main-content {
         padding: 0 10% 1rem 10% !important;
     }
+    .custom-header {
+        padding: 0 10% !important;
+    }
 }
 
 @media (max-width: 768px) {
     .main-content {
         margin-top: 72px;
         padding: 0 5% 1rem 5% !important;
+    }
+    .custom-header {
+        padding: 0 5% !important;
+        height: 56px !important;
     }
     .stat-card .stat-value {
         font-size: 1.5rem;
@@ -306,9 +324,10 @@ hr {
     }
     .stDataFrame thead tr th,
     .stDataFrame tbody tr td {
-        font-size: 0.6rem !important;
-        padding: 0.2rem 0.25rem !important;
-        max-width: 50px !important;
+        font-size: 0.55rem !important;
+        padding: 0.15rem 0.2rem !important;
+        width: 40px !important;
+        max-width: 40px !important;
         min-width: 20px !important;
     }
 }
@@ -316,5 +335,8 @@ hr {
 @media (max-width: 480px) {
     .main-content {
         padding: 0 3% 0.8rem 3% !important;
+    }
+    .custom-header {
+        padding: 0 3% !important;
     }
 }
