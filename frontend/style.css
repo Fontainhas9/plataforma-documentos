@@ -185,15 +185,14 @@ body {
 }
 
 /* ============================================================
-   DATAFRAMES / TABLES
+   DATAFRAMES / TABLES - FIXED WIDTHS
    ============================================================ */
 .stDataFrame {
     background: rgba(255,255,255,0.02) !important;
     border-radius: 12px !important;
-    overflow: auto !important;
+    overflow-x: auto !important;
     font-size: 0.85rem !important;
     max-width: 100% !important;
-    width: 100% !important;
 }
 
 .stDataFrame table {
@@ -205,19 +204,30 @@ body {
     background: rgba(102,126,234,0.12) !important;
     color: #e0e0e0 !important;
     font-weight: 600 !important;
-    padding: 0.6rem 0.8rem !important;
+    padding: 0.5rem 0.6rem !important;
     white-space: nowrap !important;
+    font-size: 0.8rem !important;
 }
 
 .stDataFrame tbody tr td {
     color: #c0c0d0 !important;
-    padding: 0.5rem 0.8rem !important;
+    padding: 0.4rem 0.6rem !important;
     border-bottom: 1px solid rgba(255,255,255,0.03) !important;
     white-space: nowrap !important;
+    font-size: 0.8rem !important;
 }
 
 .stDataFrame tbody tr:hover {
     background: rgba(102,126,234,0.04) !important;
+}
+
+/* Specific column widths for document tables */
+.stDataFrame .col_heading {
+    max-width: 120px !important;
+}
+
+.stDataFrame .data {
+    max-width: 120px !important;
 }
 
 /* ============================================================
@@ -286,6 +296,11 @@ hr {
     }
     .stat-card {
         padding: 0.75rem 0.75rem;
+    }
+    .stDataFrame thead tr th,
+    .stDataFrame tbody tr td {
+        font-size: 0.7rem !important;
+        padding: 0.3rem 0.4rem !important;
     }
 }
 
