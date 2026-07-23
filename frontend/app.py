@@ -782,6 +782,7 @@ def trigger_scroll(doc_id):
 def render_topbar():
     """Renders the topbar with navigation and user info."""
     username = st.session_state.get("username", "User")
+    perfil = st.session_state.get("perfil", "")
     notif_count = get_notificacoes_nao_lidas() if st.session_state.get("token") else 0
     
     current_page = st.query_params.get("page", "home")
@@ -789,7 +790,52 @@ def render_topbar():
     is_dashboard = current_page == "dashboard"
     is_notifications = current_page == "notificacoes"
     
-    # JavaScript para navegação que funciona no Streamlit
+    # CSS para esconder botões Streamlit e estilizar o topbar
+    st.markdown('''
+    <style>
+        /* Esconder os botões Streamlit do topbar */
+        .topbar-btn {
+            display: none !important;
+        }
+        /* Links do topbar */
+        .dashboard-topbar__link {
+            cursor: pointer !important;
+            color: rgba(255, 255, 255, 0.94) !important;
+            text-decoration: none !important;
+            font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+            font-size: 15px !important;
+            line-height: 1.2 !important;
+            font-weight: 600 !important;
+            transition: color 0.18s ease, opacity 0.18s ease !important;
+            background: none !important;
+            border: none !important;
+            padding: 0 !important;
+        }
+        .dashboard-topbar__link:hover {
+            color: #ffffff !important;
+            opacity: 0.82 !important;
+        }
+        .dashboard-topbar__link.active {
+            color: #ffffff !important;
+            opacity: 1 !important;
+        }
+        .dashboard-topbar__nav .dashboard-topbar__link + .dashboard-topbar__link {
+            position: relative !important;
+        }
+        .dashboard-topbar__nav .dashboard-topbar__link + .dashboard-topbar__link::before {
+            content: "" !important;
+            position: absolute !important;
+            left: -11px !important;
+            top: 50% !important;
+            width: 1px !important;
+            height: 14px !important;
+            background: rgb(254, 200, 0) !important;
+            transform: translateY(-50%) !important;
+        }
+    </style>
+    ''', unsafe_allow_html=True)
+    
+    # JavaScript para navegação
     js_code = '''
     <script>
     function navigateTo(page) {
@@ -805,31 +851,30 @@ def render_topbar():
     </script>
     '''
     
+    # Construir o topbar HTML
     topbar_html = f'''
     {js_code}
     <header class="dashboard-topbar">
         <div class="dashboard-topbar__inner">
             <h1 class="dashboard-topbar__title" style="cursor:pointer;" onclick="navigateTo('home')">📄 DocPlatform</h1>
             <nav class="dashboard-topbar__nav">
-                <a class="dashboard-topbar__link {"active" if is_home else ""}" 
-                   onclick="navigateTo('home')" style="cursor:pointer;">
-                    Home
-                </a>
-                <a class="dashboard-topbar__link {"active" if is_dashboard else ""}" 
-                   onclick="navigateTo('dashboard')" style="cursor:pointer;">
-                    Dashboard
-                </a>
-                <a class="dashboard-topbar__link {"active" if is_notifications else ""}" 
-                   onclick="navigateTo('notificacoes')" style="cursor:pointer;">
+                <a class="dashboard-topbar__link {"active" if is_home else ""}" onclick="navigateTo('home')">Home</a>
+    '''
+    
+    # Mostrar Dashboard apenas para admin (e empresa/parceiro se tiverem permissão)
+    if perfil == "admin":
+        topbar_html += f'''
+                <a class="dashboard-topbar__link {"active" if is_dashboard else ""}" onclick="navigateTo('dashboard')">Dashboard</a>
+        '''
+    
+    # Notificações para todos
+    topbar_html += f'''
+                <a class="dashboard-topbar__link {"active" if is_notifications else ""}" onclick="navigateTo('notificacoes')">
                     🔔 {notif_count if notif_count > 0 else ''}
                 </a>
                 <span style="color: rgba(255,255,255,0.3); font-size:14px;">|</span>
                 <span style="color: rgba(255,255,255,0.7); font-size:14px; font-weight:500;">{username}</span>
-                <a class="dashboard-topbar__link" 
-                   onclick="logout()" 
-                   style="cursor:pointer;color:rgba(255,255,255,0.94) !important;">
-                    Logout
-                </a>
+                <a class="dashboard-topbar__link" onclick="logout()" style="cursor:pointer;">Logout</a>
             </nav>
         </div>
     </header>
@@ -838,7 +883,40 @@ def render_topbar():
     
     st.markdown(topbar_html, unsafe_allow_html=True)
     
-    # Processar navegação via query params (fallback)
+    # Botões Streamlit escondidos para navegação (fallback)
+    col1, col2, col3, col4 = st.columns([1, 1, 1, 6])
+    
+    with col1:
+        if st.button("Home", key="topbar_home", use_container_width=True):
+            st.query_params["page"] = "home"
+            st.rerun()
+    
+    with col2:
+        if perfil == "admin":
+            if st.button("Dashboard", key="topbar_dashboard", use_container_width=True):
+                st.query_params["page"] = "dashboard"
+                st.rerun()
+    
+    with col3:
+        if st.button("Notificações", key="topbar_notifications", use_container_width=True):
+            st.query_params["page"] = "notificacoes"
+            st.rerun()
+    
+    with col4:
+        if st.button("Logout", key="topbar_logout", use_container_width=True):
+            st.query_params["logout"] = "true"
+            st.rerun()
+    
+    # Esconder os botões Streamlit
+    st.markdown('''
+    <style>
+        .stButton {
+            display: none !important;
+        }
+    </style>
+    ''', unsafe_allow_html=True)
+    
+    # Processar navegação via query params
     page = st.query_params.get("page", "home")
     if page == "dashboard":
         st.switch_page("pages/dashboard.py")
