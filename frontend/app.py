@@ -4,68 +4,27 @@ import pandas as pd
 import copy
 from datetime import datetime
 import os
-import sys
 
 # ============================================================
-# ADD FRONTEND DIRECTORY TO PATH FOR IMPORTS
-# ============================================================
-frontend_dir = os.path.dirname(os.path.abspath(__file__))
-if frontend_dir not in sys.path:
-    sys.path.insert(0, frontend_dir)
-
-# ============================================================
-# LOAD CSS - FROM EXTERNAL FILE
-# ============================================================
-def load_css():
-    """Loads the external CSS file."""
-    try:
-        css_path = os.path.join(os.path.dirname(__file__), 'style.css')
-        if os.path.exists(css_path):
-            with open(css_path, 'r') as f:
-                css = f.read()
-                st.markdown(f'<style>{css}</style>', unsafe_allow_html=True)
-                print(f"✅ CSS loaded from: {css_path}")
-                return
-    except Exception as e:
-        print(f"Error loading CSS from file: {e}")
-    
-    # Fallback CSS
-    st.markdown("""
-    <style>
-        [data-testid="stSidebar"] { display: none !important; }
-        [data-testid="stSidebarNav"] { display: none !important; }
-        .main > div { padding: 0 !important; max-width: 100% !important; }
-        .block-container { padding: 0 !important; max-width: 100% !important; }
-        .main-content { margin-top: 80px; padding: 0 2rem 2rem 2rem !important; max-width: 1000px !important; margin-left: auto !important; margin-right: auto !important; }
-        .stat-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 1.5rem; border: 1px solid rgba(255,255,255,0.05); }
-        .stat-value { font-size: 2rem; font-weight: 700; color: white; }
-        .stat-label { font-size: 0.8rem; color: #80809a; text-transform: uppercase; }
-        .stButton button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; padding: 0.5rem 1.2rem !important; font-weight: 500 !important; }
-        .stDataFrame { max-width: 100% !important; overflow-x: auto !important; }
-        .stDataFrame thead tr th { font-size: 0.75rem !important; padding: 0.4rem 0.5rem !important; }
-        .stDataFrame tbody tr td { font-size: 0.75rem !important; padding: 0.35rem 0.5rem !important; }
-    </style>
-    """, unsafe_allow_html=True)
-
-load_css()
-
-# ============================================================
-# API URL CONFIGURATION
+# API URL CONFIGURATION - WORKS IN LOCAL AND PRODUCTION
 # ============================================================
 def get_api_url():
+    """Returns the API URL based on the environment (local or production)."""
     try:
         if hasattr(st, 'secrets') and st.secrets and 'API_URL' in st.secrets:
             return st.secrets['API_URL']
     except Exception:
         pass
+    
     api_url = os.getenv('API_URL')
     if api_url:
         return api_url
+    
     return "http://127.0.0.1:8000"
 
 API_URL = get_api_url()
 
-# Default processes
+# Default processes (used as fallback)
 PROCESSOS_PADRAO = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
 DATASOURCE_OPTIONS = ["Measured", "Calculated", "Estimated", "Literature"]
 
@@ -73,19 +32,34 @@ DATASOURCE_OPTIONS = ["Measured", "Calculated", "Estimated", "Literature"]
 # FUNCTION TO FORMAT DATE/TIME
 # ============================================================
 def formatar_data_hora(data_str):
+    """
+    Converts a date/time string to DD/MM/YYYY HH:MM format.
+    Supports ISO 8601 formats with T and Z.
+    Example: "2026-07-16T14:30:45.856282Z" -> "16/07/2026 14:30"
+    """
     if not data_str:
         return ""
     try:
         if isinstance(data_str, datetime):
             return data_str.strftime("%d/%m/%Y %H:%M")
-        data_str = str(data_str).replace('Z', '').replace('T', ' ')
-        formats = ["%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"]
+        
+        data_str = str(data_str)
+        data_str = data_str.replace('Z', '').replace('T', ' ')
+        
+        formats = [
+            "%Y-%m-%d %H:%M:%S.%f",
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d %H:%M",
+            "%Y-%m-%d"
+        ]
+        
         for fmt in formats:
             try:
                 dt = datetime.strptime(data_str, fmt)
                 return dt.strftime("%d/%m/%Y %H:%M")
             except ValueError:
                 continue
+        
         return data_str
     except Exception:
         return str(data_str)
@@ -94,13 +68,59 @@ def formatar_data_hora(data_str):
 st.set_page_config(
     page_title="Document Platform",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
+# Import notification component
+from componentes.notificacoes import render_notificacoes_badge, get_notificacoes_nao_lidas
+
 # ============================================================
-# JAVASCRIPT FOR AUTO SCROLL
+# CSS AND JAVASCRIPT FOR AUTO SCROLL - SIDEBAR 270px
 # ============================================================
 st.markdown("""
+<style>
+    [data-testid="stSidebarNav"] {
+        display: none !important;
+    }
+    [data-testid="stSidebar"] {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        width: auto !important;
+        min-width: 270px !important;
+        max-width: 270px !important;
+        overflow: auto !important;
+        pointer-events: auto !important;
+    }
+    .main > div {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        max-width: 100% !important;
+    }
+    html {
+        scroll-behavior: smooth;
+    }
+    .doc-anchor {
+        display: block;
+        position: relative;
+        top: -80px;
+        visibility: hidden;
+        height: 0;
+    }
+    /* Force white text on disabled inputs */
+    .stTextInput input:disabled {
+        color: white !important;
+        opacity: 1 !important;
+        background-color: #262730 !important;
+    }
+    /* Ensure disabled select boxes also have white text */
+    .stSelectbox select:disabled {
+        color: white !important;
+        opacity: 1 !important;
+        background-color: #262730 !important;
+    }
+</style>
+
 <script>
     function checkScrollParam() {
         var urlParams = new URLSearchParams(window.location.search);
@@ -131,18 +151,18 @@ st.markdown("""
             }, 1000);
         }
     }
+    
     window.addEventListener('load', function() {
         setTimeout(checkScrollParam, 200);
     });
+    
     document.addEventListener('DOMContentLoaded', function() {
         setTimeout(checkScrollParam, 300);
     });
 </script>
 """, unsafe_allow_html=True)
 
-# ============================================================
-# INITIALIZE SESSION STATE
-# ============================================================
+# Initialize session state
 if "token" not in st.session_state:
     st.session_state.token = None
 if "perfil" not in st.session_state:
@@ -153,6 +173,8 @@ if "doc_selecionado" not in st.session_state:
     st.session_state.doc_selecionado = None
 if "success_message" not in st.session_state:
     st.session_state.success_message = None
+if "menu_parceiro_widget" not in st.session_state:
+    st.session_state.menu_parceiro_widget = "My Documents"
 if "redirect_to_docs" not in st.session_state:
     st.session_state.redirect_to_docs = False
 if "edit_data" not in st.session_state:
@@ -189,308 +211,39 @@ if "empresa_mostrar_form" not in st.session_state:
     st.session_state.empresa_mostrar_form = False
 if "admin_mostrar_form" not in st.session_state:
     st.session_state.admin_mostrar_form = False
-if "admin_menu" not in st.session_state:
-    st.session_state.admin_menu = "Users"
 
-# Filter state
+# Key to force recreation of filter widgets
 if "filtros_widget_key" not in st.session_state:
     st.session_state.filtros_widget_key = 0
+
+# Filter state - current applied values
 if "filtros_aplicados" not in st.session_state:
     st.session_state.filtros_aplicados = {
-        "q": "", "estados": [], "data_inicio": None, "data_fim": None,
-        "order_by": "id", "order_dir": "desc"
+        "q": "",
+        "estados": [],
+        "data_inicio": None,
+        "data_fim": None,
+        "order_by": "id",
+        "order_dir": "desc"
     }
+
+# Temporary filter state (while user is adjusting)
 if "filtros_temporarios" not in st.session_state:
     st.session_state.filtros_temporarios = {
-        "q": "", "estados": [], "data_inicio": None, "data_fim": None,
-        "order_by": "id", "order_dir": "desc"
+        "q": "",
+        "estados": [],
+        "data_inicio": None,
+        "data_fim": None,
+        "order_by": "id",
+        "order_dir": "desc"
     }
 
-# ============================================================
-# HEADER COMPONENT - WITH WORKING NAVIGATION
-# ============================================================
-def render_header():
-    import streamlit.components.v1 as components
-    
-    username = st.session_state.get("username", "User")
-    perfil = st.session_state.get("perfil", "")
-    
-    # Get unread notifications count
-    try:
-        from componentes.notificacoes import get_notificacoes_nao_lidas
-        notif_count = get_notificacoes_nao_lidas() if st.session_state.get("token") else 0
-    except:
-        notif_count = 0
-    
-    # Get current page
-    current_page = st.query_params.get("page", "home")
-    is_home = current_page == "home" or current_page == ""
-    is_dashboard = current_page == "dashboard"
-    is_notifications = current_page == "notificacoes"
-    
-    # Admin menu items (only for admin)
-    admin_menu_html = ""
-    if perfil == "admin":
-        is_users = st.session_state.admin_menu == "Users"
-        is_docs = st.session_state.admin_menu == "Documents"
-        admin_menu_html = f'''
-        <a class="{'active' if is_users else ''}" onclick="window.parent.location.href='?admin=Users'">Users</a>
-        <a class="{'active' if is_docs else ''}" onclick="window.parent.location.href='?admin=Documents'">Documents</a>
-        '''
-    
-    notif_badge = f'<span class="count">{notif_count}</span>' if notif_count > 0 else ''
-    
-    # Active class for links
-    home_active = 'active' if is_home else ''
-    dash_active = 'active' if is_dashboard else ''
-    notif_active = 'active' if is_notifications else ''
-    
-    header_html = f'''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-            body {{ background: transparent; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
-            
-            .custom-header {{
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                z-index: 1000;
-                background: rgba(10,10,26,0.92);
-                backdrop-filter: blur(16px);
-                border-bottom: 1px solid rgba(255,255,255,0.06);
-                padding: 0 20%;
-                height: 64px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-            }}
-            .custom-header .logo {{
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                font-size: 1.1rem;
-                font-weight: 700;
-                color: #ffffff;
-                cursor: pointer;
-            }}
-            .custom-header .logo .icon {{
-                width: 30px;
-                height: 30px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                border-radius: 8px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 0.9rem;
-                color: white;
-            }}
-            .custom-header .nav-links {{
-                display: flex;
-                align-items: center;
-                gap: 4px;
-                flex: 1;
-                justify-content: center;
-            }}
-            .custom-header .nav-links a {{
-                color: #a0a0b8;
-                text-decoration: none;
-                padding: 6px 14px;
-                border-radius: 8px;
-                font-size: 0.85rem;
-                font-weight: 500;
-                transition: all 0.3s ease;
-                cursor: pointer;
-            }}
-            .custom-header .nav-links a:hover {{
-                color: #ffffff;
-                background: rgba(255,255,255,0.06);
-            }}
-            .custom-header .nav-links a.active {{
-                color: #ffffff;
-                background: linear-gradient(135deg, rgba(102,126,234,0.25) 0%, rgba(118,75,162,0.18) 100%);
-            }}
-            .custom-header .nav-links .divider {{
-                width: 1px;
-                height: 24px;
-                background: rgba(255,255,255,0.06);
-                margin: 0 6px;
-            }}
-            .admin-menu {{
-                display: inline-flex;
-                align-items: center;
-                gap: 2px;
-                background: rgba(255,255,255,0.03);
-                border-radius: 8px;
-                padding: 2px;
-                margin-left: 4px;
-            }}
-            .admin-menu a {{
-                color: #a0a0b8;
-                text-decoration: none;
-                padding: 4px 10px;
-                border-radius: 6px;
-                font-size: 0.75rem;
-                font-weight: 500;
-                transition: all 0.3s ease;
-                cursor: pointer;
-            }}
-            .admin-menu a:hover {{
-                color: #ffffff;
-                background: rgba(255,255,255,0.06);
-            }}
-            .admin-menu a.active {{
-                color: #ffffff;
-                background: linear-gradient(135deg, rgba(102,126,234,0.25) 0%, rgba(118,75,162,0.18) 100%);
-            }}
-            .custom-header .user-section {{
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                flex-shrink: 0;
-            }}
-            .custom-header .user-section .name {{
-                color: #e8e8e8;
-                font-size: 0.85rem;
-                font-weight: 500;
-            }}
-            .custom-header .user-section .avatar {{
-                width: 32px;
-                height: 32px;
-                border-radius: 50%;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 0.8rem;
-                font-weight: 600;
-                color: #ffffff;
-            }}
-            .custom-header .user-section .badge {{
-                position: relative;
-                cursor: pointer;
-                font-size: 1.1rem;
-                color: #a0a0b8;
-                background: none;
-                border: none;
-                padding: 4px;
-            }}
-            .custom-header .user-section .badge .count {{
-                position: absolute;
-                top: -6px;
-                right: -8px;
-                background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-                color: white;
-                border-radius: 50%;
-                padding: 2px 6px;
-                font-size: 9px;
-                font-weight: 700;
-                min-width: 18px;
-                text-align: center;
-                animation: pulse 1s infinite;
-            }}
-            @keyframes pulse {{
-                0%, 100% {{ transform: scale(1); }}
-                50% {{ transform: scale(1.1); }}
-            }}
-            .custom-header .user-section .logout-btn {{
-                background: rgba(255,255,255,0.06);
-                border: 1px solid rgba(255,255,255,0.08);
-                border-radius: 8px;
-                color: #a0a0b8;
-                padding: 5px 12px;
-                font-size: 0.8rem;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                font-family: inherit;
-            }}
-            .custom-header .user-section .logout-btn:hover {{
-                color: #ffffff;
-                background: rgba(255,255,255,0.10);
-            }}
-            @media (max-width: 1024px) {{
-                .custom-header {{ padding: 0 10%; }}
-            }}
-            @media (max-width: 768px) {{
-                .custom-header {{ padding: 0 5%; height: 56px; }}
-                .custom-header .nav-links a {{ padding: 4px 8px; font-size: 0.75rem; }}
-                .custom-header .user-section .name {{ display: none; }}
-                .admin-menu a {{ padding: 3px 6px; font-size: 0.65rem; }}
-            }}
-            @media (max-width: 480px) {{
-                .custom-header {{ padding: 0 3%; }}
-                .custom-header .nav-links a {{ padding: 3px 6px; font-size: 0.65rem; }}
-                .custom-header .user-section {{ gap: 6px; }}
-                .custom-header .user-section .badge {{ font-size: 0.9rem; }}
-                .admin-menu a {{ padding: 2px 5px; font-size: 0.6rem; }}
-            }}
-        </style>
-    </head>
-    <body>
-        <header class="custom-header">
-            <div class="logo" onclick="window.parent.location.href='?page=home'">
-                <div class="icon">📄</div>
-                <span>DocPlatform</span>
-            </div>
-            <nav class="nav-links">
-                <a class="{home_active}" onclick="window.parent.location.href='?page=home'">Home</a>
-                <a class="{dash_active}" onclick="window.parent.location.href='?page=dashboard'">Dashboard</a>
-                <span class="divider"></span>
-                <a class="{notif_active}" onclick="window.parent.location.href='?page=notificacoes'">Notifications</a>
-                <div class="admin-menu">
-                    {admin_menu_html}
-                </div>
-            </nav>
-            <div class="user-section">
-                <span class="name">{username}</span>
-                <button class="badge" onclick="window.parent.location.href='?page=notificacoes'">
-                    🔔{notif_badge}
-                </button>
-                <div class="avatar">{username[0].upper() if username else 'U'}</div>
-                <button class="logout-btn" onclick="window.parent.location.href='?logout=true'">Logout</button>
-            </div>
-        </header>
-    </body>
-    </html>
-    '''
-    
-    # Use components.html to render the header properly
-    components.html(header_html, height=64, scrolling=False)
-    
-    # Process logout
-    if st.query_params.get("logout") == "true":
-        st.query_params.clear()
-        logout()
-        st.rerun()
-    
-    # Process admin menu
-    if st.query_params.get("admin") == "Users":
-        st.session_state.admin_menu = "Users"
-        st.query_params.clear()
-        st.rerun()
-    elif st.query_params.get("admin") == "Documents":
-        st.session_state.admin_menu = "Documents"
-        st.query_params.clear()
-        st.rerun()
-    
-    # Process navigation
-    if st.query_params.get("page") == "dashboard":
-        st.switch_page("pages/dashboard.py")
-    elif st.query_params.get("page") == "notificacoes":
-        st.switch_page("pages/notificacoes.py")
-    
-    return username
-
-# ============================================================
-# HELPER FUNCTIONS
-# ============================================================
+# ---------- Helper functions ----------
 def safe_copy(data):
     return copy.deepcopy(data)
 
 def get_processos_from_data(data):
+    """Gets the list of processes from the document data."""
     if data and "lca" in data and "inputs" in data["lca"]:
         processos = list(data["lca"]["inputs"].keys())
         if processos:
@@ -498,14 +251,29 @@ def get_processos_from_data(data):
     return PROCESSOS_PADRAO
 
 def ensure_new_structure(data, processos=None):
+    """Ensures the document structure has all required fields and processes."""
     if processos is None:
         processos = PROCESSOS_PADRAO
+    
     if not data:
-        return {
-            "lca": {"inputs": {p: [] for p in processos}, "processes": {p: [] for p in processos}, "outputs": {p: [] for p in processos}},
-            "lcc": {"materials": {p: [] for p in processos}, "equipment": {p: [] for p in processos}, "labour": {p: [] for p in processos}, "outputs": {p: [] for p in processos}}
+        # Create empty structure with processes
+        estrutura = {
+            "lca": {
+                "inputs": {p: [] for p in processos},
+                "processes": {p: [] for p in processos},
+                "outputs": {p: [] for p in processos}
+            },
+            "lcc": {
+                "materials": {p: [] for p in processos},
+                "equipment": {p: [] for p in processos},
+                "labour": {p: [] for p in processos},
+                "outputs": {p: [] for p in processos}
+            }
         }
+        return estrutura
+
     if "lca" in data and "lcc" in data:
+        # Check if all processes exist
         for secao in ["lca", "lcc"]:
             for campo in data[secao].keys():
                 if not isinstance(data[secao][campo], dict):
@@ -514,27 +282,43 @@ def ensure_new_structure(data, processos=None):
                     if p not in data[secao][campo]:
                         data[secao][campo][p] = []
         return data
+
+    # If structure is not in correct format, recreate
     new_data = {
-        "lca": {"inputs": {p: [] for p in processos}, "processes": {p: [] for p in processos}, "outputs": {p: [] for p in processos}},
-        "lcc": {"materials": {p: [] for p in processos}, "equipment": {p: [] for p in processos}, "labour": {p: [] for p in processos}, "outputs": {p: [] for p in processos}}
+        "lca": {
+            "inputs": {p: [] for p in processos},
+            "processes": {p: [] for p in processos},
+            "outputs": {p: [] for p in processos}
+        },
+        "lcc": {
+            "materials": {p: [] for p in processos},
+            "equipment": {p: [] for p in processos},
+            "labour": {p: [] for p in processos},
+            "outputs": {p: [] for p in processos}
+        }
     }
+
+    # Try to preserve existing data
     if "lca" in data:
+        old_lca = data["lca"]
         for campo in ["inputs", "processes", "outputs"]:
-            if campo in data["lca"] and isinstance(data["lca"][campo], dict):
-                for p in processos:
-                    if p in data["lca"][campo]:
-                        new_data["lca"][campo][p] = data["lca"][campo][p]
+            if campo in old_lca:
+                if isinstance(old_lca[campo], dict):
+                    for p in processos:
+                        if p in old_lca[campo]:
+                            new_data["lca"][campo][p] = old_lca[campo][p]
     if "lcc" in data:
+        old_lcc = data["lcc"]
         for campo in ["materials", "equipment", "labour", "outputs"]:
-            if campo in data["lcc"] and isinstance(data["lcc"][campo], dict):
-                for p in processos:
-                    if p in data["lcc"][campo]:
-                        new_data["lcc"][campo][p] = data["lcc"][campo][p]
+            if campo in old_lcc:
+                if isinstance(old_lcc[campo], dict):
+                    for p in processos:
+                        if p in old_lcc[campo]:
+                            new_data["lcc"][campo][p] = old_lcc[campo][p]
+
     return new_data
 
-# ============================================================
-# API FUNCTIONS
-# ============================================================
+# ---------- API Functions ----------
 def login(username, password):
     resp = requests.post(f"{API_URL}/login", data={"username": username, "password": password})
     if resp.status_code == 200:
@@ -557,6 +341,7 @@ def logout():
     st.session_state.username = None
     st.session_state.doc_selecionado = None
     st.session_state.success_message = None
+    st.session_state.menu_parceiro_widget = "My Documents"
     st.session_state.redirect_to_docs = False
     st.session_state.edit_data = None
     st.session_state.new_data = None
@@ -572,8 +357,6 @@ def headers_auth():
     return {"Authorization": f"Bearer {st.session_state.token}"}
 
 def listar_documentos(estado=None):
-    if st.session_state.token is None:
-        return []
     params = {}
     if estado:
         params["estado"] = estado
@@ -583,29 +366,45 @@ def listar_documentos(estado=None):
     return []
 
 def listar_documentos_com_filtros(filtros):
-    if st.session_state.token is None:
-        return []
     params = {}
+    
     if filtros.get("q"):
         params["q"] = filtros["q"]
+    
     if filtros.get("estados"):
         params["estados"] = ",".join(filtros["estados"])
+    
     if filtros.get("data_inicio"):
         params["data_inicio"] = filtros["data_inicio"]
+    
     if filtros.get("data_fim"):
         params["data_fim"] = filtros["data_fim"]
+    
     if filtros.get("order_by"):
         params["order_by"] = filtros["order_by"]
+    
     if filtros.get("order_dir"):
         params["order_dir"] = filtros["order_dir"]
+    
     resp = requests.get(f"{API_URL}/documentos/pesquisar", headers=headers_auth(), params=params)
     if resp.status_code == 200:
         return resp.json()
     return []
 
 def criar_documento(titulo, parceiro_id, dados):
-    payload = {"titulo": titulo, "parceiro_id": parceiro_id, "empresa_id": st.session_state.username, "dados": dados}
-    resp = requests.post(f"{API_URL}/documentos/", json=payload, headers=headers_auth())
+    """Creates a new document (company or admin)."""
+    payload = {
+        "titulo": titulo,
+        "parceiro_id": parceiro_id,
+        "empresa_id": st.session_state.username,
+        "dados": dados
+    }
+    
+    resp = requests.post(
+        f"{API_URL}/documentos/",
+        json=payload,
+        headers=headers_auth()
+    )
     if resp.status_code == 200:
         return resp.json()
     else:
@@ -625,7 +424,11 @@ def obter_documento(doc_id):
         return None
 
 def editar_documento(doc_id, dados):
-    resp = requests.put(f"{API_URL}/documentos/{doc_id}/editar", json={"dados": dados}, headers=headers_auth())
+    resp = requests.put(
+        f"{API_URL}/documentos/{doc_id}/editar",
+        json={"dados": dados},
+        headers=headers_auth()
+    )
     if resp.status_code == 200:
         return resp.json()
     else:
@@ -657,7 +460,11 @@ def iniciar_revisao(doc_id):
     return resp.json()
 
 def pedir_alteracoes(doc_id, comentario):
-    resp = requests.post(f"{API_URL}/documentos/{doc_id}/pedir-alteracoes", json={"comentario": comentario}, headers=headers_auth())
+    resp = requests.post(
+        f"{API_URL}/documentos/{doc_id}/pedir-alteracoes",
+        json={"comentario": comentario},
+        headers=headers_auth()
+    )
     if resp.status_code != 200:
         st.error(f"Error requesting changes: {resp.text}")
         return None
@@ -720,6 +527,7 @@ def listar_versoes(doc_id):
     return []
 
 def exportar_excel(doc_id, titulo):
+    """Exports the document to Excel and returns content and filename."""
     resp = requests.get(f"{API_URL}/documentos/{doc_id}/exportar-excel", headers=headers_auth())
     if resp.status_code == 200:
         content = resp.content
@@ -734,12 +542,8 @@ def exportar_excel(doc_id, titulo):
         st.error(f"Export failed: {erro}")
         return None, None
 
-# ============================================================
-# UI FUNCTIONS
-# ============================================================
+# ---------- Function to get notifications ----------
 def get_notificacoes_nao_lidas():
-    if st.session_state.token is None:
-        return 0
     try:
         resp = requests.get(f"{API_URL}/notificacoes/nao-lidas", headers=headers_auth())
         if resp.status_code == 200:
@@ -748,35 +552,64 @@ def get_notificacoes_nao_lidas():
         print(f"Error getting notifications: {e}")
     return 0
 
+def verificar_novas_notificacoes():
+    if st.session_state.token is None:
+        return
+    
+    try:
+        count = get_notificacoes_nao_lidas()
+        if count > st.session_state.ultimo_count:
+            st.toast(f"🔔 {count - st.session_state.ultimo_count} new notification(s)!", icon="🔔")
+        st.session_state.ultimo_count = count
+    except:
+        pass
+
+# ---------- Summary function ----------
 def show_document_summary(documentos):
     if not documentos:
         st.info("No documents found.")
         return
-    estado_groups = {
-        "Draft": ["Draft", "Rascunho"],
-        "Submitted": ["Submitted", "Submetido"],
-        "In Review": ["In Review", "Em Revisão"],
-        "Changes Requested": ["Changes Requested", "Alterações"],
-        "Approved": ["Approved", "Aprovado"],
-        "Archived": ["Archived", "Arquivado"]
+
+    # Define both English and Portuguese status names
+    estados_map = {
+        "Draft": "Rascunho",
+        "Submitted": "Submetido",
+        "In Review": "Em Revisão",
+        "Changes Requested": "Alterações",
+        "Approved": "Aprovado",
+        "Archived": "Arquivado"
     }
-    contagens = {group: 0 for group in estado_groups.keys()}
+    
+    # Use English names for display (they will be mapped)
+    estados_display = ["Draft", "Submitted", "In Review", "Changes Requested", "Approved", "Archived"]
+    contagens = {estado: 0 for estado in estados_display}
+    
     for doc in documentos:
         estado = doc.get("estado", "")
-        for group, values in estado_groups.items():
-            if estado in values:
-                contagens[group] += 1
+        # Check if the status matches any display status or its Portuguese equivalent
+        found = False
+        for display_estado, portugues_estado in estados_map.items():
+            if estado == display_estado or estado == portugues_estado:
+                contagens[display_estado] += 1
+                found = True
                 break
+        if not found:
+            # If status not recognized, try to add it anyway
+            if estado in contagens:
+                contagens[estado] += 1
+            else:
+                # Add unknown status to the list
+                contagens[estado] = 1
+
+    # Create columns for all statuses
     cols = st.columns(len(contagens))
     for i, (estado, count) in enumerate(contagens.items()):
         with cols[i]:
-            st.markdown(f"""
-            <div class="stat-card">
-                <div class="stat-value">{count}</div>
-                <div class="stat-label">{estado}</div>
-            </div>
-            """, unsafe_allow_html=True)
+            # Use the display name (English)
+            label = estado
+            st.metric(label=label, value=count)
 
+# ---------- Function to display dataframes ----------
 def display_dataframe(df):
     if df is not None and not df.empty:
         df = df.copy()
@@ -786,21 +619,48 @@ def display_dataframe(df):
     else:
         st.write("(no data)")
 
+# ---------- Filter component ----------
 def render_filtros():
     with st.expander("Search Filters", expanded=False):
         col1, col2 = st.columns(2)
         key_suffix = st.session_state.filtros_widget_key
+        
         with col1:
-            q = st.text_input("Search", value=st.session_state.filtros_temporarios.get("q", ""), placeholder="Title, partner or ID...", key=f"filtro_q_{key_suffix}")
+            q = st.text_input(
+                "Search",
+                value=st.session_state.filtros_temporarios.get("q", ""),
+                placeholder="Title, partner or ID...",
+                key=f"filtro_q_{key_suffix}"
+            )
             st.session_state.filtros_temporarios["q"] = q
+            
             estados_disponiveis = ["Draft", "Submitted", "In Review", "Changes Requested", "Approved", "Archived"]
-            estados_selecionados = st.multiselect("Status", options=estados_disponiveis, default=st.session_state.filtros_temporarios.get("estados", []), key=f"filtro_estados_{key_suffix}")
+            estados_selecionados = st.multiselect(
+                "Status",
+                options=estados_disponiveis,
+                default=st.session_state.filtros_temporarios.get("estados", []),
+                key=f"filtro_estados_{key_suffix}"
+            )
             st.session_state.filtros_temporarios["estados"] = estados_selecionados
+        
         with col2:
-            data_inicio = st.date_input("Start Date", value=st.session_state.filtros_temporarios.get("data_inicio"), format="DD/MM/YYYY", key=f"filtro_data_inicio_{key_suffix}")
+            data_inicio = st.date_input(
+                "Start Date",
+                value=st.session_state.filtros_temporarios.get("data_inicio"),
+                format="DD/MM/YYYY",
+                key=f"filtro_data_inicio_{key_suffix}"
+            )
             st.session_state.filtros_temporarios["data_inicio"] = data_inicio.strftime("%Y-%m-%d") if data_inicio else None
-            data_fim = st.date_input("End Date", value=st.session_state.filtros_temporarios.get("data_fim"), format="DD/MM/YYYY", key=f"filtro_data_fim_{key_suffix}")
+            
+            data_fim = st.date_input(
+                "End Date",
+                value=st.session_state.filtros_temporarios.get("data_fim"),
+                format="DD/MM/YYYY",
+                key=f"filtro_data_fim_{key_suffix}"
+            )
             st.session_state.filtros_temporarios["data_fim"] = data_fim.strftime("%Y-%m-%d") if data_fim else None
+        
+        # Action buttons
         col5, col6 = st.columns(2)
         with col5:
             if st.button("Apply Filters", use_container_width=True):
@@ -808,23 +668,37 @@ def render_filtros():
                 st.rerun()
         with col6:
             if st.button("Clear Filters", use_container_width=True):
-                st.session_state.filtros_temporarios = {"q": "", "estados": [], "data_inicio": None, "data_fim": None, "order_by": "id", "order_dir": "desc"}
-                st.session_state.filtros_aplicados = {"q": "", "estados": [], "data_inicio": None, "data_fim": None, "order_by": "id", "order_dir": "desc"}
+                st.session_state.filtros_temporarios = {
+                    "q": "",
+                    "estados": [],
+                    "data_inicio": None,
+                    "data_fim": None,
+                    "order_by": "id",
+                    "order_dir": "desc"
+                }
+                st.session_state.filtros_aplicados = {
+                    "q": "",
+                    "estados": [],
+                    "data_inicio": None,
+                    "data_fim": None,
+                    "order_by": "id",
+                    "order_dir": "desc"
+                }
                 st.session_state.filtros_widget_key += 1
                 st.rerun()
 
-# ============================================================
-# RENDER FUNCTIONS - LCA/LCC FORMS
-# ============================================================
+# ---------- Render functions with dynamic processes ----------
 def render_lca_inputs(data_key, prefix="", processos=None):
     if processos is None:
         processos = PROCESSOS_PADRAO
     st.subheader("Inputs")
     for proc in processos:
         items = st.session_state[data_key]["lca"]["inputs"].get(proc, [])
+        
         if not items:
             items.append({})
             st.session_state[data_key]["lca"]["inputs"][proc] = items
+        
         with st.expander(f"Inputs - {proc}", expanded=False):
             for i, item in enumerate(items):
                 col1, col2, col3, col4 = st.columns(4)
@@ -845,9 +719,13 @@ def render_lca_inputs(data_key, prefix="", processos=None):
                     else:
                         index = None
                     item["datasource"] = st.selectbox(
-                        "Data Source", DATASOURCE_OPTIONS, index=index,
-                        key=f"{prefix}lca_in_{proc}_ds_{i}", placeholder="Choose an option"
+                        "Data Source", 
+                        DATASOURCE_OPTIONS,
+                        index=index,
+                        key=f"{prefix}lca_in_{proc}_ds_{i}",
+                        placeholder="Choose an option"
                     )
+            
             col1, col2 = st.columns(2)
             with col1:
                 if st.button(f"Add input - {proc}", key=f"{prefix}add_lca_in_{proc}"):
@@ -864,16 +742,19 @@ def render_lca_processes(data_key, prefix="", processos=None):
     st.subheader("Processes")
     for proc in processos:
         items = st.session_state[data_key]["lca"]["processes"].get(proc, [])
+        
         if not items:
             items.append({"tipo": "Energy Consumption (kWh)", "qty": "", "unit": "kWh", "description": "", "comments": "", "datasource": ""})
             items.append({"tipo": "Rate Power of the Equipment (W)", "qty": "", "unit": "W", "description": "", "comments": "", "datasource": ""})
             items.append({"tipo": "Operating Time (h)", "qty": "", "unit": "h", "description": "", "comments": "", "datasource": ""})
             st.session_state[data_key]["lca"]["processes"][proc] = items
+        
         with st.expander(f"Processes - {proc}", expanded=False):
             num_groups = len(items) // 3
             for g in range(num_groups):
                 base = g * 3
                 st.markdown(f"**Process Group #{g+1}**")
+                
                 tipos = ["Energy Consumption (kWh)", "Rate Power of the Equipment (W)", "Operating Time (h)"]
                 unidades = ["kWh", "W", "h"]
                 for j, tipo in enumerate(tipos):
@@ -881,12 +762,13 @@ def render_lca_processes(data_key, prefix="", processos=None):
                     if idx < len(items):
                         item = items[idx]
                         item["tipo"] = tipo
-                        item["unit"] = unidades[j]
+                        item["unit"] = unidades[j]  # Force the unit
                         st.markdown(f"*{tipo}*")
                         col1, col2, col3 = st.columns(3)
                         with col1:
                             item["qty"] = st.text_input("QTY", item.get("qty",""), key=f"{prefix}lca_proc_{proc}_qty_{idx}")
-                            st.markdown(f'<div style="margin-bottom:0.5rem;"><label style="font-size:0.8rem;color:#afafaf;">Unit</label><div style="background-color:#262730;padding:0.5rem 0.75rem;border-radius:0.25rem;border:1px solid #4a4a4a;color:white;">{unidades[j]}</div></div>', unsafe_allow_html=True)
+                            # Unit is locked - display with custom style using st.markdown
+                            st.markdown(f'<div style="margin-bottom: 0.5rem;"><label style="font-size: 0.8rem; color: #afafaf;">Unit</label><div style="background-color: #262730; padding: 0.5rem 0.75rem; border-radius: 0.25rem; border: 1px solid #4a4a4a; color: white !important;">{unidades[j]}</div></div>', unsafe_allow_html=True)
                         with col2:
                             item["description"] = st.text_area("Description", item.get("description",""), key=f"{prefix}lca_proc_{proc}_desc_{idx}")
                         with col3:
@@ -897,10 +779,15 @@ def render_lca_processes(data_key, prefix="", processos=None):
                             else:
                                 index = None
                             item["datasource"] = st.selectbox(
-                                "Data Source", DATASOURCE_OPTIONS, index=index,
-                                key=f"{prefix}lca_proc_{proc}_ds_{idx}", placeholder="Choose an option"
+                                "Data Source", 
+                                DATASOURCE_OPTIONS,
+                                index=index,
+                                key=f"{prefix}lca_proc_{proc}_ds_{idx}",
+                                placeholder="Choose an option"
                             )
+                
                 st.divider()
+            
             col1, col2 = st.columns(2)
             with col1:
                 if st.button(f"Add process (3 rows) - {proc}", key=f"{prefix}add_lca_proc_{proc}"):
@@ -921,23 +808,31 @@ def render_lca_outputs(data_key, prefix="", processos=None):
     st.subheader("Outputs")
     for proc in processos:
         items = st.session_state[data_key]["lca"]["outputs"].get(proc, [])
+        
         if not items:
             items.append({})
             st.session_state[data_key]["lca"]["outputs"][proc] = items
+        
         with st.expander(f"Outputs - {proc}", expanded=False):
             for i, item in enumerate(items):
                 col1, col2, col3 = st.columns(3)
                 with col1:
                     item["etapa"] = st.text_input("Step (ex: Demagnetisation)", item.get("etapa",""), key=f"{prefix}lca_out_{proc}_etapa_{i}")
+                    
                     tipo_atual = item.get("tipo", "")
                     if tipo_atual in ["Subproduct", "Emissions", "Waste"]:
                         tipo_index = ["Subproduct", "Emissions", "Waste"].index(tipo_atual)
                     else:
                         tipo_index = None
+                    
                     item["tipo"] = st.selectbox(
-                        "Type", ["Subproduct", "Emissions", "Waste"], index=tipo_index,
-                        key=f"{prefix}lca_out_{proc}_tipo_{i}", placeholder="Choose an option"
+                        "Type", 
+                        ["Subproduct", "Emissions", "Waste"],
+                        index=tipo_index,
+                        key=f"{prefix}lca_out_{proc}_tipo_{i}",
+                        placeholder="Choose an option"
                     )
+                    
                     item["sub_tipo"] = st.text_input("Sub-type (ex: Name 1, Liquid 1, Solid 1, etc.)", item.get("sub_tipo",""), key=f"{prefix}lca_out_{proc}_sub_{i}")
                 with col2:
                     item["qty"] = st.text_input("QTY", item.get("qty",""), key=f"{prefix}lca_out_{proc}_qty_{i}")
@@ -951,9 +846,13 @@ def render_lca_outputs(data_key, prefix="", processos=None):
                     else:
                         index = None
                     item["datasource"] = st.selectbox(
-                        "Data Source", DATASOURCE_OPTIONS, index=index,
-                        key=f"{prefix}lca_out_{proc}_ds_{i}", placeholder="Choose an option"
+                        "Data Source", 
+                        DATASOURCE_OPTIONS,
+                        index=index,
+                        key=f"{prefix}lca_out_{proc}_ds_{i}",
+                        placeholder="Choose an option"
                     )
+            
             col1, col2 = st.columns(2)
             with col1:
                 if st.button(f"Add output - {proc}", key=f"{prefix}add_lca_out_{proc}"):
@@ -970,9 +869,11 @@ def render_lcc_materials(data_key, prefix="", processos=None):
     st.subheader("Cost Breakdown Material")
     for proc in processos:
         items = st.session_state[data_key]["lcc"]["materials"].get(proc, [])
+        
         if not items:
             items.append({})
             st.session_state[data_key]["lcc"]["materials"][proc] = items
+        
         with st.expander(f"Materials - {proc}", expanded=False):
             for i, item in enumerate(items):
                 col1, col2, col3 = st.columns(3)
@@ -981,7 +882,8 @@ def render_lcc_materials(data_key, prefix="", processos=None):
                     item["price"] = st.text_input("Price €", item.get("price",""), key=f"{prefix}lcc_mat_{proc}_price_{i}")
                 with col2:
                     item["qty"] = st.text_input("Qty", item.get("qty",""), key=f"{prefix}lcc_mat_{proc}_qty_{i}")
-                    st.markdown(f'<div style="margin-bottom:0.5rem;"><label style="font-size:0.8rem;color:#afafaf;">Unit</label><div style="background-color:#262730;padding:0.5rem 0.75rem;border-radius:0.25rem;border:1px solid #4a4a4a;color:white;">€</div></div>', unsafe_allow_html=True)
+                    # Unit is locked to € - display with custom style
+                    st.markdown(f'<div style="margin-bottom: 0.5rem;"><label style="font-size: 0.8rem; color: #afafaf;">Unit</label><div style="background-color: #262730; padding: 0.5rem 0.75rem; border-radius: 0.25rem; border: 1px solid #4a4a4a; color: white !important;">€</div></div>', unsafe_allow_html=True)
                     item["unit"] = "€"
                     item["description"] = st.text_area("Material Description", item.get("description",""), key=f"{prefix}lcc_mat_{proc}_desc_{i}")
                 with col3:
@@ -994,9 +896,13 @@ def render_lcc_materials(data_key, prefix="", processos=None):
                     else:
                         index = None
                     item["datasource"] = st.selectbox(
-                        "Data Source", DATASOURCE_OPTIONS, index=index,
-                        key=f"{prefix}lcc_mat_{proc}_ds_{i}", placeholder="Choose an option"
+                        "Data Source", 
+                        DATASOURCE_OPTIONS,
+                        index=index,
+                        key=f"{prefix}lcc_mat_{proc}_ds_{i}",
+                        placeholder="Choose an option"
                     )
+            
             col1, col2 = st.columns(2)
             with col1:
                 if st.button(f"Add material - {proc}", key=f"{prefix}add_lcc_mat_{proc}"):
@@ -1013,9 +919,11 @@ def render_lcc_equipment(data_key, prefix="", processos=None):
     st.subheader("Equipment")
     for proc in processos:
         items = st.session_state[data_key]["lcc"]["equipment"].get(proc, [])
+        
         if not items:
             items.append({})
             st.session_state[data_key]["lcc"]["equipment"][proc] = items
+        
         with st.expander(f"Equipment - {proc}", expanded=False):
             for i, item in enumerate(items):
                 col1, col2, col3 = st.columns(3)
@@ -1035,9 +943,13 @@ def render_lcc_equipment(data_key, prefix="", processos=None):
                     else:
                         index = None
                     item["datasource"] = st.selectbox(
-                        "Data Source", DATASOURCE_OPTIONS, index=index,
-                        key=f"{prefix}lcc_eq_{proc}_ds_{i}", placeholder="Choose an option"
+                        "Data Source", 
+                        DATASOURCE_OPTIONS,
+                        index=index,
+                        key=f"{prefix}lcc_eq_{proc}_ds_{i}",
+                        placeholder="Choose an option"
                     )
+            
             col1, col2 = st.columns(2)
             with col1:
                 if st.button(f"Add equipment - {proc}", key=f"{prefix}add_lcc_eq_{proc}"):
@@ -1054,9 +966,11 @@ def render_lcc_labour(data_key, prefix="", processos=None):
     st.subheader("Labour")
     for proc in processos:
         items = st.session_state[data_key]["lcc"]["labour"].get(proc, [])
+        
         if not items:
             items.append({})
             st.session_state[data_key]["lcc"]["labour"][proc] = items
+        
         with st.expander(f"Labour - {proc}", expanded=False):
             for i, item in enumerate(items):
                 col1, col2, col3 = st.columns(3)
@@ -1079,9 +993,13 @@ def render_lcc_labour(data_key, prefix="", processos=None):
                     else:
                         index = None
                     item["datasource"] = st.selectbox(
-                        "Data Source", DATASOURCE_OPTIONS, index=index,
-                        key=f"{prefix}lcc_lab_{proc}_ds_{i}", placeholder="Choose an option"
+                        "Data Source", 
+                        DATASOURCE_OPTIONS,
+                        index=index,
+                        key=f"{prefix}lcc_lab_{proc}_ds_{i}",
+                        placeholder="Choose an option"
                     )
+            
             col1, col2 = st.columns(2)
             with col1:
                 if st.button(f"Add labour row - {proc}", key=f"{prefix}add_lcc_lab_{proc}"):
@@ -1098,9 +1016,11 @@ def render_lcc_outputs(data_key, prefix="", processos=None):
     st.subheader("Outputs (final product)")
     for proc in processos:
         items = st.session_state[data_key]["lcc"]["outputs"].get(proc, [])
+        
         if not items:
             items.append({})
             st.session_state[data_key]["lcc"]["outputs"][proc] = items
+        
         with st.expander(f"Outputs LCC - {proc}", expanded=False):
             for i, item in enumerate(items):
                 col1, col2, col3 = st.columns(3)
@@ -1109,7 +1029,8 @@ def render_lcc_outputs(data_key, prefix="", processos=None):
                     item["market_price"] = st.text_input("Market Price €", item.get("market_price",""), key=f"{prefix}lcc_out_{proc}_price_{i}")
                 with col2:
                     item["quantity"] = st.text_input("Quantity", item.get("quantity",""), key=f"{prefix}lcc_out_{proc}_qty_{i}")
-                    st.markdown(f'<div style="margin-bottom:0.5rem;"><label style="font-size:0.8rem;color:#afafaf;">Unit</label><div style="background-color:#262730;padding:0.5rem 0.75rem;border-radius:0.25rem;border:1px solid #4a4a4a;color:white;">€</div></div>', unsafe_allow_html=True)
+                    # Unit is locked to € - display with custom style
+                    st.markdown(f'<div style="margin-bottom: 0.5rem;"><label style="font-size: 0.8rem; color: #afafaf;">Unit</label><div style="background-color: #262730; padding: 0.5rem 0.75rem; border-radius: 0.25rem; border: 1px solid #4a4a4a; color: white !important;">€</div></div>', unsafe_allow_html=True)
                     item["unit"] = "€"
                 with col3:
                     item["amount_produced"] = st.text_input("Amount Of Product Produced", item.get("amount_produced",""), key=f"{prefix}lcc_out_{proc}_prod_{i}")
@@ -1120,9 +1041,13 @@ def render_lcc_outputs(data_key, prefix="", processos=None):
                     else:
                         index = None
                     item["datasource"] = st.selectbox(
-                        "Data Source", DATASOURCE_OPTIONS, index=index,
-                        key=f"{prefix}lcc_out_{proc}_ds_{i}", placeholder="Choose an option"
+                        "Data Source", 
+                        DATASOURCE_OPTIONS,
+                        index=index,
+                        key=f"{prefix}lcc_out_{proc}_ds_{i}",
+                        placeholder="Choose an option"
                     )
+            
             col1, col2 = st.columns(2)
             with col1:
                 if st.button(f"Add output LCC - {proc}", key=f"{prefix}add_lcc_out_{proc}"):
@@ -1136,6 +1061,7 @@ def render_lcc_outputs(data_key, prefix="", processos=None):
 def render_full_form(data_key, prefix="", processos=None):
     if processos is None:
         processos = PROCESSOS_PADRAO
+    
     if st.session_state[data_key] is None:
         st.session_state[data_key] = ensure_new_structure({}, processos)
     else:
@@ -1156,15 +1082,21 @@ def render_full_form(data_key, prefix="", processos=None):
 # FUNCTION TO CREATE ANCHOR AND TRIGGER SCROLL
 # ============================================================
 def create_document_anchor(doc_id):
+    """Creates an invisible anchor for the document."""
     st.markdown(f'<div id="doc-{doc_id}" class="doc-anchor"></div>', unsafe_allow_html=True)
 
 def trigger_scroll(doc_id):
+    """Adds parameter to URL to force scroll after reload."""
     st.query_params["scroll_to"] = str(doc_id)
 
 # ============================================================
 # FUNCTION TO LIST AVAILABLE PARTNERS
 # ============================================================
 def listar_parceiros_disponiveis():
+    """
+    Lists available partners for companies.
+    Uses the specific route /parceiros/disponiveis
+    """
     try:
         resp = requests.get(f"{API_URL}/parceiros/disponiveis", headers=headers_auth())
         if resp.status_code == 200:
@@ -1180,33 +1112,59 @@ def listar_parceiros_disponiveis():
 # FUNCTION TO RENDER PROCESS SELECTION
 # ============================================================
 def render_processos_selecao(key_prefix="empresa"):
+    """
+    Renders the process selection interface with checkboxes and adding new processes.
+    Returns the list of selected processes.
+    """
     processos_disponiveis = ["Demagnetisation", "Crushing / Grinding", "Aqua regia microwave digestion", "ICP-OES/-MS"]
+    
+    # Check if there is a list of selected processes in session_state for this key
     session_key = f"processos_selecionados_{key_prefix}"
     if session_key not in st.session_state:
         st.session_state[session_key] = []
+    
+    # Key for the new process input field
     input_key = f"{key_prefix}_novo_processo_input"
+    
     processos_selecionados = st.session_state[session_key]
+    
+    # Checkboxes for default processes
     st.write("**Default processes:**")
     col1, col2 = st.columns(2)
     with col1:
         for i, proc in enumerate(processos_disponiveis[:2]):
-            checked = st.checkbox(proc, key=f"{key_prefix}_proc_{i}", value=proc in processos_selecionados)
+            checked = st.checkbox(
+                proc, 
+                key=f"{key_prefix}_proc_{i}", 
+                value=proc in processos_selecionados
+            )
             if checked and proc not in processos_selecionados:
                 processos_selecionados.append(proc)
             elif not checked and proc in processos_selecionados:
                 processos_selecionados.remove(proc)
     with col2:
         for i, proc in enumerate(processos_disponiveis[2:]):
-            checked = st.checkbox(proc, key=f"{key_prefix}_proc_{i+2}", value=proc in processos_selecionados)
+            checked = st.checkbox(
+                proc, 
+                key=f"{key_prefix}_proc_{i+2}", 
+                value=proc in processos_selecionados
+            )
             if checked and proc not in processos_selecionados:
                 processos_selecionados.append(proc)
             elif not checked and proc in processos_selecionados:
                 processos_selecionados.remove(proc)
+    
     st.divider()
     st.write("**Add new process:**")
+    
+    # Field to add new process
     col_add1, col_add2 = st.columns([3, 1])
     with col_add1:
-        novo_processo = st.text_input("New process name", placeholder="Ex: Drying, Milling, etc.", key=input_key)
+        novo_processo = st.text_input(
+            "New process name", 
+            placeholder="Ex: Drying, Milling, etc.",
+            key=input_key
+        )
     with col_add2:
         if st.button("Add new process", key=f"{key_prefix}_add_processo_btn"):
             if novo_processo and novo_processo.strip():
@@ -1219,9 +1177,13 @@ def render_processos_selecao(key_prefix="empresa"):
                     st.rerun()
             else:
                 st.warning("⚠️ Please enter a name for the process.")
+    
+    # Show selected processes with option to remove
     if processos_selecionados:
         st.divider()
         st.write("**Selected processes:**")
+        
+        # For each process, show a remove button
         cols = st.columns(min(len(processos_selecionados), 4))
         for i, proc in enumerate(processos_selecionados):
             col_idx = i % len(cols) if len(cols) > 0 else 0
@@ -1229,12 +1191,17 @@ def render_processos_selecao(key_prefix="empresa"):
                 if st.button(f"✖ {proc}", key=f"{key_prefix}_remover_{proc}_{i}"):
                     processos_selecionados.remove(proc)
                     st.rerun()
+        
+        # Button to clear all processes
         if st.button("🗑️ Clear all", key=f"{key_prefix}_limpar_processos"):
             st.session_state[session_key] = []
             st.rerun()
     else:
         st.info("No process selected. Select the checkboxes above or add a new process.")
+    
+    # Update session_state
     st.session_state[session_key] = processos_selecionados
+    
     return processos_selecionados
 
 # ============================================================
@@ -1255,11 +1222,8 @@ if st.session_state.token is None:
     st.stop()
 
 # ============================================================
-# FROM HERE, USER IS AUTHENTICATED - RENDER HEADER
+# FROM HERE, USER IS AUTHENTICATED
 # ============================================================
-
-# Render the fixed header
-render_header()
 
 # Show success message with toast
 if st.session_state.success_message:
@@ -1276,6 +1240,7 @@ if "doc_id" in st.query_params and st.query_params["doc_id"]:
         pass
 
 if st.session_state.redirect_to_docs:
+    st.session_state.menu_parceiro_widget = "My Documents"
     st.session_state.redirect_to_docs = False
 
 # If close_doc_after_action is active, close the document
@@ -1284,17 +1249,54 @@ if st.session_state.get("close_doc_after_action", False):
     st.session_state.edit_data = None
     st.session_state.close_doc_after_action = False
 
-# ============================================================
-# MAIN CONTENT
-# ============================================================
+# Render notification badge
+if st.session_state.token is not None:
+    render_notificacoes_badge()
+    verificar_novas_notificacoes()
 
-st.title("📄 Document Management Platform")
+# ============================================================
+# SIDEBAR - VISIBLE AFTER LOGIN - 270px
+# ============================================================
+with st.sidebar:
+    st.write(f"Logged in as: **{st.session_state.username}**")
+    st.divider()
+    
+    if st.session_state.token is not None:
+        try:
+            count = get_notificacoes_nao_lidas()
+            if count > 0:
+                if count == 1:
+                    st.warning(f"🔔 {count} unread notification")
+                else:
+                    st.warning(f"🔔 {count} unread notifications")
+            else:
+                st.info("🔔 No notifications")
+        except:
+            pass
+    
+    st.divider()
+    
+    # Only admin sees Dashboard
+    if st.session_state.perfil == "admin":
+        if st.button("Dashboard", use_container_width=True, key="app_dashboard"):
+            st.switch_page("pages/dashboard.py")
+    
+    if st.button("Notifications", use_container_width=True, key="app_notificacoes"):
+        st.switch_page("pages/notificacoes.py")
+    
+    st.divider()
+    
+    if st.button("Logout", use_container_width=True, key="app_logout"):
+        logout()
+        st.rerun()
+
+st.title("Document Management Platform")
 
 # ---------- Document summary ----------
 if st.session_state.perfil != "admin":
     documentos = listar_documentos()
     if documentos:
-        st.subheader("📊 Document Summary")
+        st.subheader("Document summary")
         show_document_summary(documentos)
         st.divider()
     else:
@@ -1302,12 +1304,12 @@ if st.session_state.perfil != "admin":
 
 # ---------- Partner Area ----------
 if st.session_state.perfil == "parceiro":
-    st.header("👤 Partner Area")
+    st.header("Partner Area")
     st.caption("Documents are created by the company. You only fill in the data and submit.")
     
-    st.subheader("📋 My Documents")
+    st.subheader("My Documents")
     
-    if st.button("🔄 Refresh list", key="refresh_list_parceiro"):
+    if st.button("Refresh list", key="refresh_list_parceiro"):
         st.session_state.doc_selecionado = None
         st.session_state.edit_data = None
         st.session_state.parceiro_dropdown_key += 1
@@ -1327,6 +1329,7 @@ if st.session_state.perfil == "parceiro":
         st.dataframe(df, use_container_width=True, hide_index=True)
 
         ids = [""] + [doc["id"] for doc in documentos]
+
         id_selecionado = st.selectbox(
             "Select a document:",
             ids,
@@ -1335,7 +1338,7 @@ if st.session_state.perfil == "parceiro":
             placeholder="Choose an option"
         )
 
-        if st.button("📂 Load document", key="parceiro_carregar_doc"):
+        if st.button("Load document", key="parceiro_carregar_doc"):
             if not id_selecionado:
                 st.warning("Please select a document.")
             else:
@@ -1350,14 +1353,15 @@ if st.session_state.perfil == "parceiro":
             create_document_anchor(doc['id'])
             
             st.divider()
-            st.subheader(f"📄 Document ID {doc['id']}: {doc['titulo']}")
+            st.subheader(f"Document ID {doc['id']}: {doc['titulo']}")
             st.write(f"Status: **{doc['estado']}** | Version: {doc['versao_atual']}")
             st.caption(f"Created by: {doc.get('empresa_id', 'N/A')}")
             
             dados = doc['dados']
             processos = get_processos_from_data(dados)
             
-            with st.expander("📊 View data in tables", expanded=st.session_state.get("expander_aberto", False)):
+            # Use expander_aberto controlled by state
+            with st.expander("View data in tables", expanded=st.session_state.get("expander_aberto", False)):
                 st.subheader("LCA")
                 lca = dados.get("lca", {})
                 for proc in processos:
@@ -1388,11 +1392,13 @@ if st.session_state.perfil == "parceiro":
                         st.write("Outputs")
                         display_dataframe(pd.DataFrame(lcc["outputs"][proc]))
 
-            with st.expander("🔍 View raw JSON", expanded=False):
+            with st.expander("View raw JSON", expanded=False):
                 st.json(dados)
 
             st.markdown("---")
 
+            # ---------- ACTION BUTTONS ----------
+            # Check if document is in Draft status (either "Draft" or "Rascunho")
             estado_doc = doc.get('estado', '')
             is_draft = estado_doc in ["Draft", "Rascunho"]
             
@@ -1422,9 +1428,11 @@ if st.session_state.perfil == "parceiro":
                 with col_btn2:
                     if st.button("📤 Submit for Review", key="parceiro_submeter", use_container_width=True):
                         try:
+                            # First save the current data
                             novos_dados = st.session_state.edit_data
                             resultado_edicao = editar_documento(doc['id'], novos_dados)
                             if resultado_edicao:
+                                # Then submit
                                 resultado_sub = submeter(doc['id'])
                                 if resultado_sub:
                                     st.session_state.edit_data = None
@@ -1441,12 +1449,15 @@ if st.session_state.perfil == "parceiro":
                         st.session_state.edit_data = None
                         st.session_state.expander_aberto = False
                         st.rerun()
+
             else:
+                # Document is not in Draft status - show view-only with Export History
                 st.subheader("📄 View Document")
                 st.info(f"This document is in status: **{estado_doc}**")
                 
                 col_btn1, col_btn2, col_btn3 = st.columns(3)
                 
+                # Show specific messages based on status
                 if estado_doc in ["Changes Requested", "Alterações"]:
                     with col_btn1:
                         st.warning("⚠️ The company has requested changes.")
@@ -1492,7 +1503,7 @@ if st.session_state.perfil == "parceiro":
 
             st.markdown("---")
 
-            with st.expander("📜 Version history", expanded=False):
+            with st.expander("Version history", expanded=False):
                 versoes = listar_versoes(doc['id'])
                 if versoes:
                     for v in versoes:
@@ -1505,33 +1516,42 @@ if st.session_state.perfil == "parceiro":
 
 # ---------- Company Area ----------
 elif st.session_state.perfil == "empresa":
-    st.header("🏢 Company Area (Validation)")
+    st.header("Company Area (Validation)")
     
+    # ---------- CREATE DOCUMENT (COMPANY) ----------
+    # Control form state
     if "empresa_mostrar_form" not in st.session_state:
         st.session_state.empresa_mostrar_form = False
     
+    # Button to open form
     if not st.session_state.empresa_mostrar_form:
         if st.button("➕ Create new document for partner", use_container_width=True, key="empresa_abrir_form"):
             st.session_state.empresa_mostrar_form = True
             st.rerun()
     else:
+        # Show the form
         with st.container():
             st.subheader("Create Document")
             st.info("The company creates the document skeleton. The partner will fill in the data later.")
             
+            # Generate a unique key to force widget recreation
             form_key = st.session_state.get("empresa_form_key", 0)
+            
             titulo = st.text_input("Document title (ex: LCA/LCC NEO-CYCLE)", key=f"empresa_titulo_{form_key}")
             
+            # Select partner
             parceiros = listar_parceiros_disponiveis()
             
             if not parceiros:
                 st.warning("No partners available. Create a partner first in the Admin area.")
                 if st.button("🔄 Reload partner list"):
                     st.rerun()
+                # Button to close the form
                 if st.button("✖ Close", key="empresa_fechar_sem_parceiros"):
                     st.session_state.empresa_mostrar_form = False
                     st.rerun()
             else:
+                # Placeholder for selectbox
                 parceiro_selecionado = st.selectbox(
                     "Select Partner",
                     options=[""] + [p["username"] for p in parceiros],
@@ -1540,25 +1560,33 @@ elif st.session_state.perfil == "empresa":
                     key=f"empresa_parceiro_{form_key}"
                 )
                 
+                # Select processes using the new function
                 st.info("Select the processes that will be available in this document for the partner to fill in.")
                 processos_selecionados = render_processos_selecao(key_prefix=f"empresa_{form_key}")
                 
+                # Action buttons
                 col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
                 
                 with col_btn1:
+                    # Show create button only if processes selected and partner selected
                     if processos_selecionados and parceiro_selecionado and parceiro_selecionado != "":
                         if st.button("✅ Create Document", key=f"empresa_create_doc_btn_{form_key}", use_container_width=True):
                             if not titulo.strip():
                                 st.error("Title is required.")
                             else:
                                 try:
+                                    # Create empty structure with selected processes
                                     dados = ensure_new_structure({}, processos_selecionados)
+                                    
                                     novo = criar_documento(titulo, parceiro_selecionado, dados)
                                     if novo:
+                                        # Increment form key to clear all fields
                                         st.session_state.empresa_form_key = form_key + 1
+                                        # Clear selected processes list
                                         session_key = f"processos_selecionados_empresa_{form_key}"
                                         if session_key in st.session_state:
                                             del st.session_state[session_key]
+                                        # Close the form
                                         st.session_state.empresa_mostrar_form = False
                                         st.session_state.success_message = f"Document created successfully! ID: {novo['id']}"
                                         st.session_state.new_data = None
@@ -1573,6 +1601,7 @@ elif st.session_state.perfil == "empresa":
                 
                 with col_btn2:
                     if st.button("❌ Cancel", key=f"empresa_cancel_btn_{form_key}", use_container_width=True):
+                        # Clear form data
                         session_key = f"processos_selecionados_empresa_{form_key}"
                         if session_key in st.session_state:
                             del st.session_state[session_key]
@@ -1591,10 +1620,11 @@ elif st.session_state.perfil == "empresa":
     
     st.divider()
     
-    st.subheader("📋 Available Documents")
+    # ---------- AVAILABLE DOCUMENTS ----------
+    st.subheader("Available Documents")
     render_filtros()
     
-    if st.button("🔄 Refresh list", key="refresh_list_empresa"):
+    if st.button("Refresh list", key="refresh_list_empresa"):
         st.session_state.doc_selecionado = None
         st.session_state.empresa_dropdown_key += 1
         st.session_state.refresh_counter += 1
@@ -1615,6 +1645,7 @@ elif st.session_state.perfil == "empresa":
         st.dataframe(df, use_container_width=True, hide_index=True)
 
         ids = [""] + [doc["id"] for doc in documentos]
+
         id_selecionado = st.selectbox(
             "Select a document:",
             ids,
@@ -1623,7 +1654,7 @@ elif st.session_state.perfil == "empresa":
             placeholder="Choose an option"
         )
 
-        if st.button("📂 Load document", key="empresa_carregar_doc"):
+        if st.button("Load document", key="empresa_carregar_doc"):
             if not id_selecionado:
                 st.warning("Please select a document.")
             else:
@@ -1638,13 +1669,14 @@ elif st.session_state.perfil == "empresa":
             create_document_anchor(doc['id'])
             
             st.divider()
-            st.subheader(f"📄 Document ID {doc['id']}: {doc['titulo']} (Partner: {doc['parceiro_id']})")
+            st.subheader(f"Document ID {doc['id']}: {doc['titulo']} (Partner: {doc['parceiro_id']})")
             st.write(f"Status: **{doc['estado']}** | Version: {doc['versao_atual']}")
 
             dados = doc['dados']
             processos = get_processos_from_data(dados)
             
-            with st.expander("📊 View document data", expanded=st.session_state.get("expander_aberto", False)):
+            # Use expander_aberto controlled by state
+            with st.expander("View document data", expanded=st.session_state.get("expander_aberto", False)):
                 st.subheader("LCA")
                 lca = dados.get("lca", {})
                 for proc in processos:
@@ -1675,7 +1707,7 @@ elif st.session_state.perfil == "empresa":
                         st.write("Outputs")
                         display_dataframe(pd.DataFrame(lcc["outputs"][proc]))
 
-            with st.expander("🔍 View raw JSON", expanded=False):
+            with st.expander("View raw JSON", expanded=False):
                 st.json(dados)
 
             st.markdown("---")
@@ -1684,18 +1716,18 @@ elif st.session_state.perfil == "empresa":
 
             if doc['estado'] in ["Submitted", "Submetido"]:
                 with col_btn1:
-                    if st.button("🔍 Start Review", key="empresa_iniciar_revisao", use_container_width=True):
+                    if st.button("Start Review", key="empresa_iniciar_revisao", use_container_width=True):
                         if iniciar_revisao(doc['id']):
                             st.rerun()
             elif doc['estado'] in ["In Review", "Em Revisão"]:
                 comentario = st.text_area("Comment (required if requesting changes)", key="empresa_comentario")
                 col_aprov, col_alt = st.columns(2)
                 with col_aprov:
-                    if st.button("✅ Approve", key="empresa_aprovar", use_container_width=True):
+                    if st.button("Approve", key="empresa_aprovar", use_container_width=True):
                         if aprovar(doc['id']):
                             st.rerun()
                 with col_alt:
-                    if st.button("🔄 Request Changes", key="empresa_pedir_alteracoes", use_container_width=True):
+                    if st.button("Request Changes", key="empresa_pedir_alteracoes", use_container_width=True):
                         if not comentario.strip():
                             st.error("A comment is required to request changes")
                         else:
@@ -1703,30 +1735,30 @@ elif st.session_state.perfil == "empresa":
                                 st.rerun()
             elif doc['estado'] in ["Approved", "Aprovado"]:
                 with col_btn1:
-                    if st.button("🔁 Reopen", key="empresa_reabrir", use_container_width=True):
+                    if st.button("Reopen", key="empresa_reabrir", use_container_width=True):
                         if reabrir(doc['id']):
                             st.rerun()
                 with col_btn2:
-                    if st.button("📁 Archive", key="empresa_arquivar", use_container_width=True):
+                    if st.button("Archive", key="empresa_arquivar", use_container_width=True):
                         if arquivar(doc['id']):
                             st.rerun()
             elif doc['estado'] in ["Draft", "Rascunho"]:
                 with col_btn1:
-                    if st.button("📁 Archive (draft)", key="empresa_arquivar_rascunho", use_container_width=True):
+                    if st.button("Archive (draft)", key="empresa_arquivar_rascunho", use_container_width=True):
                         if arquivar(doc['id']):
                             st.rerun()
             elif doc['estado'] in ["Changes Requested", "Alterações"]:
                 with col_btn1:
-                    st.info("⏳ Waiting for partner to edit again.")
+                    st.info("Waiting for partner to edit again.")
             elif doc['estado'] in ["Archived", "Arquivado"]:
                 with col_btn1:
-                    st.warning("📁 Document archived (view only).")
+                    st.warning("Document archived (view only).")
 
             with col_btn2:
                 conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
                 if conteudo:
                     st.download_button(
-                        label="📊 Export History",
+                        label="Export History",
                         data=conteudo,
                         file_name=filename,
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1735,14 +1767,14 @@ elif st.session_state.perfil == "empresa":
                     )
 
             with col_btn3:
-                if st.button("✖ Close details", key="empresa_fechar_detalhes", use_container_width=True):
+                if st.button("Close details", key="empresa_fechar_detalhes", use_container_width=True):
                     st.session_state.doc_selecionado = None
                     st.session_state.expander_aberto = False
                     st.rerun()
 
             st.markdown("---")
 
-            with st.expander("📜 Version history", expanded=False):
+            with st.expander("Version history", expanded=False):
                 versoes = listar_versoes(doc['id'])
                 if versoes:
                     for v in versoes:
@@ -1755,20 +1787,21 @@ elif st.session_state.perfil == "empresa":
 
 # ---------- Admin Area ----------
 elif st.session_state.perfil == "admin":
-    st.header("⚙️ Administrative Panel")
-    
-    if st.session_state.admin_menu == "Users":
-        st.subheader("👥 User Management")
+    st.header("Administrative Panel")
+    menu_admin = st.sidebar.radio("Admin", ["Users", "Documents (company)"], key="admin_menu")
+
+    if menu_admin == "Users":
+        st.subheader("User Management")
         
         col1, col2 = st.columns([3, 1])
         with col1:
-            if st.button("🔄 Load users", use_container_width=True, key="admin_carregar_users"):
+            if st.button("Load users", use_container_width=True, key="admin_carregar_users"):
                 st.session_state.doc_selecionado = None
                 st.session_state.admin_user_dropdown_key += 1
                 st.session_state.refresh_counter += 1
                 st.rerun()
         with col2:
-            if st.button("➕ New User", use_container_width=True, key="admin_novo_user"):
+            if st.button("New User", use_container_width=True, key="admin_novo_user"):
                 st.session_state.show_create_user_form = not st.session_state.show_create_user_form
                 st.rerun()
         
@@ -1869,9 +1902,11 @@ elif st.session_state.perfil == "admin":
                 st.dataframe(df, use_container_width=True, hide_index=True)
 
                 st.divider()
+                
                 st.subheader("Manage User")
                 
                 usernames = [""] + [u["username"] for u in users]
+
                 sel_user = st.selectbox(
                     "Select user to manage",
                     usernames,
@@ -1955,33 +1990,42 @@ elif st.session_state.perfil == "admin":
             st.error("Failed to load users")
 
     else:  # Documents (company) - Admin
-        st.subheader("📋 Documents (Company View)")
+        st.header("Company Area (Validation) – Admin")
         
+        # ---------- CREATE DOCUMENT (ADMIN) ----------
+        # Control form state
         if "admin_mostrar_form" not in st.session_state:
             st.session_state.admin_mostrar_form = False
         
+        # Button to open form
         if not st.session_state.admin_mostrar_form:
             if st.button("➕ Create new document for partner", use_container_width=True, key="admin_abrir_form"):
                 st.session_state.admin_mostrar_form = True
                 st.rerun()
         else:
+            # Show the form
             with st.container():
                 st.subheader("Create Document")
                 st.info("The administrator creates the document skeleton. The partner will fill in the data later.")
                 
+                # Generate a unique key to force widget recreation
                 form_key = st.session_state.get("admin_form_key", 0)
+                
                 titulo = st.text_input("Document title (ex: LCA/LCC NEO-CYCLE)", key=f"admin_titulo_{form_key}")
                 
+                # Select partner
                 parceiros = listar_parceiros_disponiveis()
                 
                 if not parceiros:
                     st.warning("No partners available. Create a partner first.")
                     if st.button("🔄 Reload partner list", key="admin_reload_parceiros"):
                         st.rerun()
+                    # Button to close the form
                     if st.button("✖ Close", key="admin_fechar_sem_parceiros"):
                         st.session_state.admin_mostrar_form = False
                         st.rerun()
                 else:
+                    # Placeholder for selectbox
                     parceiro_selecionado = st.selectbox(
                         "Select Partner",
                         options=[""] + [p["username"] for p in parceiros],
@@ -1990,25 +2034,33 @@ elif st.session_state.perfil == "admin":
                         key=f"admin_parceiro_{form_key}"
                     )
                     
+                    # Select processes using the new function
                     st.info("Select the processes that will be available in this document for the partner to fill in.")
                     processos_selecionados = render_processos_selecao(key_prefix=f"admin_{form_key}")
                     
+                    # Action buttons
                     col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
                     
                     with col_btn1:
+                        # Show create button only if processes selected and partner selected
                         if processos_selecionados and parceiro_selecionado and parceiro_selecionado != "":
                             if st.button("✅ Create Document", key=f"admin_create_doc_btn_{form_key}", use_container_width=True):
                                 if not titulo.strip():
                                     st.error("Title is required.")
                                 else:
                                     try:
+                                        # Create empty structure with selected processes
                                         dados = ensure_new_structure({}, processos_selecionados)
+                                        
                                         novo = criar_documento(titulo, parceiro_selecionado, dados)
                                         if novo:
+                                            # Increment form key to clear all fields
                                             st.session_state.admin_form_key = form_key + 1
+                                            # Clear selected processes list
                                             session_key = f"processos_selecionados_admin_{form_key}"
                                             if session_key in st.session_state:
                                                 del st.session_state[session_key]
+                                            # Close the form
                                             st.session_state.admin_mostrar_form = False
                                             st.session_state.success_message = f"Document created successfully! ID: {novo['id']}"
                                             st.session_state.new_data = None
@@ -2023,6 +2075,7 @@ elif st.session_state.perfil == "admin":
                     
                     with col_btn2:
                         if st.button("❌ Cancel", key=f"admin_cancel_btn_{form_key}", use_container_width=True):
+                            # Clear form data
                             session_key = f"processos_selecionados_admin_{form_key}"
                             if session_key in st.session_state:
                                 del st.session_state[session_key]
@@ -2039,10 +2092,10 @@ elif st.session_state.perfil == "admin":
             
             st.divider()
 
-        st.subheader("📋 Available Documents")
+        st.subheader("Available Documents")
         render_filtros()
         
-        if st.button("🔄 Refresh list", key="refresh_list_admin"):
+        if st.button("Refresh list", key="refresh_list_admin"):
             st.session_state.doc_selecionado = None
             st.session_state.admin_dropdown_key += 1
             st.session_state.refresh_counter += 1
@@ -2063,6 +2116,7 @@ elif st.session_state.perfil == "admin":
             st.dataframe(df, use_container_width=True, hide_index=True)
 
             ids = [""] + [doc["id"] for doc in documentos]
+
             id_selecionado = st.selectbox(
                 "Select a document:",
                 ids,
@@ -2071,7 +2125,7 @@ elif st.session_state.perfil == "admin":
                 placeholder="Choose an option"
             )
 
-            if st.button("📂 Load document", key="admin_carregar_doc"):
+            if st.button("Load document", key="admin_carregar_doc"):
                 if not id_selecionado:
                     st.warning("Please select a document.")
                 else:
@@ -2086,13 +2140,13 @@ elif st.session_state.perfil == "admin":
                 create_document_anchor(doc['id'])
                 
                 st.divider()
-                st.subheader(f"📄 Document ID {doc['id']}: {doc['titulo']} (Partner: {doc['parceiro_id']})")
+                st.subheader(f"Document ID {doc['id']}: {doc['titulo']} (Partner: {doc['parceiro_id']})")
                 st.write(f"Status: **{doc['estado']}** | Version: {doc['versao_atual']}")
 
                 dados = doc['dados']
                 processos = get_processos_from_data(dados)
                 
-                with st.expander("📊 View document data", expanded=st.session_state.get("expander_aberto", False)):
+                with st.expander("View document data", expanded=st.session_state.get("expander_aberto", False)):
                     st.subheader("LCA")
                     lca = dados.get("lca", {})
                     for proc in processos:
@@ -2123,7 +2177,7 @@ elif st.session_state.perfil == "admin":
                             st.write("Outputs")
                             display_dataframe(pd.DataFrame(lcc["outputs"][proc]))
 
-                with st.expander("🔍 View raw JSON", expanded=False):
+                with st.expander("View raw JSON", expanded=False):
                     st.json(dados)
 
                 st.markdown("---")
@@ -2132,18 +2186,18 @@ elif st.session_state.perfil == "admin":
 
                 if doc['estado'] in ["Submitted", "Submetido"]:
                     with col_btn1:
-                        if st.button("🔍 Start Review", key="admin_iniciar_revisao", use_container_width=True):
+                        if st.button("Start Review", key="admin_iniciar_revisao", use_container_width=True):
                             if iniciar_revisao(doc['id']):
                                 st.rerun()
                 elif doc['estado'] in ["In Review", "Em Revisão"]:
                     comentario = st.text_area("Comment (required if requesting changes)", key="admin_comentario")
                     col_aprov, col_alt = st.columns(2)
                     with col_aprov:
-                        if st.button("✅ Approve", key="admin_aprovar", use_container_width=True):
+                        if st.button("Approve", key="admin_aprovar", use_container_width=True):
                             if aprovar(doc['id']):
                                 st.rerun()
                     with col_alt:
-                        if st.button("🔄 Request Changes", key="admin_pedir_alteracoes", use_container_width=True):
+                        if st.button("Request Changes", key="admin_pedir_alteracoes", use_container_width=True):
                             if not comentario.strip():
                                 st.error("A comment is required to request changes")
                             else:
@@ -2151,30 +2205,30 @@ elif st.session_state.perfil == "admin":
                                     st.rerun()
                 elif doc['estado'] in ["Approved", "Aprovado"]:
                     with col_btn1:
-                        if st.button("🔁 Reopen", key="admin_reabrir", use_container_width=True):
+                        if st.button("Reopen", key="admin_reabrir", use_container_width=True):
                             if reabrir(doc['id']):
                                 st.rerun()
                     with col_btn2:
-                        if st.button("📁 Archive", key="admin_arquivar", use_container_width=True):
+                        if st.button("Archive", key="admin_arquivar", use_container_width=True):
                             if arquivar(doc['id']):
                                 st.rerun()
                 elif doc['estado'] in ["Draft", "Rascunho"]:
                     with col_btn1:
-                        if st.button("📁 Archive (draft)", key="admin_arquivar_rascunho", use_container_width=True):
+                        if st.button("Archive (draft)", key="admin_arquivar_rascunho", use_container_width=True):
                             if arquivar(doc['id']):
                                 st.rerun()
                 elif doc['estado'] in ["Changes Requested", "Alterações"]:
                     with col_btn1:
-                        st.info("⏳ Waiting for partner to edit again.")
+                        st.info("Waiting for partner to edit again.")
                 elif doc['estado'] in ["Archived", "Arquivado"]:
                     with col_btn1:
-                        st.warning("📁 Document archived (view only).")
+                        st.warning("Document archived (view only).")
 
                 with col_btn2:
                     conteudo, filename = exportar_excel(doc['id'], doc['titulo'])
                     if conteudo:
                         st.download_button(
-                            label="📊 Export History",
+                            label="Export History",
                             data=conteudo,
                             file_name=filename,
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -2183,14 +2237,14 @@ elif st.session_state.perfil == "admin":
                         )
 
                 with col_btn3:
-                    if st.button("✖ Close details", key="admin_fechar_detalhes", use_container_width=True):
+                    if st.button("Close details", key="admin_fechar_detalhes", use_container_width=True):
                         st.session_state.doc_selecionado = None
                         st.session_state.expander_aberto = False
                         st.rerun()
 
                 st.markdown("---")
 
-                with st.expander("📜 Version history", expanded=False):
+                with st.expander("Version history", expanded=False):
                     versoes = listar_versoes(doc['id'])
                     if versoes:
                         for v in versoes:
