@@ -1,5 +1,6 @@
 /* =====================================================
    DASHBOARD TOPBAR
+   CSS aislado para la barra superior del dashboard
 ===================================================== */
 
 .dashboard-topbar {
@@ -171,7 +172,8 @@
 }
 
 /* =====================================================
-   DASHBOARD V2 - MAIN (TEMA CLARO SEMPRE)
+   DASHBOARD V2
+   versión fluida para evitar efecto "maqueta" en zoom out
 ===================================================== */
 
 :root {
@@ -576,7 +578,7 @@ body {
 }
 
 /* =====================================================
-   STREAMLIT OVERRIDES - TEMA CLARO
+   STREAMLIT OVERRIDES - EXATAMENTE IGUAL AO HTML
 ===================================================== */
 
 /* Hide Streamlit default elements */
@@ -603,17 +605,251 @@ body {
 }
 
 /* =====================================================
-   CORREÇÃO: TABELAS NÃO ULTRAPASSAREM O CONTAINER
+   ESTILOS STREAMLIT - MESMAS CORES DO HTML
 ===================================================== */
 
-/* Força as tabelas a respeitarem o container */
+/* Botões - mesmo estilo dos cards */
+.stButton > button {
+  background: #f7f7f8 !important;
+  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+  border-radius: 14px !important;
+  color: #17345a !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 15px !important;
+  padding: 8px 16px !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04) !important;
+}
+
+.stButton > button:hover {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 20px rgba(2, 8, 23, 0.1) !important;
+}
+
+.stButton > button:active {
+  transform: translateY(0px) !important;
+}
+
+/* Inputs - mesmo estilo dos cards */
+.stTextInput > div > div > input,
+.stSelectbox > div > div > select,
+.stTextArea > div > div > textarea,
+.stNumberInput input,
+.stDateInput input {
+  background: #f7f7f8 !important;
+  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+  border-radius: 14px !important;
+  color: #1c2f50 !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+  font-size: 15px !important;
+  padding: 10px 14px !important;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04) !important;
+  transition: all 0.2s ease !important;
+}
+
+.stTextInput > div > div > input:focus,
+.stSelectbox > div > div > select:focus,
+.stTextArea > div > div > textarea:focus,
+.stNumberInput input:focus,
+.stDateInput input:focus {
+  background: #ffffff !important;
+  border-color: rgba(0, 54, 98, 0.3) !important;
+  box-shadow: 0 0 0 3px rgba(0, 54, 98, 0.06), 0 4px 10px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Labels */
+.stTextInput label,
+.stSelectbox label,
+.stTextArea label,
+.stCheckbox label,
+.stNumberInput label,
+.stDateInput label {
+  color: #314155 !important;
+  font-weight: 600 !important;
+  font-size: 0.9rem !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+}
+
+/* Expanders - mesmo estilo do hero */
+.streamlit-expanderHeader {
+  background: #e6e6e7 !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+  color: #17345a !important;
+  font-weight: 600 !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+  padding: 12px 16px !important;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04) !important;
+  transition: all 0.2s ease !important;
+}
+
+.streamlit-expanderHeader:hover {
+  background: #f0f1f2 !important;
+}
+
+.streamlit-expanderContent {
+  background: #f7f7f8 !important;
+  border-radius: 0 0 14px 14px !important;
+  border-left: 1px solid rgba(15, 23, 42, 0.04) !important;
+  border-right: 1px solid rgba(15, 23, 42, 0.04) !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.04) !important;
+  padding: 16px 18px !important;
+}
+
+/* Metrics - mesmo estilo dos stats */
+[data-testid="stMetricValue"] {
+  color: #1c2f50 !important;
+  font-weight: 700 !important;
+  font-size: var(--stat-value-size) !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+}
+
+[data-testid="stMetricLabel"] {
+  color: #314155 !important;
+  font-weight: 600 !important;
+  font-size: var(--stat-label-size) !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+}
+
+[data-testid="stMetricDelta"] {
+  color: #6b7280 !important;
+  font-weight: 500 !important;
+}
+
+/* Headers */
+h1, h2, h3, h4, h5, h6 {
+  color: #17345a !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* Subheader / Caption */
+.stCaption, .stMarkdown p, .stMarkdown li {
+  color: #314155 !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+}
+
+/* Divider */
+hr {
+  border: none !important;
+  border-top: 1px solid rgba(15, 23, 42, 0.06) !important;
+  margin: 16px 0 !important;
+}
+
+/* Alert boxes - mesmo estilo dos cards */
+.stAlert {
+  border-radius: 14px !important;
+  background: #f7f7f8 !important;
+  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04) !important;
+  padding: 12px 16px !important;
+}
+
+.stAlert .stAlertContent {
+  color: #17345a !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+}
+
+/* Toast messages */
+.stToast {
+  border-radius: 14px !important;
+  background: #f7f7f8 !important;
+  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+  box-shadow: 0 8px 20px rgba(2, 8, 23, 0.1) !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+}
+
+/* Selectbox placeholder */
+.stSelectbox [data-baseweb="select"] {
+  color: #1c2f50 !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+}
+
+/* Multi-select */
+.stMultiSelect [data-baseweb="select"] {
+  color: #1c2f50 !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+}
+
+.stMultiSelect [data-baseweb="tag"] {
+  background: #e6e6e7 !important;
+  color: #17345a !important;
+  border-radius: 8px !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+}
+
+.stMultiSelect [data-baseweb="tag"] svg {
+  fill: #17345a !important;
+}
+
+/* Tabs - mesmo estilo dos cards */
+.stTabs [data-baseweb="tab-list"] {
+  gap: 4px !important;
+  background: #e6e6e7 !important;
+  border-radius: 14px !important;
+  padding: 4px !important;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04) !important;
+}
+
+.stTabs [data-baseweb="tab"] {
+  border-radius: 10px !important;
+  color: #314155 !important;
+  font-weight: 500 !important;
+  padding: 6px 16px !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+  font-size: 14px !important;
+  transition: all 0.2s ease !important;
+}
+
+.stTabs [data-baseweb="tab"][aria-selected="true"] {
+  background: #ffffff !important;
+  color: #17345a !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+  font-weight: 600 !important;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+  color: #17345a !important;
+}
+
+/* Checkboxes */
+.stCheckbox label span {
+  color: #17345a !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+  font-weight: 500 !important;
+}
+
+.stCheckbox [data-baseweb="checkbox"] {
+  accent-color: rgb(0, 54, 98) !important;
+}
+
+/* Radio buttons */
+.stRadio label span {
+  color: #17345a !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+  font-weight: 500 !important;
+}
+
+.stRadio [data-baseweb="radio"] {
+  accent-color: rgb(0, 54, 98) !important;
+}
+
+/* =====================================================
+   DATAFRAMES - MESMO ESTILO DOS CARDS
+===================================================== */
+
 .stDataFrame {
+  background: #f7f7f8 !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04) !important;
+  overflow: hidden !important;
   width: 100% !important;
   max-width: 100% !important;
-  overflow-x: auto !important;
-  background: #f7f7f8 !important;
-  border-radius: 12px !important;
-  border: 1px solid rgba(15, 23, 42, 0.06) !important;
 }
 
 .stDataFrame > div {
@@ -627,16 +863,22 @@ body {
 }
 
 .stDataFrame thead tr th {
-  background: rgba(0, 54, 98, 0.06) !important;
+  background: #e6e6e7 !important;
   color: #17345a !important;
   font-weight: 600 !important;
-  padding: 8px 12px !important;
+  padding: 10px 14px !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+  font-size: 13px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
   white-space: nowrap !important;
 }
 
 .stDataFrame tbody tr td {
   color: #1c2f50 !important;
-  padding: 6px 12px !important;
+  padding: 8px 14px !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+  font-size: 14px !important;
   word-break: break-word !important;
   max-width: 300px !important;
 }
@@ -645,226 +887,58 @@ body {
   background: rgba(0, 54, 98, 0.04) !important;
 }
 
-/* =====================================================
-   STREAMLIT ELEMENTOS - TEMA CLARO
-===================================================== */
-
-/* Buttons - estilo claro */
-.stButton > button {
-  background: #f0f2f5 !important;
-  border: 1px solid rgba(15, 23, 42, 0.1) !important;
-  border-radius: 8px !important;
-  color: #17345a !important;
-  transition: all 0.3s ease !important;
-  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
-  font-weight: 500 !important;
-}
-
-.stButton > button:hover {
-  background: #e4e7ec !important;
-  border-color: rgba(15, 23, 42, 0.2) !important;
-  transform: translateY(-1px);
-}
-
-/* Form inputs - estilo claro */
-.stTextInput > div > div > input,
-.stSelectbox > div > div > select,
-.stTextArea > div > div > textarea {
-  background: #f7f7f8 !important;
-  border: 1px solid rgba(15, 23, 42, 0.1) !important;
-  border-radius: 8px !important;
-  color: #17345a !important;
-  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
-}
-
-.stTextInput > div > div > input:focus,
-.stSelectbox > div > div > select:focus,
-.stTextArea > div > div > textarea:focus {
-  border-color: rgb(0, 54, 98) !important;
-  box-shadow: 0 0 0 3px rgba(0, 54, 98, 0.08) !important;
-}
-
-/* Labels - estilo claro */
-.stTextInput label,
-.stSelectbox label,
-.stTextArea label,
-.stCheckbox label {
-  color: #314155 !important;
-  font-weight: 500 !important;
-  font-size: 0.85rem !important;
-}
-
-/* Expanders - estilo claro */
-.streamlit-expanderHeader {
-  background: #f0f2f5 !important;
-  border-radius: 8px !important;
-  border: 1px solid rgba(15, 23, 42, 0.06) !important;
-  color: #17345a !important;
-  font-weight: 500 !important;
-}
-
-.streamlit-expanderHeader:hover {
-  background: #e4e7ec !important;
-}
-
-.streamlit-expanderContent {
-  background: #f7f7f8 !important;
-  border-radius: 0 0 8px 8px !important;
-  border-left: 1px solid rgba(15, 23, 42, 0.06) !important;
-  border-right: 1px solid rgba(15, 23, 42, 0.06) !important;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.06) !important;
-  padding: 16px !important;
-}
-
-/* Metrics - estilo claro */
-[data-testid="stMetricValue"] {
-  color: #17345a !important;
-  font-weight: 700 !important;
-}
-
-[data-testid="stMetricLabel"] {
-  color: #314155 !important;
-}
-
-/* Headers - estilo claro */
-h1, h2, h3, h4, h5, h6 {
-  color: #17345a !important;
-}
-
-/* Divider */
-hr {
-  border-color: rgba(15, 23, 42, 0.08) !important;
-}
-
-/* Info/Warning/Success/Error boxes - estilo claro */
-.stAlert {
-  border-radius: 8px !important;
-  background: #f7f7f8 !important;
-  border: 1px solid rgba(15, 23, 42, 0.06) !important;
-}
-
-.stAlert .stAlertContent {
-  color: #17345a !important;
-}
-
-/* Selectbox placeholder - estilo claro */
-.stSelectbox [data-baseweb="select"] {
-  color: #17345a !important;
-}
-
-/* Toast messages */
-.stToast {
-  border-radius: 8px !important;
-  background: #f7f7f8 !important;
-  border: 1px solid rgba(15, 23, 42, 0.06) !important;
-}
-
-/* Multi-select - estilo claro */
-.stMultiSelect [data-baseweb="select"] {
-  color: #17345a !important;
-}
-
-/* Tabs - estilo claro */
-.stTabs [data-baseweb="tab-list"] {
-  gap: 4px !important;
-  background: #f0f2f5 !important;
-  border-radius: 8px !important;
-  padding: 4px !important;
-}
-
-.stTabs [data-baseweb="tab"] {
-  border-radius: 6px !important;
-  color: #314155 !important;
-  font-weight: 500 !important;
-  padding: 4px 14px !important;
-}
-
-.stTabs [data-baseweb="tab"][aria-selected="true"] {
-  background: #ffffff !important;
-  color: #17345a !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+.stDataFrame tbody tr:nth-child(even) {
+  background: rgba(0, 0, 0, 0.01) !important;
 }
 
 /* =====================================================
-   CORREÇÃO: TEXTO EM INPUTS DESATIVADOS
+   INPUTS DESATIVADOS
 ===================================================== */
 
-.stTextInput input:disabled {
-  color: #17345a !important;
-  opacity: 0.7 !important;
+.stTextInput input:disabled,
+.stSelectbox select:disabled,
+.stTextArea textarea:disabled,
+.stNumberInput input:disabled {
+  color: #6b7280 !important;
+  opacity: 0.8 !important;
   background: #e8ebf0 !important;
-}
-
-.stSelectbox select:disabled {
-  color: #17345a !important;
-  opacity: 0.7 !important;
-  background: #e8ebf0 !important;
+  cursor: not-allowed !important;
 }
 
 /* =====================================================
-   CORREÇÃO: DATAFRAMES COM SCROLL HORIZONTAL
-===================================================== */
-
-.stDataFrame [data-testid="stDataFrameResizable"] {
-  overflow-x: auto !important;
-  max-width: 100% !important;
-}
-
-/* =====================================================
-   CORREÇÃO: CHECKBOXES E RADIO - TEMA CLARO
-===================================================== */
-
-.stCheckbox label span {
-  color: #17345a !important;
-}
-
-.stRadio label span {
-  color: #17345a !important;
-}
-
-/* =====================================================
-   CORREÇÃO: MULTISELECT - TEMA CLARO
-===================================================== */
-
-.stMultiSelect [data-baseweb="tag"] {
-  background: #e4e7ec !important;
-  color: #17345a !important;
-}
-
-.stMultiSelect [data-baseweb="tag"] svg {
-  fill: #17345a !important;
-}
-
-/* =====================================================
-   CORREÇÃO: NUMBER INPUT - TEMA CLARO
-===================================================== */
-
-.stNumberInput input {
-  background: #f7f7f8 !important;
-  border: 1px solid rgba(15, 23, 42, 0.1) !important;
-  color: #17345a !important;
-}
-
-/* =====================================================
-   CORREÇÃO: DATE INPUT - TEMA CLARO
-===================================================== */
-
-.stDateInput input {
-  background: #f7f7f8 !important;
-  border: 1px solid rgba(15, 23, 42, 0.1) !important;
-  color: #17345a !important;
-}
-
-/* =====================================================
-   CORREÇÃO: BOTÕES DE DESCARREGAMENTO
+   DOWNLOAD BUTTONS
 ===================================================== */
 
 .stDownloadButton > button {
-  background: #f0f2f5 !important;
-  border: 1px solid rgba(15, 23, 42, 0.1) !important;
+  background: #f7f7f8 !important;
+  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+  border-radius: 14px !important;
   color: #17345a !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04) !important;
+  transition: all 0.2s ease !important;
 }
 
 .stDownloadButton > button:hover {
-  background: #e4e7ec !important;
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 20px rgba(2, 8, 23, 0.1) !important;
+}
+
+/* =====================================================
+   FILE UPLOADER
+===================================================== */
+
+.stFileUploader > div {
+  background: #f7f7f8 !important;
+  border: 2px dashed rgba(15, 23, 42, 0.1) !important;
+  border-radius: 14px !important;
+  padding: 20px !important;
+}
+
+.stFileUploader > div:hover {
+  border-color: rgba(0, 54, 98, 0.3) !important;
+  background: #ffffff !important;
 }
