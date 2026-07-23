@@ -1,5 +1,5 @@
 /* ============================================================
-   MODERN DASHBOARD STYLES - WITH STRICT WIDTH CONTROL
+   MODERN DASHBOARD STYLES
    ============================================================ */
 
 /* ----- Reset & Base ----- */
@@ -17,51 +17,13 @@
     display: none !important;
 }
 
-/* ----- STRICT WIDTH CONTROL ----- */
-/* Force all content into a narrow container */
-.stApp {
-    max-width: 1100px !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-    padding: 0 2rem !important;
-}
-
-.main {
-    max-width: 1100px !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-    padding: 0 2rem !important;
-}
-
+/* Main content - remove default padding */
 .main > div {
     padding: 0 !important;
-    max-width: 1100px !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
+    max-width: 100% !important;
 }
-
 .block-container {
     padding: 0 !important;
-    max-width: 1100px !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-}
-
-/* Force columns to respect width */
-.row-widget.stColumns {
-    max-width: 1100px !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-}
-
-/* Force dataframes to stay within container */
-.stDataFrame {
-    max-width: 100% !important;
-    overflow-x: auto !important;
-}
-
-/* Force all elements to respect the container */
-.element-container {
     max-width: 100% !important;
 }
 
@@ -89,189 +51,12 @@ body {
 }
 
 /* ============================================================
-   MAIN HEADER / NAVIGATION BAR
-   ============================================================ */
-.main-header {
-    position: fixed;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
-    width: 100%;
-    max-width: 1100px;
-    background: rgba(10, 10, 26, 0.92);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    padding: 0 2rem;
-    height: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.header-logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #ffffff;
-    cursor: pointer;
-    flex-shrink: 0;
-}
-.header-logo .logo-icon {
-    width: 30px;
-    height: 30px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.9rem;
-    color: white;
-}
-
-.header-nav {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    flex: 1;
-    justify-content: center;
-}
-.header-nav a {
-    color: #a0a0b8;
-    text-decoration: none;
-    padding: 6px 14px;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    cursor: pointer;
-    background: transparent;
-    border: none;
-    font-family: inherit;
-}
-.header-nav a:hover {
-    color: #ffffff;
-    background: rgba(255,255,255,0.06);
-}
-.header-nav a.active {
-    color: #ffffff;
-    background: linear-gradient(135deg, rgba(102,126,234,0.25) 0%, rgba(118,75,162,0.18) 100%);
-}
-.header-nav .nav-divider {
-    width: 1px;
-    height: 24px;
-    background: rgba(255,255,255,0.06);
-    margin: 0 6px;
-}
-
-.header-user {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-shrink: 0;
-}
-.header-user .user-name {
-    color: #e8e8e8;
-    font-size: 0.85rem;
-    font-weight: 500;
-}
-.header-user .user-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #ffffff;
-}
-.header-user .notification-bell {
-    position: relative;
-    cursor: pointer;
-    font-size: 1.1rem;
-    color: #a0a0b8;
-    transition: color 0.3s ease;
-    background: none;
-    border: none;
-    padding: 4px;
-}
-.header-user .notification-bell:hover {
-    color: #ffffff;
-}
-.header-user .notification-bell .badge {
-    position: absolute;
-    top: -6px;
-    right: -8px;
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-    color: white;
-    border-radius: 50%;
-    padding: 2px 6px;
-    font-size: 9px;
-    font-weight: 700;
-    min-width: 18px;
-    text-align: center;
-    animation: pulse 1s infinite;
-}
-@keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-}
-.header-user .logout-btn {
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 8px;
-    color: #a0a0b8;
-    padding: 5px 12px;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-family: inherit;
-}
-.header-user .logout-btn:hover {
-    color: #ffffff;
-    background: rgba(255,255,255,0.10);
-}
-
-/* Admin menu in header */
-.admin-menu {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    background: rgba(255,255,255,0.03);
-    border-radius: 10px;
-    padding: 3px;
-}
-.admin-menu a {
-    color: #a0a0b8;
-    text-decoration: none;
-    padding: 4px 12px;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-.admin-menu a:hover {
-    color: #ffffff;
-    background: rgba(255,255,255,0.06);
-}
-.admin-menu a.active {
-    color: #ffffff;
-    background: linear-gradient(135deg, rgba(102,126,234,0.25) 0%, rgba(118,75,162,0.18) 100%);
-}
-
-/* ============================================================
    MAIN CONTENT - STRICT WIDTH
    ============================================================ */
 .main-content {
     margin-top: 80px;
-    padding: 0 0 2rem 0 !important;
-    max-width: 1100px !important;
+    padding: 0 2rem 2rem 2rem !important;
+    max-width: 1200px !important;
     margin-left: auto !important;
     margin-right: auto !important;
     width: 100% !important;
@@ -408,18 +193,29 @@ body {
     overflow: auto !important;
     font-size: 0.85rem !important;
     max-width: 100% !important;
+    width: 100% !important;
 }
+
+.stDataFrame table {
+    width: 100% !important;
+    table-layout: auto !important;
+}
+
 .stDataFrame thead tr th {
     background: rgba(102,126,234,0.12) !important;
     color: #e0e0e0 !important;
     font-weight: 600 !important;
     padding: 0.6rem 0.8rem !important;
+    white-space: nowrap !important;
 }
+
 .stDataFrame tbody tr td {
     color: #c0c0d0 !important;
     padding: 0.5rem 0.8rem !important;
     border-bottom: 1px solid rgba(255,255,255,0.03) !important;
+    white-space: nowrap !important;
 }
+
 .stDataFrame tbody tr:hover {
     background: rgba(102,126,234,0.04) !important;
 }
@@ -479,37 +275,11 @@ hr {
 /* ============================================================
    RESPONSIVE
    ============================================================ */
-@media (max-width: 1200px) {
-    .stApp, .main, .main > div, .block-container, .main-content {
-        max-width: 100% !important;
-        padding-left: 1.5rem !important;
-        padding-right: 1.5rem !important;
-    }
-    .main-header {
-        max-width: 100% !important;
-        padding: 0 1.5rem !important;
-    }
-}
-
 @media (max-width: 768px) {
-    .main-header {
-        padding: 0 0.5rem !important;
-        height: 56px;
-    }
-    .header-nav a {
-        padding: 4px 10px;
-        font-size: 0.75rem;
-    }
-    .header-user .user-name {
-        display: none;
-    }
     .main-content {
         margin-top: 72px;
         padding: 0 0.5rem 1rem 0.5rem !important;
-    }
-    .stApp, .main, .main > div, .block-container {
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
+        max-width: 100% !important;
     }
     .stat-card .stat-value {
         font-size: 1.5rem;
@@ -517,83 +287,10 @@ hr {
     .stat-card {
         padding: 0.75rem 0.75rem;
     }
-    .admin-menu a {
-        padding: 3px 8px;
-        font-size: 0.7rem;
-    }
 }
 
 @media (max-width: 480px) {
-    .header-nav a {
-        padding: 3px 6px;
-        font-size: 0.65rem;
-    }
-    .header-nav .nav-divider {
-        margin: 0 3px;
-    }
-    .header-user {
-        gap: 6px;
-    }
-    .header-user .notification-bell {
-        font-size: 0.9rem;
-    }
-    .header-user .logout-btn {
-        padding: 3px 8px;
-        font-size: 0.7rem;
-    }
     .main-content {
         padding: 0 0.3rem 0.8rem 0.3rem !important;
     }
-    .stApp, .main, .main > div, .block-container {
-        padding-left: 0.3rem !important;
-        padding-right: 0.3rem !important;
-    }
-}
-
-/* ============================================================
-   TABLES - FIXED WIDTH, NO SCROLL
-   ============================================================ */
-.stDataFrame {
-    background: rgba(255,255,255,0.02) !important;
-    border-radius: 12px !important;
-    overflow: hidden !important;
-    font-size: 0.85rem !important;
-    max-width: 100% !important;
-    width: 100% !important;
-}
-
-.stDataFrame .dataframe {
-    width: 100% !important;
-    table-layout: fixed !important;
-}
-
-.stDataFrame thead tr th {
-    background: rgba(102,126,234,0.12) !important;
-    color: #e0e0e0 !important;
-    font-weight: 600 !important;
-    padding: 0.6rem 0.8rem !important;
-    text-overflow: ellipsis !important;
-    overflow: hidden !important;
-}
-
-.stDataFrame tbody tr td {
-    color: #c0c0d0 !important;
-    padding: 0.5rem 0.8rem !important;
-    border-bottom: 1px solid rgba(255,255,255,0.03) !important;
-    text-overflow: ellipsis !important;
-    overflow: hidden !important;
-    word-wrap: break-word !important;
-}
-
-.stDataFrame tbody tr:hover {
-    background: rgba(102,126,234,0.04) !important;
-}
-
-/* Force columns to have fixed widths */
-.stDataFrame .col_heading {
-    max-width: 150px !important;
-}
-
-.stDataFrame .data {
-    max-width: 150px !important;
 }
