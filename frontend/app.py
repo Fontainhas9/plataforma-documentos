@@ -40,32 +40,27 @@ st.set_page_config(
 # LOAD EXTERNAL CSS
 # ============================================================
 def load_css():
-    """Loads the external CSS file."""
     try:
         css_paths = [
             os.path.join(os.path.dirname(__file__), 'style.css'),
             'style.css',
             os.path.join(os.getcwd(), 'style.css'),
         ]
-        
         css_content = None
         for path in css_paths:
             if os.path.exists(path):
                 with open(path, 'r') as f:
                     css_content = f.read()
                 break
-        
         if css_content:
             st.markdown(f'<style>{css_content}</style>', unsafe_allow_html=True)
         else:
-            # Fallback minimal CSS
             st.markdown("""
             <style>
                 [data-testid="stSidebar"] { display: none !important; }
-                [data-testid="stSidebarNav"] { display: none !important; }
-                .main > div { padding: 0 !important; max-width: 100% !important; }
+                .main > div { padding: 0 !important; }
                 .block-container { padding: 0 !important; }
-                body { background: #032949; color: #e8edf3; }
+                body { background: #032949; color: #e8edf3; font-family: "Inter", "Segoe UI", Arial, sans-serif; }
             </style>
             """, unsafe_allow_html=True)
     except Exception as e:
@@ -785,36 +780,28 @@ def trigger_scroll(doc_id):
 # RENDER TOPBAR
 # ============================================================
 def render_topbar():
-    """Renders the topbar with navigation and user info."""
     username = st.session_state.get("username", "User")
     perfil = st.session_state.get("perfil", "")
     notif_count = get_notificacoes_nao_lidas() if st.session_state.get("token") else 0
     
-    # Get current page from query params
     current_page = st.query_params.get("page", "home")
-    
-    # Determine active links
     is_home = current_page in ["home", ""] or current_page is None
     is_dashboard = current_page == "dashboard"
     is_notifications = current_page == "notificacoes"
     
-    # Build topbar HTML
     topbar_html = f'''
     <header class="dashboard-topbar">
         <div class="dashboard-topbar__inner">
-            <h1 class="dashboard-topbar__title">📄 DocPlatform</h1>
+            <h1 class="dashboard-topbar__title" onclick="window.location.href='?page=home'">📄 DocPlatform</h1>
             <nav class="dashboard-topbar__nav">
                 <a class="dashboard-topbar__link {'active' if is_home else ''}" onclick="window.location.href='?page=home'">Home</a>
                 <a class="dashboard-topbar__link {'active' if is_dashboard else ''}" onclick="window.location.href='?page=dashboard'">Dashboard</a>
-                <a class="dashboard-topbar__link {'active' if is_notifications else ''}" onclick="window.location.href='?page=notificacoes'">Notifications</a>
-                <span style="color: rgba(255,255,255,0.1); padding: 0 4px;">|</span>
-                <span class="user-name">{username}</span>
-                <div class="notification-bell-wrapper" onclick="window.location.href='?page=notificacoes'">
-                    <span class="bell-icon">🔔</span>
-                    {f'<span class="badge">{notif_count}</span>' if notif_count > 0 else ''}
-                </div>
-                <div class="user-avatar">{username[0].upper() if username else 'U'}</div>
-                <button class="logout-btn" onclick="window.location.href='?logout=true'">Logout</button>
+                <a class="dashboard-topbar__link {'active' if is_notifications else ''}" onclick="window.location.href='?page=notificacoes'">
+                    🔔 {notif_count if notif_count > 0 else ''}
+                </a>
+                <span style="color: rgba(255,255,255,0.3); font-size:14px;">|</span>
+                <span style="color: rgba(255,255,255,0.7); font-size:14px; font-weight:500;">{username}</span>
+                <button class="dashboard-topbar__link" onclick="window.location.href='?logout=true'" style="background:none;border:none;cursor:pointer;">Logout</button>
             </nav>
         </div>
     </header>
@@ -823,23 +810,19 @@ def render_topbar():
     
     st.markdown(topbar_html, unsafe_allow_html=True)
     
-    # Process navigation
     if st.query_params.get("page") == "dashboard":
         st.switch_page("pages/dashboard.py")
     elif st.query_params.get("page") == "notificacoes":
         st.switch_page("pages/notificacoes.py")
     
-    # Process logout
     if st.query_params.get("logout") == "true":
         st.query_params.clear()
         logout()
         st.rerun()
 
 # ============================================================
-# MAIN APP LOGIC
+# INIT SESSION STATE
 # ============================================================
-
-# Initialize session state
 if "token" not in st.session_state:
     st.session_state.token = None
 if "perfil" not in st.session_state:
@@ -896,18 +879,16 @@ if "filtros_temporarios" not in st.session_state:
     st.session_state.filtros_temporarios = {"q": "", "estados": [], "data_inicio": None, "data_fim": None, "order_by": "id", "order_dir": "desc"}
 
 # ============================================================
-# RENDER LOGIN OR APP
+# LOGIN SCREEN
 # ============================================================
-
 if st.session_state.token is None:
-    # LOGIN SCREEN
     st.markdown('<div class="dashboard-shell" style="display:flex;align-items:center;justify-content:center;min-height:70vh;">', unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.5, 1])
     with col2:
         st.markdown("""
-        <div style="background:rgba(255,255,255,0.03);border-radius:18px;padding:32px;border:1px solid rgba(255,255,255,0.06);backdrop-filter:blur(4px);">
-            <h2 style="color:#ffffff;font-size:28px;margin-bottom:8px;">Welcome back</h2>
-            <p style="color:#9bb1cc;margin-bottom:24px;">Sign in to your account</p>
+        <div style="background:#e6e6e7;border-radius:18px;padding:32px;box-shadow:0 14px 34px rgba(2,8,23,0.12);">
+            <h2 style="color:#17345a;font-size:28px;margin-bottom:8px;">Welcome back</h2>
+            <p style="color:#6b7280;margin-bottom:24px;">Sign in to your account</p>
         """, unsafe_allow_html=True)
         with st.form("login_form"):
             username = st.text_input("Username", placeholder="Enter your username")
@@ -922,15 +903,12 @@ if st.session_state.token is None:
     st.stop()
 
 # ============================================================
-# AUTHENTICATED USER - RENDER TOPBAR AND CONTENT
+# AUTHENTICATED USER
 # ============================================================
-
-# Show success message
 if st.session_state.success_message:
     st.toast(st.session_state.success_message, icon="✅")
     st.session_state.success_message = None
 
-# Process document opening from notifications
 if "doc_id" in st.query_params and st.query_params["doc_id"]:
     try:
         doc_id = int(st.query_params["doc_id"])
@@ -948,22 +926,13 @@ if st.session_state.get("close_doc_after_action", False):
     st.session_state.edit_data = None
     st.session_state.close_doc_after_action = False
 
-# Render topbar
 render_topbar()
 
-# Close the dashboard-shell div after topbar
-# We'll close it at the end of the script
-
 # ============================================================
-# RENDER MAIN CONTENT
+# MAIN CONTENT
 # ============================================================
 
-# Only dashboard link for admin
-if st.session_state.perfil == "admin":
-    # Dashboard link is in topbar
-    pass
-
-# ---------- Document summary ----------
+# Document summary for non-admin
 if st.session_state.perfil != "admin":
     documentos = listar_documentos()
     if documentos:
@@ -973,7 +942,9 @@ if st.session_state.perfil != "admin":
     else:
         st.info("No documents found. Start by creating a new document.")
 
-# ---------- Partner Area ----------
+# ============================================================
+# PARTNER AREA
+# ============================================================
 if st.session_state.perfil == "parceiro":
     st.header("Partner Area")
     st.caption("Documents are created by the company. You only fill in the data and submit.")
@@ -1178,7 +1149,9 @@ if st.session_state.perfil == "parceiro":
                 else:
                     st.info("No history available.")
 
-# ---------- Company Area ----------
+# ============================================================
+# COMPANY AREA
+# ============================================================
 elif st.session_state.perfil == "empresa":
     st.header("Company Area (Validation)")
     
@@ -1269,7 +1242,6 @@ elif st.session_state.perfil == "empresa":
     
     st.subheader("Available Documents")
     
-    # Filters
     with st.expander("Search Filters", expanded=False):
         col1, col2 = st.columns(2)
         key_suffix = st.session_state.filtros_widget_key
@@ -1459,7 +1431,9 @@ elif st.session_state.perfil == "empresa":
                 else:
                     st.info("No history available.")
 
-# ---------- Admin Area ----------
+# ============================================================
+# ADMIN AREA
+# ============================================================
 elif st.session_state.perfil == "admin":
     st.header("Administrative Panel")
     menu_admin = st.sidebar.radio("Admin", ["Users", "Documents (company)"], key="admin_menu")
@@ -1742,7 +1716,6 @@ elif st.session_state.perfil == "admin":
 
         st.subheader("Available Documents")
         
-        # Filters
         with st.expander("Search Filters", expanded=False):
             col1, col2 = st.columns(2)
             key_suffix = st.session_state.filtros_widget_key
@@ -1933,13 +1906,10 @@ elif st.session_state.perfil == "admin":
                         st.info("No history available.")
 
 # ============================================================
-# CLOSE DASHBOARD-SHELL DIV
+# CLOSE DASHBOARD-SHELL
 # ============================================================
 st.markdown('</div>', unsafe_allow_html=True)
 
-# ============================================================
-# PROCESS CLOSE_DOC_AFTER_ACTION
-# ============================================================
 if st.session_state.get("close_doc_after_action", False):
     if st.session_state.doc_selecionado is not None:
         st.session_state.doc_selecionado = None

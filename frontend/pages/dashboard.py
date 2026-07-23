@@ -52,10 +52,9 @@ def load_css():
             st.markdown("""
             <style>
                 [data-testid="stSidebar"] { display: none !important; }
-                [data-testid="stSidebarNav"] { display: none !important; }
-                .main > div { padding: 0 !important; max-width: 100% !important; }
+                .main > div { padding: 0 !important; }
                 .block-container { padding: 0 !important; }
-                body { background: #032949; color: #e8edf3; }
+                body { background: #032949; color: #e8edf3; font-family: "Inter", "Segoe UI", Arial, sans-serif; }
             </style>
             """, unsafe_allow_html=True)
     except Exception as e:
@@ -96,19 +95,16 @@ def render_topbar():
     topbar_html = f'''
     <header class="dashboard-topbar">
         <div class="dashboard-topbar__inner">
-            <h1 class="dashboard-topbar__title" onclick="window.location.href='?page=home'" style="cursor:pointer;">📄 DocPlatform</h1>
+            <h1 class="dashboard-topbar__title" onclick="window.location.href='?page=home'">📄 DocPlatform</h1>
             <nav class="dashboard-topbar__nav">
                 <a class="dashboard-topbar__link" onclick="window.location.href='?page=home'">Home</a>
                 <a class="dashboard-topbar__link active" onclick="window.location.href='?page=dashboard'">Dashboard</a>
-                <a class="dashboard-topbar__link" onclick="window.location.href='?page=notificacoes'">Notifications</a>
-                <span style="color: rgba(255,255,255,0.1); padding: 0 4px;">|</span>
-                <span class="user-name">{username}</span>
-                <div class="notification-bell-wrapper" onclick="window.location.href='?page=notificacoes'">
-                    <span class="bell-icon">🔔</span>
-                    {f'<span class="badge">{notif_count}</span>' if notif_count > 0 else ''}
-                </div>
-                <div class="user-avatar">{username[0].upper() if username else 'U'}</div>
-                <button class="logout-btn" onclick="window.location.href='?logout=true'">Logout</button>
+                <a class="dashboard-topbar__link" onclick="window.location.href='?page=notificacoes'">
+                    🔔 {notif_count if notif_count > 0 else ''}
+                </a>
+                <span style="color: rgba(255,255,255,0.3); font-size:14px;">|</span>
+                <span style="color: rgba(255,255,255,0.7); font-size:14px; font-weight:500;">{username}</span>
+                <button class="dashboard-topbar__link" onclick="window.location.href='?logout=true'" style="background:none;border:none;cursor:pointer;">Logout</button>
             </nav>
         </div>
     </header>
@@ -220,6 +216,6 @@ except Exception as e:
     st.error(f"Error loading top partners: {e}")
 
 # ============================================================
-# CLOSE DASHBOARD-SHELL DIV
+# CLOSE DASHBOARD-SHELL
 # ============================================================
 st.markdown('</div>', unsafe_allow_html=True)
