@@ -1,4 +1,4 @@
-# frontend/components/load_css.py
+# frontend/componentes/load_css.py
 import streamlit as st
 import os
 

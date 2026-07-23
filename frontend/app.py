@@ -6,7 +6,26 @@ from datetime import datetime
 import os
 
 # ============================================================
-# API URL CONFIGURATION - WORKS IN LOCAL AND PRODUCTION
+# CARREGAR CSS
+# ============================================================
+# Tentar importar o load_css
+try:
+    from componentes.load_css import load_css
+    load_css()
+except ImportError:
+    # Fallback: carregar CSS inline
+    st.markdown("""
+    <style>
+        .main-content { margin-top: 80px; padding: 0 2rem 2rem 2rem; max-width: 1440px; margin-left: auto; margin-right: auto; }
+        [data-testid="stSidebar"] { display: none !important; }
+        [data-testid="stSidebarNav"] { display: none !important; }
+        .main > div { padding: 0 !important; max-width: 100% !important; }
+        .block-container { padding: 0 !important; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# ============================================================
+# API URL CONFIGURATION
 # ============================================================
 def get_api_url():
     """Returns the API URL based on the environment (local or production)."""
