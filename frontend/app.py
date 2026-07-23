@@ -29,18 +29,19 @@ def load_css():
     except Exception as e:
         print(f"Error loading CSS from file: {e}")
     
-    # Fallback minimal CSS
+    # Fallback minimal CSS with margins
     st.markdown("""
     <style>
         [data-testid="stSidebar"] { display: none !important; }
         [data-testid="stSidebarNav"] { display: none !important; }
         .main > div { padding: 0 !important; max-width: 100% !important; }
         .block-container { padding: 0 !important; max-width: 100% !important; }
-        .main-content { margin-top: 80px; padding: 0 2rem 2rem 2rem; max-width: 1000px; margin-left: auto; margin-right: auto; }
+        .main-content { margin-top: 80px; padding: 0 3rem 2rem 3rem !important; max-width: 1000px; margin-left: auto; margin-right: auto; }
         .stat-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 1.5rem; border: 1px solid rgba(255,255,255,0.05); }
         .stat-value { font-size: 2rem; font-weight: 700; color: white; }
         .stat-label { font-size: 0.8rem; color: #80809a; text-transform: uppercase; }
         .stButton button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; padding: 0.5rem 1.2rem !important; font-weight: 500 !important; }
+        .stDataFrame { max-width: 100% !important; overflow: auto !important; }
     </style>
     """, unsafe_allow_html=True)
 
