@@ -4,7 +4,7 @@ from datetime import datetime
 import os
 
 # ============================================================
-# CONFIGURAÇÃO DA API_URL
+# API URL CONFIGURATION
 # ============================================================
 def get_api_url():
     try:
@@ -22,38 +22,62 @@ def get_api_url():
 API_URL = get_api_url()
 
 st.set_page_config(
-    page_title="Notificações",
+    page_title="Notifications",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# CSS - sidebar 270px
-st.markdown("""
-<style>
-    [data-testid="stSidebarNav"] {
-        display: none !important;
-    }
-    [data-testid="stSidebar"] {
-        min-width: 270px !important;
-        width: 270px !important;
-        max-width: 270px !important;
-        overflow: auto !important;
-    }
-    .main > div {
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
-        max-width: 100% !important;
-    }
-</style>
-""", unsafe_allow_html=True)
+# ============================================================
+# LOAD CSS
+# ============================================================
+def load_css():
+    try:
+        css_paths = [
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), 'style.css'),
+            'style.css',
+            os.path.join(os.getcwd(), 'style.css'),
+        ]
+        css_content = None
+        for path in css_paths:
+            if os.path.exists(path):
+                with open(path, 'r') as f:
+                    css_content = f.read()
+                break
+        if css_content:
+            st.markdown(f'<style>{css_content}</style>', unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <style>
+                [data-testid="stSidebar"] { display: none !important; }
+                [data-testid="stSidebarNav"] { display: none !important; }
+                .main > div { padding: 0 !important; max-width: 100% !important; }
+                .block-container { padding: 0 !important; }
+                body { background: #032949; color: #e8edf3; }
+            </style>
+            """, unsafe_allow_html=True)
+    except Exception as e:
+        print(f"Error loading CSS: {e}")
 
-# Verificar autenticação
+load_css()
+
+# ============================================================
+# CHECK AUTH
+# ============================================================
 if "token" not in st.session_state or st.session_state.token is None:
-    st.warning("Por favor, faça login primeiro.")
+    st.warning("Please login first.")
     st.stop()
 
 def headers_auth():
     return {"Authorization": f"Bearer {st.session_state.token}"}
+
+def get_notificacoes_nao_lidas():
+    try:
+        resp = requests.get(f"{API_URL}/notificacoes/nao-lidas", headers=headers_auth())
+        if resp.status_code == 200:
+            return resp.json().get("count", 0)
+    except:
+        pass
+    return 0
 
 def get_notificacoes(limit=100):
     try:
@@ -61,10 +85,10 @@ def get_notificacoes(limit=100):
         if resp.status_code == 200:
             return resp.json()
         else:
-            st.error(f"Erro ao carregar notificações: {resp.status_code}")
+            st.error(f"Error loading notifications: {resp.status_code}")
             return []
     except Exception as e:
-        st.error(f"Erro ao carregar notificações: {e}")
+        st.error(f"Error loading notifications: {e}")
         return []
 
 def marcar_todas_lidas():
@@ -72,84 +96,105 @@ def marcar_todas_lidas():
         resp = requests.put(f"{API_URL}/notificacoes/ler-todas", headers=headers_auth())
         if resp.status_code == 200:
             count = resp.json().get("count", 0)
-            st.success(f"✅ {count} notificações marcadas como lidas!")
+            st.success(f"✅ {count} notifications marked as read!")
             return True
         else:
-            st.error(f"Erro ao marcar todas como lidas: {resp.status_code} - {resp.text}")
+            st.error(f"Error marking all as read: {resp.status_code} - {resp.text}")
             return False
     except Exception as e:
-        st.error(f"Erro ao marcar todas como lidas: {e}")
+        st.error(f"Error marking all as read: {e}")
         return False
 
 def marcar_como_lida(notificacao_id):
     try:
         resp = requests.put(f"{API_URL}/notificacoes/{notificacao_id}/ler", headers=headers_auth())
         if resp.status_code == 200:
-            st.success("✅ Notificação marcada como lida!")
+            st.success("✅ Notification marked as read!")
             return True
         else:
-            st.error(f"Erro ao marcar como lida: {resp.status_code} - {resp.text}")
+            st.error(f"Error marking as read: {resp.status_code} - {resp.text}")
             return False
     except Exception as e:
-        st.error(f"Erro ao marcar como lida: {e}")
+        st.error(f"Error marking as read: {e}")
         return False
 
-# Sidebar personalizada
-with st.sidebar:
-    st.write(f"Logado como: **{st.session_state.username}**")
-    st.divider()
+# ============================================================
+# RENDER TOPBAR
+# ============================================================
+def render_topbar():
+    username = st.session_state.get("username", "User")
+    notif_count = get_notificacoes_nao_lidas() if st.session_state.get("token") else 0
     
-    if st.button("← Voltar", use_container_width=True, key="notificacoes_sidebar_voltar"):
+    topbar_html = f'''
+    <header class="dashboard-topbar">
+        <div class="dashboard-topbar__inner">
+            <h1 class="dashboard-topbar__title" onclick="window.location.href='?page=home'" style="cursor:pointer;">📄 DocPlatform</h1>
+            <nav class="dashboard-topbar__nav">
+                <a class="dashboard-topbar__link" onclick="window.location.href='?page=home'">Home</a>
+                <a class="dashboard-topbar__link" onclick="window.location.href='?page=dashboard'">Dashboard</a>
+                <a class="dashboard-topbar__link active" onclick="window.location.href='?page=notificacoes'">Notifications</a>
+                <span style="color: rgba(255,255,255,0.1); padding: 0 4px;">|</span>
+                <span class="user-name">{username}</span>
+                <div class="notification-bell-wrapper" onclick="window.location.href='?page=notificacoes'">
+                    <span class="bell-icon">🔔</span>
+                    {f'<span class="badge">{notif_count}</span>' if notif_count > 0 else ''}
+                </div>
+                <div class="user-avatar">{username[0].upper() if username else 'U'}</div>
+                <button class="logout-btn" onclick="window.location.href='?logout=true'">Logout</button>
+            </nav>
+        </div>
+    </header>
+    <div class="dashboard-shell">
+    '''
+    st.markdown(topbar_html, unsafe_allow_html=True)
+    
+    if st.query_params.get("page") == "home":
         st.switch_page("app.py")
+    elif st.query_params.get("page") == "dashboard":
+        st.switch_page("pages/dashboard.py")
     
-    if st.button("Logout", key="notificacoes_sidebar_logout"):
-        st.session_state.token = None
-        st.session_state.perfil = None
-        st.session_state.username = None
-        st.session_state.doc_selecionado = None
-        st.session_state.success_message = None
-        st.session_state.menu_parceiro_widget = "Meus Documentos"
-        st.session_state.redirect_to_docs = False
-        st.session_state.edit_data = None
-        st.session_state.new_data = None
-        st.session_state.refresh_counter = 0
+    if st.query_params.get("logout") == "true":
+        st.query_params.clear()
+        from app import logout
+        logout()
         st.rerun()
 
-# Título
-st.title("Notificações")
+render_topbar()
 
-# Contador de não lidas
+# ============================================================
+# NOTIFICATIONS CONTENT
+# ============================================================
+st.title("Notifications")
+
+# Count unread
 try:
     resp = requests.get(f"{API_URL}/notificacoes/nao-lidas", headers=headers_auth())
     if resp.status_code == 200:
         count = resp.json().get("count", 0)
         if count > 0:
-            if count == 1:
-                st.info(f"📌 Você tem {count} notificação não lida.")
-            else:
-                st.info(f"📌 Você tem {count} notificações não lidas.")
+            st.info(f"📌 You have {count} unread notification{'s' if count > 1 else ''}.")
         else:
-            st.info("📌 Todas as notificações estão lidas.")
+            st.info("📌 All notifications are read.")
 except:
     pass
 
-# Botões de ação
+# Action buttons
 col1, col2 = st.columns([1, 5])
 with col1:
-    if st.button("← Voltar", use_container_width=True, key="notificacoes_voltar_principal"):
+    if st.button("← Back", use_container_width=True, key="notificacoes_voltar_principal"):
         st.switch_page("app.py")
 with col2:
-    if st.button("Marcar todas como lidas", use_container_width=True, key="notificacoes_marcar_todas"):
+    if st.button("Mark all as read", use_container_width=True, key="notificacoes_marcar_todas"):
         if marcar_todas_lidas():
             st.rerun()
 
 st.divider()
 
-# Listar notificações
+# List notifications
 notificacoes = get_notificacoes(100)
 
 if not notificacoes:
-    st.info("Nenhuma notificação encontrada.")
+    st.info("No notifications found.")
 else:
     for notif in notificacoes:
         with st.container():
@@ -165,19 +210,18 @@ else:
                 st.caption(f"📅 {notif['created_at']}")
             with col3:
                 if not notif.get("lida", False):
-                    if st.button("✓ Marcar lida", key=f"notificacao_marcar_lida_{notif['id']}"):
+                    if st.button("✓ Mark read", key=f"notificacao_marcar_lida_{notif['id']}"):
                         if marcar_como_lida(notif['id']):
                             st.rerun()
                 else:
-                    st.write("✅ Lida")
+                    st.write("✅ Read")
             
-            # Link para o documento
             if notif.get("link"):
                 link = notif['link'].replace("/documentos?doc_id=", "")
                 if link:
                     try:
                         doc_id = int(link)
-                        if st.button("Ver Documento", key=f"notificacao_ver_doc_{notif['id']}"):
+                        if st.button("View Document", key=f"notificacao_ver_doc_{notif['id']}"):
                             st.session_state.doc_selecionado = doc_id
                             st.query_params["doc_id"] = str(doc_id)
                             st.query_params["from_notification"] = "true"
@@ -186,3 +230,8 @@ else:
                         pass
             
             st.divider()
+
+# ============================================================
+# CLOSE DASHBOARD-SHELL DIV
+# ============================================================
+st.markdown('</div>', unsafe_allow_html=True)
