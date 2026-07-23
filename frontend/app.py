@@ -790,40 +790,131 @@ def render_topbar():
     is_dashboard = current_page == "dashboard"
     is_notifications = current_page == "notificacoes"
     
-    # Usar JavaScript para navegação que funciona no Streamlit
-    topbar_html = f'''
+    # Topbar com navegação usando Streamlit buttons
+    st.markdown(f'''
     <header class="dashboard-topbar">
         <div class="dashboard-topbar__inner">
-            <h1 class="dashboard-topbar__title" onclick="window.parent.location.href=window.location.origin + window.location.pathname + '?page=home'">📄 DocPlatform</h1>
+            <h1 class="dashboard-topbar__title" style="cursor:pointer;" onclick="window.location.href='?page=home'">📄 DocPlatform</h1>
             <nav class="dashboard-topbar__nav">
-                <a class="dashboard-topbar__link {'active' if is_home else ''}" 
-                   onclick="window.parent.location.href=window.location.origin + window.location.pathname + '?page=home'">
-                    Home
-                </a>
-                <a class="dashboard-topbar__link {'active' if is_dashboard else ''}" 
-                   onclick="window.parent.location.href=window.location.origin + window.location.pathname + '?page=dashboard'">
-                    Dashboard
-                </a>
-                <a class="dashboard-topbar__link {'active' if is_notifications else ''}" 
-                   onclick="window.parent.location.href=window.location.origin + window.location.pathname + '?page=notificacoes'">
-                    🔔 {notif_count if notif_count > 0 else ''}
-                </a>
+                <span id="nav-home" class="dashboard-topbar__link {"active" if is_home else ""}" style="cursor:pointer;">Home</span>
+                <span id="nav-dashboard" class="dashboard-topbar__link {"active" if is_dashboard else ""}" style="cursor:pointer;">Dashboard</span>
+                <span id="nav-notifications" class="dashboard-topbar__link {"active" if is_notifications else ""}" style="cursor:pointer;">🔔 {notif_count if notif_count > 0 else ''}</span>
                 <span style="color: rgba(255,255,255,0.3); font-size:14px;">|</span>
                 <span style="color: rgba(255,255,255,0.7); font-size:14px; font-weight:500;">{username}</span>
-                <button class="dashboard-topbar__link" 
-                        onclick="window.parent.location.href=window.location.origin + window.location.pathname + '?logout=true'"
-                        style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.94) !important;">
-                    Logout
-                </button>
+                <span id="nav-logout" class="dashboard-topbar__link" style="cursor:pointer;color:rgba(255,255,255,0.94) !important;">Logout</span>
             </nav>
         </div>
     </header>
     <div class="dashboard-shell">
-    '''
+    ''', unsafe_allow_html=True)
     
-    st.markdown(topbar_html, unsafe_allow_html=True)
+    # Botões Streamlit invisíveis para navegação (colocados dentro do topbar via CSS)
+    # Usamos colunas para posicionar os botões no mesmo local
+    col1, col2, col3, col4, col5, col6 = st.columns([1, 1, 1, 4, 1, 1])
     
-    # Processar navegação via query params
+    with col1:
+        if st.button("Home", key="topbar_home", use_container_width=True):
+            st.query_params["page"] = "home"
+            st.rerun()
+    
+    with col2:
+        if st.button("Dashboard", key="topbar_dashboard", use_container_width=True):
+            st.query_params["page"] = "dashboard"
+            st.rerun()
+    
+    with col3:
+        if st.button(f"🔔 {notif_count if notif_count > 0 else ''}", key="topbar_notifications", use_container_width=True):
+            st.query_params["page"] = "notificacoes"
+            st.rerun()
+    
+    with col6:
+        if st.button("Logout", key="topbar_logout", use_container_width=True):
+            st.query_params["logout"] = "true"
+            st.rerun()
+    
+    # Esconder os botões Streamlit e usar apenas os spans HTML como trigger
+    st.markdown('''
+    <style>
+        /* Esconder os botões Streamlit do topbar */
+        .stButton {
+            display: none !important;
+        }
+        /* Mostrar os spans como links */
+        .dashboard-topbar__link {
+            cursor: pointer !important;
+        }
+        .dashboard-topbar__link:hover {
+            opacity: 0.8 !important;
+        }
+        .dashboard-topbar__link.active {
+            color: #ffffff !important;
+            opacity: 1 !important;
+        }
+    </style>
+    <script>
+        // Adicionar event listeners aos spans para clicar nos botões Streamlit escondidos
+        document.addEventListener('DOMContentLoaded', function() {
+            // Home
+            const homeSpan = document.getElementById('nav-home');
+            if (homeSpan) {
+                homeSpan.addEventListener('click', function() {
+                    const btn = document.querySelector('button[data-testid="baseButton-secondary"][kind="secondary"]');
+                    const btns = document.querySelectorAll('button');
+                    for (let b of btns) {
+                        if (b.innerText.trim() === 'Home') {
+                            b.click();
+                            break;
+                        }
+                    }
+                });
+            }
+            
+            // Dashboard
+            const dashSpan = document.getElementById('nav-dashboard');
+            if (dashSpan) {
+                dashSpan.addEventListener('click', function() {
+                    const btns = document.querySelectorAll('button');
+                    for (let b of btns) {
+                        if (b.innerText.trim() === 'Dashboard') {
+                            b.click();
+                            break;
+                        }
+                    }
+                });
+            }
+            
+            // Notifications
+            const notifSpan = document.getElementById('nav-notifications');
+            if (notifSpan) {
+                notifSpan.addEventListener('click', function() {
+                    const btns = document.querySelectorAll('button');
+                    for (let b of btns) {
+                        if (b.innerText.trim().includes('🔔')) {
+                            b.click();
+                            break;
+                        }
+                    }
+                });
+            }
+            
+            // Logout
+            const logoutSpan = document.getElementById('nav-logout');
+            if (logoutSpan) {
+                logoutSpan.addEventListener('click', function() {
+                    const btns = document.querySelectorAll('button');
+                    for (let b of btns) {
+                        if (b.innerText.trim() === 'Logout') {
+                            b.click();
+                            break;
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+    ''', unsafe_allow_html=True)
+    
+    # Processar navegação via query params (já feito pelos botões)
     if st.query_params.get("page") == "dashboard":
         st.switch_page("pages/dashboard.py")
     elif st.query_params.get("page") == "notificacoes":
@@ -834,7 +925,7 @@ def render_topbar():
         st.query_params.clear()
         logout()
         st.rerun()
-        
+              
 # ============================================================
 # INIT SESSION STATE
 # ============================================================
