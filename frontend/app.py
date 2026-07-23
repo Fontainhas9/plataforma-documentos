@@ -207,7 +207,7 @@ if "filtros_temporarios" not in st.session_state:
     }
 
 # ============================================================
-# HEADER COMPONENT - USING components.html
+# HEADER COMPONENT - WITH WORKING NAVIGATION
 # ============================================================
 def render_header():
     import streamlit.components.v1 as components
@@ -234,11 +234,16 @@ def render_header():
         is_users = st.session_state.admin_menu == "Users"
         is_docs = st.session_state.admin_menu == "Documents"
         admin_menu_html = f'''
-        <a class="{'active' if is_users else ''}" href="?admin=Users">Users</a>
-        <a class="{'active' if is_docs else ''}" href="?admin=Documents">Documents</a>
+        <a class="{'active' if is_users else ''}" onclick="navigateTo('?admin=Users')">Users</a>
+        <a class="{'active' if is_docs else ''}" onclick="navigateTo('?admin=Documents')">Documents</a>
         '''
     
     notif_badge = f'<span class="count">{notif_count}</span>' if notif_count > 0 else ''
+    
+    # Active class for links
+    home_active = 'active' if is_home else ''
+    dash_active = 'active' if is_dashboard else ''
+    notif_active = 'active' if is_notifications else ''
     
     header_html = f'''
     <!DOCTYPE html>
@@ -255,11 +260,11 @@ def render_header():
                 transform: translateX(-50%);
                 z-index: 1000;
                 width: 100%;
-                max-width: 1000px;
+                max-width: 100%;
                 background: rgba(10,10,26,0.92);
                 backdrop-filter: blur(16px);
                 border-bottom: 1px solid rgba(255,255,255,0.06);
-                padding: 0 2rem;
+                padding: 0 20%;
                 height: 64px;
                 display: flex;
                 align-items: center;
@@ -408,42 +413,51 @@ def render_header():
                 color: #ffffff;
                 background: rgba(255,255,255,0.10);
             }}
+            @media (max-width: 1024px) {{
+                .custom-header {{ padding: 0 10%; }}
+            }}
             @media (max-width: 768px) {{
-                .custom-header {{ padding: 0 0.5rem; height: 56px; max-width: 100%; }}
+                .custom-header {{ padding: 0 5%; height: 56px; }}
                 .custom-header .nav-links a {{ padding: 4px 8px; font-size: 0.75rem; }}
                 .custom-header .user-section .name {{ display: none; }}
                 .admin-menu a {{ padding: 3px 6px; font-size: 0.65rem; }}
             }}
             @media (max-width: 480px) {{
+                .custom-header {{ padding: 0 3%; }}
                 .custom-header .nav-links a {{ padding: 3px 6px; font-size: 0.65rem; }}
                 .custom-header .user-section {{ gap: 6px; }}
                 .custom-header .user-section .badge {{ font-size: 0.9rem; }}
                 .admin-menu a {{ padding: 2px 5px; font-size: 0.6rem; }}
             }}
         </style>
+        <script>
+            function navigateTo(url) {{
+                window.location.href = window.location.origin + window.location.pathname + url;
+            }}
+        </script>
     </head>
     <body>
         <header class="custom-header">
-            <div class="logo" onclick="window.location.href='?page=home'">
+            <div class="logo" onclick="navigateTo('?page=home')">
                 <div class="icon">📄</div>
                 <span>DocPlatform</span>
             </div>
             <nav class="nav-links">
-                <a class="{'active' if is_home else ''}" href="?page=home">Home</a>
-                <a class="{'active' if is_dashboard else ''}" href="?page=dashboard">Dashboard</a>
+                <a class="{home_active}" onclick="navigateTo('?page=home')">Home</a>
+                <a class="{dash_active}" onclick="navigateTo('?page=dashboard')">Dashboard</a>
                 <span class="divider"></span>
-                <a class="{'active' if is_notifications else ''}" href="?page=notificacoes">Notifications</a>
+                <a class="{notif_active}" onclick="navigateTo('?page=notificacoes')">Notifications</a>
                 <div class="admin-menu">
                     {admin_menu_html}
                 </div>
             </nav>
             <div class="user-section">
                 <span class="name">{username}</span>
-                <button class="badge" onclick="window.location.href='?page=notificacoes'">
+                <button class="badge" onclick="navigateTo('?page=notificacoes')">
                     🔔{notif_badge}
                 </button>
                 <div class="avatar">{username[0].upper() if username else 'U'}</div>
-                <button class="logout-btn" onclick="window.location.href='?logout=true'">Logout</button>
+                <button class="logout-btn" onclick="navigateTo('?logout=true')">Logout</button>
             </div>
         </header>
     </body>

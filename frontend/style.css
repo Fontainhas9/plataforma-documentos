@@ -51,14 +51,12 @@ body {
 }
 
 /* ============================================================
-   MAIN CONTENT
+   MAIN CONTENT - WITH 20% MARGINS ON EACH SIDE
    ============================================================ */
 .main-content {
     margin-top: 80px;
-    padding: 0 2rem 2rem 2rem !important;
-    max-width: 1000px !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
+    padding: 0 20% 2rem 20% !important;
+    max-width: 100% !important;
     width: 100% !important;
 }
 
@@ -178,7 +176,7 @@ body {
 }
 
 /* ============================================================
-   DATAFRAMES / TABLES - REDUCED WIDTH (50% smaller)
+   DATAFRAMES / TABLES - REDUCED WIDTH
    ============================================================ */
 .stDataFrame {
     background: rgba(255,255,255,0.02) !important;
@@ -222,7 +220,6 @@ body {
     background: rgba(102,126,234,0.04) !important;
 }
 
-/* Specific column widths for different tables */
 .stDataFrame .col_heading {
     max-width: 80px !important;
     min-width: 40px !important;
@@ -292,16 +289,14 @@ hr {
    ============================================================ */
 @media (max-width: 1024px) {
     .main-content {
-        max-width: 100% !important;
-        padding: 0 1.5rem 1rem 1.5rem !important;
+        padding: 0 10% 1rem 10% !important;
     }
 }
 
 @media (max-width: 768px) {
     .main-content {
         margin-top: 72px;
-        padding: 0 0.75rem 1rem 0.75rem !important;
-        max-width: 100% !important;
+        padding: 0 5% 1rem 5% !important;
     }
     .stat-card .stat-value {
         font-size: 1.5rem;
@@ -320,6 +315,6 @@ hr {
 
 @media (max-width: 480px) {
     .main-content {
-        padding: 0 0.5rem 0.8rem 0.5rem !important;
+        padding: 0 3% 0.8rem 3% !important;
     }
 }
