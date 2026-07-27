@@ -956,12 +956,12 @@ def render_topbar():
         st.rerun()
 
 # ============================================================
-# LOGIN SCREEN - COM URL CORRETA PARA PRODUÇÃO
+# LOGIN SCREEN - COM BACKEND NO RENDER
 # ============================================================
 if st.session_state.token is None:
     import streamlit.components.v1 as components
     import base64
-    os
+    import os
     
     # Verificar se o login foi bem-sucedido via query param
     if st.query_params.get("login_success") == "true":
@@ -976,7 +976,7 @@ if st.session_state.token is None:
         with open(img_path, "rb") as f:
             logo_base64 = base64.b64encode(f.read()).decode()
     
-    # USAR A URL DO BACKEND NO RENDER (NÃO LOCAL)
+    # URL DO BACKEND NO RENDER
     backend_url = "https://plataforma-documentos-backend.onrender.com"
     
     # HTML do login
@@ -1124,8 +1124,8 @@ if st.session_state.token is None:
                     st.session_state.perfil = user_info["perfil"]
                     st.query_params.clear()
                     st.rerun()
-            except:
-                pass
+            except Exception as e:
+                print(f"Erro ao buscar perfil: {e}")
     
     st.stop()
     
