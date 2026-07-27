@@ -182,6 +182,7 @@ def render_topbar():
             position: relative;
             cursor: pointer;
             text-decoration: none;
+            padding-left: 0 !important;
         }}
         .dashboard-topbar__title::after {{
             content: "";
@@ -356,6 +357,12 @@ def render_topbar():
         .stTextInput label, .stSelectbox label, .stTextArea label, .stCheckbox label {{
             padding-left: 0 !important;
         }}
+        
+        .dashboard-shell {{
+            margin-top: 90px !important;
+            padding: 0 clamp(20px, 2.2vw, 56px) 42px !important;
+            max-width: none !important;
+        }}
     </style>
     
     <header class="dashboard-topbar">
@@ -365,14 +372,14 @@ def render_topbar():
                 <a class="dashboard-topbar__link {home_hidden}" href="?page=home">Home</a>
                 {dashboard_link}
                 <a class="dashboard-topbar__link {notifications_hidden}" href="?page=notificacoes">🔔 {notif_display}</a>
-                <span class="dashboard-topbar__divider">|</span>
-                <span class="dashboard-topbar__username">{username}</span>
-                <span class="dashboard-topbar__perfil">({perfil})</span>
+                <span class="dashboard-topbar__link" style="color:rgba(255,255,255,0.3);cursor:default;padding:8px 0;">|</span>
+                <span class="dashboard-topbar__link" style="color:rgba(255,255,255,0.7);cursor:default;padding:8px 0;">{username}</span>
+                <span class="dashboard-topbar__link" style="color:rgba(255,255,255,0.4);cursor:default;padding:8px 0;">({perfil})</span>
                 <a class="dashboard-topbar__link" href="?logout=true">Logout</a>
             </nav>
         </div>
     </header>
-    <div class="dashboard-shell" style="margin-top:90px;padding:0 clamp(20px,2.2vw,56px) 42px;max-width:none;">
+    <div class="dashboard-shell">
     '''
     
     st.markdown(topbar_html, unsafe_allow_html=True)
