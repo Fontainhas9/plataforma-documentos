@@ -222,9 +222,18 @@ if "success_message" not in st.session_state:
 # ... (resto das variáveis de sessão)
 
 # ============================================================
-# LOGIN SCREEN
+# LOGIN SCREEN - COM BACKEND NO RENDER
 # ============================================================
 if st.session_state.token is None:
+    import streamlit.components.v1 as components
+    import base64
+    import os
+    
+    # Verificar se o login foi bem-sucedido via query param
+    if st.query_params.get("login_success") == "true":
+        st.query_params.clear()
+        st.rerun()
+    
     # Ler a imagem do ficheiro e converter para Base64
     img_path = os.path.join(os.path.dirname(__file__), 'img', 'HOLOSSORIGINAL.png')
     
@@ -233,76 +242,158 @@ if st.session_state.token is None:
         with open(img_path, "rb") as f:
             logo_base64 = base64.b64encode(f.read()).decode()
     
-    # Mostrar o formulário de login
-    st.markdown(f"""
-    <div class="login-wrapper">
-        <div class="login-card">
-            <div class="login-brand">
-                <div class="login-brand-logo">
-                    <img src="data:image/png;base64,{logo_base64}" alt="Holoss" />
-                </div>
-                <div class="login-brand-text">
-                    <h2>Document Platform</h2>
-                    <p>Sign in to continue</p>
+    # URL DO BACKEND NO RENDER (NÃO LOCALHOST!)
+    backend_url = "https://plataforma-documentos-backend.onrender.com"
+    
+    # HTML do login
+    login_html = f'''
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+        html, body {{ width: 100%; height: 100%; margin: 0 !important; padding: 0 !important; font-family: "Inter", sans-serif; overflow: hidden !important; background: transparent !important; }}
+        :root {{
+            --login-bg-top: #0a2f57; --login-bg-bottom: #15528d; --login-card-bg: rgba(255,255,255,0.94);
+            --login-card-border: rgba(255,255,255,0.18); --login-title: #123b72; --login-text: #5f6f86;
+            --login-input-border: #d2d9e3; --login-input-bg: #ffffff; --login-button: rgb(0,54,98);
+            --login-button-hover: rgb(41,93,150); --login-shadow: 0 24px 48px rgba(5,20,40,0.22);
+            --login-radius-xl: 28px; --login-radius-md: 12px;
+        }}
+        .login-page {{ width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, #0a2f57 0%, #15528d 100%); overflow: hidden !important; margin: 0 !important; z-index: 9999999; }}
+        .login-container {{ width: 100%; max-width: 520px; position: relative; z-index: 1; }}
+        .login-box {{ background: var(--login-card-bg); border: 1px solid var(--login-card-border); border-radius: var(--login-radius-xl); padding: 30px 30px 26px; box-shadow: var(--login-shadow); backdrop-filter: blur(8px); }}
+        .login-box__brand {{ display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }}
+        .login-box__logo {{ width: 58px; height: 58px; object-fit: contain; flex-shrink: 0; border-radius: 12px; overflow: hidden; background: white; }}
+        .login-box__logo img {{ width: 100%; height: 100%; object-fit: contain; display: block; }}
+        .login-box__brand-text h2 {{ margin: 0 0 4px; font-size: 30px; line-height: 1.1; font-weight: 800; color: var(--login-title); }}
+        .login-box__brand-text p {{ margin: 0; font-size: 14px; color: var(--login-text); line-height: 1.4; }}
+        .login-form {{ display: flex; flex-direction: column; gap: 16px; }}
+        .input-group {{ display: flex; flex-direction: column; gap: 7px; }}
+        .input-group label {{ font-size: 14px; font-weight: 600; color: var(--login-title); }}
+        .input-group input {{ width: 100%; height: 50px; padding: 0 14px; border-radius: var(--login-radius-md); border: 1px solid var(--login-input-border); background: var(--login-input-bg); color: #21344d; font-size: 15px; box-sizing: border-box; font-family: "Inter", sans-serif; }}
+        .input-group input:focus {{ outline: none; border-color: var(--login-button); box-shadow: 0 0 0 4px rgba(55,113,176,0.14); }}
+        .login-btn {{ margin-top: 6px; height: 50px; border: none; border-radius: var(--login-radius-md); background: linear-gradient(135deg, var(--login-button) 0%, var(--login-button-hover) 100%); color: #ffffff; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 12px 24px rgba(41,93,150,0.26); font-family: "Inter", sans-serif; width: 100%; }}
+        .login-btn:hover {{ transform: translateY(-1px); box-shadow: 0 16px 28px rgba(41,93,150,0.32); }}
+        .login-btn:disabled {{ opacity: 0.7; cursor: not-allowed; }}
+        .login-error {{ min-height: 22px; margin: 16px 0 0; font-size: 14px; font-weight: 500; color: #c0392b; display: none; font-family: "Inter", sans-serif; }}
+        .login-error.show {{ display: block; }}
+        @media (max-width: 768px) {{ .login-box {{ padding: 24px 18px 22px; border-radius: 22px; }} .login-box__brand {{ gap: 12px; margin-bottom: 20px; }} .login-box__logo {{ width: 50px; height: 50px; }} .login-box__brand-text h2 {{ font-size: 24px; }} .input-group input, .login-btn {{ height: 48px; }} }}
+    </style>
+    </head>
+    <body>
+        <div class="login-page">
+            <div class="login-container">
+                <div class="login-box">
+                    <div class="login-box__brand">
+                        <div class="login-box__logo">
+                            <img src="data:image/png;base64,{logo_base64}" alt="Holoss" />
+                        </div>
+                        <div class="login-box__brand-text">
+                            <h2>Document Platform</h2>
+                            <p>Sign in to continue</p>
+                        </div>
+                    </div>
+                    <form id="loginForm" class="login-form" novalidate>
+                        <div class="input-group">
+                            <label for="username">Username</label>
+                            <input type="text" id="username" placeholder="Enter your username" required />
+                        </div>
+                        <div class="input-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" placeholder="Enter your password" required />
+                        </div>
+                        <button type="submit" id="loginButton" class="login-btn">Log in</button>
+                    </form>
+                    <p id="errorMsg" class="login-error"></p>
                 </div>
             </div>
-    """, unsafe_allow_html=True)
-    
-    # Formulário nativo Streamlit
-    with st.form("login_form", clear_on_submit=False):
-        username = st.text_input("Username", placeholder="Enter your username", key="login_username")
-        password = st.text_input("Password", placeholder="Enter your password", type="password", key="login_password")
-        submitted = st.form_submit_button("Log in", use_container_width=True)
-        
-        if submitted:
-            if not username or not password:
-                st.error("Please enter both username and password.")
-            else:
-                try:
-                    response = requests.post(
-                        f"{API_URL}/login",
-                        data={"username": username, "password": password}
-                    )
-                    
-                    if response.status_code == 200:
-                        dados = response.json()
-                        st.session_state.token = dados["access_token"]
-                        
-                        headers = {"Authorization": f"Bearer {dados['access_token']}"}
-                        me = requests.get(f"{API_URL}/me", headers=headers)
-                        
-                        if me.status_code == 200:
-                            user_info = me.json()
-                            st.session_state.perfil = user_info["perfil"]
-                            st.session_state.username = user_info["username"]
-                            
-                            st.success("✅ Login successful! Redirecting...")
-                            st.rerun()
-                        else:
-                            st.error("Error fetching user information.")
-                    else:
-                        try:
-                            erro = response.json().get("detail", "Invalid credentials")
-                        except:
-                            erro = "Invalid credentials"
-                        st.error(f"❌ {erro}")
-                        
-                except requests.exceptions.ConnectionError:
-                    st.error("❌ Cannot connect to the server. Make sure the backend is running.")
-                except Exception as e:
-                    st.error(f"❌ Error: {str(e)}")
-    
-    st.markdown("""
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        <script>
+        (function() {{
+            const API_URL = '{backend_url}';
+            
+            document.getElementById('loginForm').addEventListener('submit', function(e) {{
+                e.preventDefault();
+                var username = document.getElementById('username').value.trim();
+                var password = document.getElementById('password').value.trim();
+                var errorMsg = document.getElementById('errorMsg');
+                var loginBtn = document.getElementById('loginButton');
+                
+                errorMsg.classList.remove('show');
+                errorMsg.textContent = '';
+                
+                if (!username || !password) {{
+                    errorMsg.textContent = 'Please enter both username and password.';
+                    errorMsg.classList.add('show');
+                    return;
+                }}
+                
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'Signing in...';
+                
+                fetch(API_URL + '/login', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/x-www-form-urlencoded' }},
+                    body: 'username=' + encodeURIComponent(username) + '&password=' + encodeURIComponent(password)
+                }})
+                .then(function(response) {{
+                    if (!response.ok) {{
+                        return response.text().then(function(text) {{ throw new Error(text || 'Invalid credentials'); }});
+                    }}
+                    return response.json();
+                }})
+                .then(function(data) {{
+                    if (data.access_token) {{
+                        window.location.href = '?login_success=true&token=' + encodeURIComponent(data.access_token) + '&username=' + encodeURIComponent(username);
+                    }} else {{
+                        errorMsg.textContent = 'Invalid credentials. Please try again.';
+                        errorMsg.classList.add('show');
+                        loginBtn.disabled = false;
+                        loginBtn.textContent = 'Log in';
+                    }}
+                }})
+                .catch(function(error) {{
+                    errorMsg.textContent = error.message || 'Connection error. Please check if the server is running.';
+                    errorMsg.classList.add('show');
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Log in';
+                }});
+            }});
+        }})();
+        </script>
+    </body>
+    </html>
+    '''
+    
+    # Renderizar o HTML
+    components.html(login_html, height=800, scrolling=False)
+    
+    # Processar o login a partir dos query params
+    if st.query_params.get("login_success") == "true":
+        token = st.query_params.get("token")
+        username = st.query_params.get("username")
+        
+        if token and username:
+            st.session_state.token = token
+            st.session_state.username = username
+            
+            # Buscar o perfil do usuário
+            try:
+                headers = {"Authorization": f"Bearer {token}"}
+                me = requests.get(f"{backend_url}/me", headers=headers)
+                if me.status_code == 200:
+                    user_info = me.json()
+                    st.session_state.perfil = user_info["perfil"]
+                    st.query_params.clear()
+                    st.rerun()
+            except Exception as e:
+                print(f"Erro ao buscar perfil: {e}")
     
     st.stop()
-
-# ============================================================
-# A PARTIR DAQUI O UTILIZADOR ESTÁ AUTENTICADO
-# ============================================================
-# ... (resto do seu código)
     
 # ============================================================
 # A PARTIR DAQUI O UTILIZADOR ESTÁ AUTENTICADO
