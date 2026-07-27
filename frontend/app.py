@@ -956,12 +956,12 @@ def render_topbar():
         st.rerun()
 
 # ============================================================
-# LOGIN SCREEN - HTML PURO COM STREAMLIT
+# LOGIN SCREEN - COM URL CORRETA PARA PRODUÇÃO
 # ============================================================
 if st.session_state.token is None:
     import streamlit.components.v1 as components
     import base64
-    import os
+    os
     
     # Verificar se o login foi bem-sucedido via query param
     if st.query_params.get("login_success") == "true":
@@ -975,6 +975,9 @@ if st.session_state.token is None:
     if os.path.exists(img_path):
         with open(img_path, "rb") as f:
             logo_base64 = base64.b64encode(f.read()).decode()
+    
+    # USAR A URL DO BACKEND NO RENDER (NÃO LOCAL)
+    backend_url = "https://plataforma-documentos-backend.onrender.com"
     
     # HTML do login
     login_html = f'''
@@ -1045,7 +1048,7 @@ if st.session_state.token is None:
         </div>
         <script>
         (function() {{
-            const API_URL = 'http://127.0.0.1:8000';
+            const API_URL = '{backend_url}';
             
             document.getElementById('loginForm').addEventListener('submit', function(e) {{
                 e.preventDefault();
@@ -1079,11 +1082,7 @@ if st.session_state.token is None:
                 }})
                 .then(function(data) {{
                     if (data.access_token) {{
-                        // Guardar no localStorage e recarregar
-                        localStorage.setItem('login_token', data.access_token);
-                        localStorage.setItem('login_username', username);
-                        // Recarregar a página (o Streamlit vai detetar o token)
-                        window.location.reload();
+                        window.location.href = '?login_success=true&token=' + encodeURIComponent(data.access_token) + '&username=' + encodeURIComponent(username);
                     }} else {{
                         errorMsg.textContent = 'Invalid credentials. Please try again.';
                         errorMsg.classList.add('show');
@@ -1107,29 +1106,6 @@ if st.session_state.token is None:
     # Renderizar o HTML
     components.html(login_html, height=800, scrolling=False)
     
-    # VERIFICAR O LOCALSTORAGE E REDIRECIONAR (executa fora do iframe)
-    st.markdown("""
-    <script>
-    // Verificar se há token no localStorage
-    function checkLogin() {
-        var token = localStorage.getItem('login_token');
-        if (token) {
-            var username = localStorage.getItem('login_username');
-            localStorage.removeItem('login_token');
-            localStorage.removeItem('login_username');
-            // Redirecionar com os dados na URL
-            window.location.href = '?login_success=true&token=' + encodeURIComponent(token) + '&username=' + encodeURIComponent(username);
-        }
-    }
-    
-    // Verificar imediatamente
-    checkLogin();
-    
-    // Verificar a cada 300ms
-    setInterval(checkLogin, 300);
-    </script>
-    """, unsafe_allow_html=True)
-    
     # Processar o login a partir dos query params
     if st.query_params.get("login_success") == "true":
         token = st.query_params.get("token")
@@ -1142,7 +1118,7 @@ if st.session_state.token is None:
             # Buscar o perfil do usuário
             try:
                 headers = {"Authorization": f"Bearer {token}"}
-                me = requests.get(f"{API_URL}/me", headers=headers)
+                me = requests.get(f"{backend_url}/me", headers=headers)
                 if me.status_code == 200:
                     user_info = me.json()
                     st.session_state.perfil = user_info["perfil"]
