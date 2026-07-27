@@ -89,32 +89,262 @@ def get_notificacoes_nao_lidas():
 # RENDER TOPBAR
 # ============================================================
 def render_topbar():
+    """Renders the topbar with navigation and user info."""
     username = st.session_state.get("username", "User")
+    perfil = st.session_state.get("perfil", "")
     notif_count = get_notificacoes_nao_lidas() if st.session_state.get("token") else 0
     
+    current_page = st.query_params.get("page", "dashboard")
+    is_home = current_page == "home"
+    is_dashboard = current_page in ["dashboard", ""] or current_page is None
+    is_notifications = current_page == "notificacoes"
+    
+    home_hidden = 'hidden' if is_home else ''
+    dashboard_hidden = 'hidden' if is_dashboard else ''
+    notifications_hidden = 'hidden' if is_notifications else ''
+    
+    notif_display = f'{notif_count}' if notif_count > 0 else ''
+    
     topbar_html = f'''
+    <style>
+        .dashboard-topbar {{
+            width: 100%;
+            background: linear-gradient(180deg, rgba(2, 28, 53, 0.96) 0%, rgba(3, 41, 73, 0.96) 100%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            box-sizing: border-box;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 999999;
+            padding: 0 clamp(20px, 2.2vw, 56px);
+            min-height: 74px;
+            display: flex;
+            align-items: center;
+            height: 74px;
+        }}
+        .dashboard-topbar__inner {{
+            width: 100%;
+            max-width: none;
+            min-height: 74px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            box-sizing: border-box;
+            height: 74px;
+        }}
+        .dashboard-topbar__title {{
+            margin: 0;
+            color: #ffffff !important;
+            font-family: "Inter", "Segoe UI", Arial, sans-serif;
+            font-size: 24px;
+            line-height: 1.1;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            position: relative;
+            cursor: pointer;
+            text-decoration: none;
+        }}
+        .dashboard-topbar__title::after {{
+            content: "";
+            position: absolute;
+            left: 2px;
+            bottom: -6px;
+            width: 60%;
+            height: 2px;
+            background: linear-gradient(90deg, rgb(254, 200, 0), rgba(254, 200, 0, 0.3));
+            border-radius: 2px;
+        }}
+        .dashboard-topbar__nav {{
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 22px;
+            flex-wrap: wrap;
+        }}
+        .dashboard-topbar__link {{
+            color: rgba(255, 255, 255, 0.94) !important;
+            text-decoration: none !important;
+            font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+            font-size: 15px !important;
+            line-height: 1.2 !important;
+            font-weight: 600 !important;
+            transition: color 0.18s ease, opacity 0.18s ease !important;
+            cursor: pointer !important;
+            background: none !important;
+            border: none !important;
+            padding: 8px 4px !important;
+        }}
+        .dashboard-topbar__link:hover {{
+            color: #ffffff !important;
+            opacity: 0.82 !important;
+        }}
+        .dashboard-topbar__link.hidden {{
+            display: none !important;
+        }}
+        .dashboard-topbar__divider {{
+            color: rgba(255,255,255,0.3);
+            font-size: 14px;
+        }}
+        .dashboard-topbar__username {{
+            color: rgba(255,255,255,0.7);
+            font-size: 14px;
+            font-weight: 500;
+        }}
+        .dashboard-topbar__perfil {{
+            color: rgba(255,255,255,0.4);
+            font-size: 13px;
+            font-weight: 400;
+        }}
+        @media (max-width: 900px) {{
+            .dashboard-topbar {{ min-height: 70px; height: 70px; padding: 0 36px; }}
+            .dashboard-topbar__title {{ font-size: 22px; }}
+            .dashboard-topbar__nav {{ gap: 18px; }}
+            .dashboard-topbar__link {{ font-size: 14px !important; }}
+        }}
+        @media (max-width: 640px) {{
+            .dashboard-topbar {{ min-height: auto; height: auto; padding: 14px 10px; flex-wrap: wrap; }}
+            .dashboard-topbar__inner {{ flex-wrap: wrap; gap: 10px; height: auto; }}
+            .dashboard-topbar__title {{ font-size: 20px; }}
+            .dashboard-topbar__nav {{ gap: 12px; flex-wrap: wrap; }}
+            .dashboard-topbar__link {{ font-size: 13px !important; padding: 6px 2px !important; }}
+        }}
+        [data-testid="stSidebar"] {{ display: none !important; }}
+        [data-testid="stSidebarNav"] {{ display: none !important; }}
+        [data-testid="stSidebarUserContent"] {{ display: none !important; }}
+        .main > div {{ padding: 0 !important; max-width: 100% !important; }}
+        .block-container {{ padding: 0 !important; max-width: 100% !important; }}
+        .stButton {{ display: none !important; }}
+        
+        .stDataFrame {{
+            width: 80% !important;
+            max-width: 80% !important;
+            margin: 0 auto !important;
+            overflow: visible !important;
+            display: block !important;
+            background: #ffffff !important;
+            border-radius: 14px !important;
+            border: 1px solid rgba(15, 23, 42, 0.06) !important;
+        }}
+        .stDataFrame > div {{
+            max-width: 100% !important;
+            overflow: visible !important;
+            margin: 0 auto !important;
+        }}
+        .stDataFrame table {{
+            width: 100% !important;
+            table-layout: auto !important;
+            margin: 0 auto !important;
+        }}
+        .stDataFrame thead tr th {{
+            white-space: nowrap !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            max-width: none !important;
+            min-width: auto !important;
+            background: #f0f2f5 !important;
+            color: #17345a !important;
+            font-weight: 600 !important;
+            padding: 10px 14px !important;
+            font-size: 13px !important;
+        }}
+        .stDataFrame tbody tr td {{
+            word-break: break-word !important;
+            max-width: none !important;
+            min-width: auto !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            color: #1c2f50 !important;
+            padding: 8px 14px !important;
+            font-size: 14px !important;
+        }}
+        [data-testid="stDataFrameResizable"] {{
+            overflow: visible !important;
+            max-width: 100% !important;
+            margin: 0 auto !important;
+        }}
+        .element-container:has(.stDataFrame) {{
+            max-width: 100% !important;
+            overflow: visible !important;
+            margin: 0 auto !important;
+        }}
+        .streamlit-expanderContent .stDataFrame {{
+            width: 80% !important;
+            max-width: 80% !important;
+            margin: 0 auto !important;
+            overflow: visible !important;
+        }}
+        [data-testid="column"] {{ overflow: visible !important; }}
+        [data-testid="stVerticalBlock"] {{ overflow: visible !important; }}
+        div[data-testid="stDataFrame"] {{
+            overflow: visible !important;
+            max-width: 100% !important;
+            width: 80% !important;
+            margin: 0 auto !important;
+        }}
+        .stDataFrame tbody {{
+            overflow-y: auto !important;
+            display: block !important;
+            max-height: 500px !important;
+        }}
+        .stDataFrame thead,
+        .stDataFrame tbody tr {{
+            display: table !important;
+            width: 100% !important;
+            table-layout: fixed !important;
+        }}
+        
+        h1, h2, h3, h4, h5, h6 {{
+            padding-left: 3em !important;
+        }}
+        .stCaption, .stMarkdown p, .stMarkdown li, .stMarkdown div {{
+            padding-left: 3em !important;
+        }}
+        .stAlert .stAlertContent {{
+            padding-left: 3em !important;
+        }}
+        .element-container {{
+            padding-left: 0 !important;
+        }}
+        .dashboard-topbar__title {{
+            padding-left: 0 !important;
+        }}
+        .streamlit-expanderHeader {{
+            padding-left: 16px !important;
+        }}
+        [data-testid="stMetricLabel"] {{
+            padding-left: 0 !important;
+        }}
+        .stTextInput label, .stSelectbox label, .stTextArea label, .stCheckbox label {{
+            padding-left: 0 !important;
+        }}
+    </style>
+    
     <header class="dashboard-topbar">
         <div class="dashboard-topbar__inner">
-            <h1 class="dashboard-topbar__title" onclick="window.location.href='?page=home'">📄 DocPlatform</h1>
+            <a class="dashboard-topbar__title" href="?page=home">📄 DocPlatform</a>
             <nav class="dashboard-topbar__nav">
-                <a class="dashboard-topbar__link" onclick="window.location.href='?page=home'">Home</a>
-                <a class="dashboard-topbar__link active" onclick="window.location.href='?page=dashboard'">Dashboard</a>
-                <a class="dashboard-topbar__link" onclick="window.location.href='?page=notificacoes'">
-                    🔔 {notif_count if notif_count > 0 else ''}
-                </a>
-                <span style="color: rgba(255,255,255,0.3); font-size:14px;">|</span>
-                <span style="color: rgba(255,255,255,0.7); font-size:14px; font-weight:500;">{username}</span>
-                <button class="dashboard-topbar__link" onclick="window.location.href='?logout=true'" style="background:none;border:none;cursor:pointer;">Logout</button>
+                <a class="dashboard-topbar__link {home_hidden}" href="?page=home">Home</a>
+                <a class="dashboard-topbar__link {dashboard_hidden}" href="?page=dashboard">Dashboard</a>
+                <a class="dashboard-topbar__link {notifications_hidden}" href="?page=notificacoes">🔔 {notif_display}</a>
+                <span class="dashboard-topbar__divider">|</span>
+                <span class="dashboard-topbar__username">{username}</span>
+                <span class="dashboard-topbar__perfil">({perfil})</span>
+                <a class="dashboard-topbar__link" href="?logout=true">Logout</a>
             </nav>
         </div>
     </header>
-    <div class="dashboard-shell">
+    <div class="dashboard-shell" style="margin-top:90px;padding:0 clamp(20px,2.2vw,56px) 42px;max-width:none;">
     '''
+    
     st.markdown(topbar_html, unsafe_allow_html=True)
     
-    if st.query_params.get("page") == "home":
+    page = st.query_params.get("page", "dashboard")
+    if page == "home":
         st.switch_page("app.py")
-    elif st.query_params.get("page") == "notificacoes":
+    elif page == "notificacoes":
         st.switch_page("pages/notificacoes.py")
     
     if st.query_params.get("logout") == "true":
@@ -216,6 +446,6 @@ except Exception as e:
     st.error(f"Error loading top partners: {e}")
 
 # ============================================================
-# CLOSE DASHBOARD-SHELL
+# CLOSE MAIN CONTENT
 # ============================================================
 st.markdown('</div>', unsafe_allow_html=True)

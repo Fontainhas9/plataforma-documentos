@@ -4,6 +4,7 @@ import pandas as pd
 import copy
 from datetime import datetime
 import os
+import base64
 
 # ============================================================
 # API URL CONFIGURATION
@@ -37,58 +38,66 @@ st.set_page_config(
 )
 
 # ============================================================
-# LOAD EXTERNAL CSS
+# INICIALIZAÇÃO DAS VARIÁVEIS DE SESSÃO
 # ============================================================
-def load_css():
-    try:
-        css_paths = [
-            os.path.join(os.path.dirname(__file__), 'style.css'),
-            'style.css',
-            os.path.join(os.getcwd(), 'style.css'),
-        ]
-        css_content = None
-        for path in css_paths:
-            if os.path.exists(path):
-                with open(path, 'r') as f:
-                    css_content = f.read()
-                break
-        if css_content:
-            st.markdown(f'<style>{css_content}</style>', unsafe_allow_html=True)
-        else:
-            st.markdown("""
-            <style>
-                [data-testid="stSidebar"] { display: none !important; }
-                .main > div { padding: 0 !important; }
-                .block-container { padding: 0 !important; }
-                body { background: #032949; color: #e8edf3; font-family: "Inter", "Segoe UI", Arial, sans-serif; }
-            </style>
-            """, unsafe_allow_html=True)
-    except Exception as e:
-        print(f"Error loading CSS: {e}")
-
-load_css()
+if "token" not in st.session_state:
+    st.session_state.token = None
+if "perfil" not in st.session_state:
+    st.session_state.perfil = None
+if "username" not in st.session_state:
+    st.session_state.username = None
+if "doc_selecionado" not in st.session_state:
+    st.session_state.doc_selecionado = None
+if "success_message" not in st.session_state:
+    st.session_state.success_message = None
+if "menu_parceiro_widget" not in st.session_state:
+    st.session_state.menu_parceiro_widget = "My Documents"
+if "redirect_to_docs" not in st.session_state:
+    st.session_state.redirect_to_docs = False
+if "edit_data" not in st.session_state:
+    st.session_state.edit_data = None
+if "new_data" not in st.session_state:
+    st.session_state.new_data = None
+if "refresh_counter" not in st.session_state:
+    st.session_state.refresh_counter = 0
+if "pw_input_counter" not in st.session_state:
+    st.session_state.pw_input_counter = 0
+if "parceiro_dropdown_key" not in st.session_state:
+    st.session_state.parceiro_dropdown_key = 0
+if "empresa_dropdown_key" not in st.session_state:
+    st.session_state.empresa_dropdown_key = 0
+if "admin_dropdown_key" not in st.session_state:
+    st.session_state.admin_dropdown_key = 0
+if "admin_user_dropdown_key" not in st.session_state:
+    st.session_state.admin_user_dropdown_key = 0
+if "ultimo_count" not in st.session_state:
+    st.session_state.ultimo_count = 0
+if "show_create_user_form" not in st.session_state:
+    st.session_state.show_create_user_form = False
+if "close_doc_after_action" not in st.session_state:
+    st.session_state.close_doc_after_action = False
+if "expander_aberto" not in st.session_state:
+    st.session_state.expander_aberto = False
+if "processos_do_documento" not in st.session_state:
+    st.session_state.processos_do_documento = []
+if "empresa_form_key" not in st.session_state:
+    st.session_state.empresa_form_key = 0
+if "admin_form_key" not in st.session_state:
+    st.session_state.admin_form_key = 0
+if "empresa_mostrar_form" not in st.session_state:
+    st.session_state.empresa_mostrar_form = False
+if "admin_mostrar_form" not in st.session_state:
+    st.session_state.admin_mostrar_form = False
+if "filtros_widget_key" not in st.session_state:
+    st.session_state.filtros_widget_key = 0
+if "filtros_aplicados" not in st.session_state:
+    st.session_state.filtros_aplicados = {"q": "", "estados": [], "data_inicio": None, "data_fim": None, "order_by": "id", "order_dir": "desc"}
+if "filtros_temporarios" not in st.session_state:
+    st.session_state.filtros_temporarios = {"q": "", "estados": [], "data_inicio": None, "data_fim": None, "order_by": "id", "order_dir": "desc"}
 
 # ============================================================
-# FUNCTIONS
+# FUNÇÕES AUXILIARES
 # ============================================================
-def formatar_data_hora(data_str):
-    if not data_str:
-        return ""
-    try:
-        if isinstance(data_str, datetime):
-            return data_str.strftime("%d/%m/%Y %H:%M")
-        data_str = str(data_str).replace('Z', '').replace('T', ' ')
-        formats = ["%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"]
-        for fmt in formats:
-            try:
-                dt = datetime.strptime(data_str, fmt)
-                return dt.strftime("%d/%m/%Y %H:%M")
-            except ValueError:
-                continue
-        return data_str
-    except Exception:
-        return str(data_str)
-
 def safe_copy(data):
     return copy.deepcopy(data)
 
@@ -134,24 +143,38 @@ def ensure_new_structure(data, processos=None):
                         new_data["lcc"][campo][p] = data["lcc"][campo][p]
     return new_data
 
-# ============================================================
-# API FUNCTIONS
-# ============================================================
-def login(username, password):
-    resp = requests.post(f"{API_URL}/login", data={"username": username, "password": password})
-    if resp.status_code == 200:
-        dados = resp.json()
-        st.session_state.token = dados["access_token"]
-        headers = {"Authorization": f"Bearer {dados['access_token']}"}
-        me = requests.get(f"{API_URL}/me", headers=headers)
-        if me.status_code == 200:
-            user_info = me.json()
-            st.session_state.perfil = user_info["perfil"]
-            st.session_state.username = user_info["username"]
-        return True
+def formatar_data_hora(data_str):
+    if not data_str:
+        return ""
+    try:
+        if isinstance(data_str, datetime):
+            return data_str.strftime("%d/%m/%Y %H:%M")
+        data_str = str(data_str).replace('Z', '').replace('T', ' ')
+        formats = ["%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"]
+        for fmt in formats:
+            try:
+                dt = datetime.strptime(data_str, fmt)
+                return dt.strftime("%d/%m/%Y %H:%M")
+            except ValueError:
+                continue
+        return data_str
+    except Exception:
+        return str(data_str)
+
+def display_dataframe(df):
+    if df is not None and not df.empty:
+        df = df.copy()
+        df.columns = [col.title() for col in df.columns]
+        df = df.reset_index(drop=True)
+        st.dataframe(df, use_container_width=True, hide_index=True)
     else:
-        st.error("Invalid credentials")
-        return False
+        st.write("(no data)")
+
+def create_document_anchor(doc_id):
+    st.markdown(f'<div id="doc-{doc_id}" style="display:block;position:relative;top:-80px;visibility:hidden;height:0;"></div>', unsafe_allow_html=True)
+
+def trigger_scroll(doc_id):
+    st.query_params["scroll_to"] = str(doc_id)
 
 def logout():
     st.session_state.token = None
@@ -170,7 +193,11 @@ def logout():
     st.session_state.processos_do_documento = []
     st.session_state.empresa_mostrar_form = False
     st.session_state.admin_mostrar_form = False
+    st.rerun()
 
+# ============================================================
+# FUNÇÕES DE API
+# ============================================================
 def headers_auth():
     return {"Authorization": f"Bearer {st.session_state.token}"}
 
@@ -390,17 +417,8 @@ def show_document_summary(documentos):
         with cols[i]:
             st.metric(label=estado, value=count)
 
-def display_dataframe(df):
-    if df is not None and not df.empty:
-        df = df.copy()
-        df.columns = [col.title() for col in df.columns]
-        df = df.reset_index(drop=True)
-        st.dataframe(df, use_container_width=True, hide_index=True)
-    else:
-        st.write("(no data)")
-
 # ============================================================
-# RENDER FUNCTIONS (LCA/LCC)
+# FUNÇÕES DE RENDERIZAÇÃO LCA/LCC
 # ============================================================
 def render_lca_inputs(data_key, prefix="", processos=None):
     if processos is None:
@@ -770,17 +788,10 @@ def render_processos_selecao(key_prefix="empresa"):
     st.session_state[session_key] = processos_selecionados
     return processos_selecionados
 
-def create_document_anchor(doc_id):
-    st.markdown(f'<div id="doc-{doc_id}" style="display:block;position:relative;top:-80px;visibility:hidden;height:0;"></div>', unsafe_allow_html=True)
-
-def trigger_scroll(doc_id):
-    st.query_params["scroll_to"] = str(doc_id)
-
 # ============================================================
 # RENDER TOPBAR
 # ============================================================
 def render_topbar():
-    """Renders the topbar with navigation and user info."""
     username = st.session_state.get("username", "User")
     perfil = st.session_state.get("perfil", "")
     notif_count = get_notificacoes_nao_lidas() if st.session_state.get("token") else 0
@@ -790,16 +801,76 @@ def render_topbar():
     is_dashboard = current_page == "dashboard"
     is_notifications = current_page == "notificacoes"
     
-    # CSS para esconder botões Streamlit e estilizar o topbar
-    st.markdown('''
+    home_hidden = 'hidden' if is_home else ''
+    dashboard_hidden = 'hidden' if is_dashboard else ''
+    notifications_hidden = 'hidden' if is_notifications else ''
+    
+    notif_display = f'{notif_count}' if notif_count > 0 else ''
+    
+    dashboard_link = ''
+    if perfil == "admin":
+        dashboard_link = f'<a class="dashboard-topbar__link {dashboard_hidden}" href="?page=dashboard">Dashboard</a>'
+    
+    topbar_html = f'''
     <style>
-        /* Esconder os botões Streamlit do topbar */
-        .topbar-btn {
-            display: none !important;
-        }
-        /* Links do topbar */
-        .dashboard-topbar__link {
-            cursor: pointer !important;
+        .dashboard-topbar {{
+            width: 100%;
+            background: linear-gradient(180deg, rgba(2, 28, 53, 0.96) 0%, rgba(3, 41, 73, 0.96) 100%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            box-sizing: border-box;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 999999;
+            padding: 0 clamp(20px, 2.2vw, 56px);
+            min-height: 74px;
+            display: flex;
+            align-items: center;
+            height: 74px;
+        }}
+        .dashboard-topbar__inner {{
+            width: 100%;
+            max-width: none;
+            min-height: 74px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            box-sizing: border-box;
+            height: 74px;
+        }}
+        .dashboard-topbar__title {{
+            margin: 0;
+            color: #ffffff !important;
+            font-family: "Inter", "Segoe UI", Arial, sans-serif;
+            font-size: 24px;
+            line-height: 1.1;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            position: relative;
+            cursor: pointer;
+            text-decoration: none;
+        }}
+        .dashboard-topbar__title::after {{
+            content: "";
+            position: absolute;
+            left: 2px;
+            bottom: -6px;
+            width: 60%;
+            height: 2px;
+            background: linear-gradient(90deg, rgb(254, 200, 0), rgba(254, 200, 0, 0.3));
+            border-radius: 2px;
+        }}
+        .dashboard-topbar__nav {{
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 22px;
+            flex-wrap: wrap;
+        }}
+        .dashboard-topbar__link {{
             color: rgba(255, 255, 255, 0.94) !important;
             text-decoration: none !important;
             font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
@@ -807,217 +878,236 @@ def render_topbar():
             line-height: 1.2 !important;
             font-weight: 600 !important;
             transition: color 0.18s ease, opacity 0.18s ease !important;
+            cursor: pointer !important;
             background: none !important;
             border: none !important;
-            padding: 0 !important;
-        }
-        .dashboard-topbar__link:hover {
+            padding: 8px 4px !important;
+        }}
+        .dashboard-topbar__link:hover {{
             color: #ffffff !important;
             opacity: 0.82 !important;
-        }
-        .dashboard-topbar__link.active {
-            color: #ffffff !important;
-            opacity: 1 !important;
-        }
-        .dashboard-topbar__nav .dashboard-topbar__link + .dashboard-topbar__link {
-            position: relative !important;
-        }
-        .dashboard-topbar__nav .dashboard-topbar__link + .dashboard-topbar__link::before {
-            content: "" !important;
-            position: absolute !important;
-            left: -11px !important;
-            top: 50% !important;
-            width: 1px !important;
-            height: 14px !important;
-            background: rgb(254, 200, 0) !important;
-            transform: translateY(-50%) !important;
-        }
+        }}
+        .dashboard-topbar__link.hidden {{
+            display: none !important;
+        }}
+        .dashboard-topbar__divider {{
+            color: rgba(255,255,255,0.3);
+            font-size: 14px;
+        }}
+        .dashboard-topbar__username {{
+            color: rgba(255,255,255,0.7);
+            font-size: 14px;
+            font-weight: 500;
+        }}
+        .dashboard-topbar__perfil {{
+            color: rgba(255,255,255,0.4);
+            font-size: 13px;
+            font-weight: 400;
+        }}
+        @media (max-width: 900px) {{
+            .dashboard-topbar {{ min-height: 70px; height: 70px; padding: 0 36px; }}
+            .dashboard-topbar__title {{ font-size: 22px; }}
+            .dashboard-topbar__nav {{ gap: 18px; }}
+            .dashboard-topbar__link {{ font-size: 14px !important; }}
+        }}
+        @media (max-width: 640px) {{
+            .dashboard-topbar {{ min-height: auto; height: auto; padding: 14px 10px; flex-wrap: wrap; }}
+            .dashboard-topbar__inner {{ flex-wrap: wrap; gap: 10px; height: auto; }}
+            .dashboard-topbar__title {{ font-size: 20px; }}
+            .dashboard-topbar__nav {{ gap: 12px; flex-wrap: wrap; }}
+            .dashboard-topbar__link {{ font-size: 13px !important; padding: 6px 2px !important; }}
+        }}
+        [data-testid="stSidebar"] {{ display: none !important; }}
+        [data-testid="stSidebarNav"] {{ display: none !important; }}
+        [data-testid="stSidebarUserContent"] {{ display: none !important; }}
+        .main > div {{ padding: 0 !important; max-width: 100% !important; }}
+        .block-container {{ padding: 0 !important; max-width: 100% !important; }}
+        .stButton {{ display: none !important; }}
     </style>
-    ''', unsafe_allow_html=True)
     
-    # JavaScript para navegação
-    js_code = '''
-    <script>
-    function navigateTo(page) {
-        const url = new URL(window.location.href);
-        url.searchParams.set('page', page);
-        window.location.href = url.toString();
-    }
-    function logout() {
-        const url = new URL(window.location.href);
-        url.searchParams.set('logout', 'true');
-        window.location.href = url.toString();
-    }
-    </script>
-    '''
-    
-    # Construir o topbar HTML
-    topbar_html = f'''
-    {js_code}
     <header class="dashboard-topbar">
         <div class="dashboard-topbar__inner">
-            <h1 class="dashboard-topbar__title" style="cursor:pointer;" onclick="navigateTo('home')">📄 DocPlatform</h1>
+            <a class="dashboard-topbar__title" href="?page=home">📄 DocPlatform</a>
             <nav class="dashboard-topbar__nav">
-                <a class="dashboard-topbar__link {"active" if is_home else ""}" onclick="navigateTo('home')">Home</a>
-    '''
-    
-    # Mostrar Dashboard apenas para admin (e empresa/parceiro se tiverem permissão)
-    if perfil == "admin":
-        topbar_html += f'''
-                <a class="dashboard-topbar__link {"active" if is_dashboard else ""}" onclick="navigateTo('dashboard')">Dashboard</a>
-        '''
-    
-    # Notificações para todos
-    topbar_html += f'''
-                <a class="dashboard-topbar__link {"active" if is_notifications else ""}" onclick="navigateTo('notificacoes')">
-                    🔔 {notif_count if notif_count > 0 else ''}
-                </a>
-                <span style="color: rgba(255,255,255,0.3); font-size:14px;">|</span>
-                <span style="color: rgba(255,255,255,0.7); font-size:14px; font-weight:500;">{username}</span>
-                <a class="dashboard-topbar__link" onclick="logout()" style="cursor:pointer;">Logout</a>
+                <a class="dashboard-topbar__link {home_hidden}" href="?page=home">Home</a>
+                {dashboard_link}
+                <a class="dashboard-topbar__link {notifications_hidden}" href="?page=notificacoes">🔔 {notif_display}</a>
+                <span class="dashboard-topbar__divider">|</span>
+                <span class="dashboard-topbar__username">{username}</span>
+                <span class="dashboard-topbar__perfil">({perfil})</span>
+                <a class="dashboard-topbar__link" href="?logout=true">Logout</a>
             </nav>
         </div>
     </header>
-    <div class="dashboard-shell">
+    <div class="dashboard-shell" style="margin-top:90px;padding:0 clamp(20px,2.2vw,56px) 42px;max-width:none;">
     '''
     
     st.markdown(topbar_html, unsafe_allow_html=True)
     
-    # Botões Streamlit escondidos para navegação (fallback)
-    col1, col2, col3, col4 = st.columns([1, 1, 1, 6])
-    
-    with col1:
-        if st.button("Home", key="topbar_home", use_container_width=True):
-            st.query_params["page"] = "home"
-            st.rerun()
-    
-    with col2:
-        if perfil == "admin":
-            if st.button("Dashboard", key="topbar_dashboard", use_container_width=True):
-                st.query_params["page"] = "dashboard"
-                st.rerun()
-    
-    with col3:
-        if st.button("Notificações", key="topbar_notifications", use_container_width=True):
-            st.query_params["page"] = "notificacoes"
-            st.rerun()
-    
-    with col4:
-        if st.button("Logout", key="topbar_logout", use_container_width=True):
-            st.query_params["logout"] = "true"
-            st.rerun()
-    
-    # Esconder os botões Streamlit
-    st.markdown('''
-    <style>
-        .stButton {
-            display: none !important;
-        }
-    </style>
-    ''', unsafe_allow_html=True)
-    
-    # Processar navegação via query params
     page = st.query_params.get("page", "home")
     if page == "dashboard":
         st.switch_page("pages/dashboard.py")
     elif page == "notificacoes":
         st.switch_page("pages/notificacoes.py")
     
-    # Processar logout
     if st.query_params.get("logout") == "true":
         st.query_params.clear()
         logout()
         st.rerun()
 
 # ============================================================
-# INIT SESSION STATE
-# ============================================================
-if "token" not in st.session_state:
-    st.session_state.token = None
-if "perfil" not in st.session_state:
-    st.session_state.perfil = None
-if "username" not in st.session_state:
-    st.session_state.username = None
-if "doc_selecionado" not in st.session_state:
-    st.session_state.doc_selecionado = None
-if "success_message" not in st.session_state:
-    st.session_state.success_message = None
-if "menu_parceiro_widget" not in st.session_state:
-    st.session_state.menu_parceiro_widget = "My Documents"
-if "redirect_to_docs" not in st.session_state:
-    st.session_state.redirect_to_docs = False
-if "edit_data" not in st.session_state:
-    st.session_state.edit_data = None
-if "new_data" not in st.session_state:
-    st.session_state.new_data = None
-if "refresh_counter" not in st.session_state:
-    st.session_state.refresh_counter = 0
-if "pw_input_counter" not in st.session_state:
-    st.session_state.pw_input_counter = 0
-if "parceiro_dropdown_key" not in st.session_state:
-    st.session_state.parceiro_dropdown_key = 0
-if "empresa_dropdown_key" not in st.session_state:
-    st.session_state.empresa_dropdown_key = 0
-if "admin_dropdown_key" not in st.session_state:
-    st.session_state.admin_dropdown_key = 0
-if "admin_user_dropdown_key" not in st.session_state:
-    st.session_state.admin_user_dropdown_key = 0
-if "ultimo_count" not in st.session_state:
-    st.session_state.ultimo_count = 0
-if "show_create_user_form" not in st.session_state:
-    st.session_state.show_create_user_form = False
-if "close_doc_after_action" not in st.session_state:
-    st.session_state.close_doc_after_action = False
-if "expander_aberto" not in st.session_state:
-    st.session_state.expander_aberto = False
-if "processos_do_documento" not in st.session_state:
-    st.session_state.processos_do_documento = []
-if "empresa_form_key" not in st.session_state:
-    st.session_state.empresa_form_key = 0
-if "admin_form_key" not in st.session_state:
-    st.session_state.admin_form_key = 0
-if "empresa_mostrar_form" not in st.session_state:
-    st.session_state.empresa_mostrar_form = False
-if "admin_mostrar_form" not in st.session_state:
-    st.session_state.admin_mostrar_form = False
-if "filtros_widget_key" not in st.session_state:
-    st.session_state.filtros_widget_key = 0
-if "filtros_aplicados" not in st.session_state:
-    st.session_state.filtros_aplicados = {"q": "", "estados": [], "data_inicio": None, "data_fim": None, "order_by": "id", "order_dir": "desc"}
-if "filtros_temporarios" not in st.session_state:
-    st.session_state.filtros_temporarios = {"q": "", "estados": [], "data_inicio": None, "data_fim": None, "order_by": "id", "order_dir": "desc"}
-
-# ============================================================
-# LOGIN SCREEN
+# LOGIN SCREEN - USAR HTML PURO COM COMPONENTS.HTML
 # ============================================================
 if st.session_state.token is None:
-    st.markdown('<div class="dashboard-shell" style="display:flex;align-items:center;justify-content:center;min-height:70vh;">', unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 1.5, 1])
-    with col2:
-        st.markdown("""
-        <div style="background:#e6e6e7;border-radius:18px;padding:32px;box-shadow:0 14px 34px rgba(2,8,23,0.12);">
-            <h2 style="color:#17345a;font-size:28px;margin-bottom:8px;">Welcome back</h2>
-            <p style="color:#6b7280;margin-bottom:24px;">Sign in to your account</p>
-        """, unsafe_allow_html=True)
-        with st.form("login_form"):
-            username = st.text_input("Username", placeholder="Enter your username")
-            password = st.text_input("Password", type="password", placeholder="Enter your password")
-            submitted = st.form_submit_button("Sign In", use_container_width=True)
-            if submitted:
-                if login(username, password):
-                    st.session_state.success_message = "Login successful!"
-                    st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    import streamlit.components.v1 as components
+    
+    # Verificar se o login foi bem-sucedido via query param
+    if st.query_params.get("login_success") == "true":
+        st.query_params.clear()
+        st.rerun()
+    
+    # Ler a imagem do ficheiro e converter para Base64
+    img_path = os.path.join(os.path.dirname(__file__), 'img', 'HOLOSSORIGINAL.png')
+    
+    logo_base64 = ""
+    if os.path.exists(img_path):
+        with open(img_path, "rb") as f:
+            logo_base64 = base64.b64encode(f.read()).decode()
+    
+    # HTML do login
+    login_html = f'''
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+        html, body {{ width: 100%; height: 100%; margin: 0 !important; padding: 0 !important; font-family: "Inter", sans-serif; overflow: hidden !important; background: transparent !important; }}
+        :root {{
+            --login-bg-top: #0a2f57; --login-bg-bottom: #15528d; --login-card-bg: rgba(255,255,255,0.94);
+            --login-card-border: rgba(255,255,255,0.18); --login-title: #123b72; --login-text: #5f6f86;
+            --login-input-border: #d2d9e3; --login-input-bg: #ffffff; --login-button: rgb(0,54,98);
+            --login-button-hover: rgb(41,93,150); --login-shadow: 0 24px 48px rgba(5,20,40,0.22);
+            --login-radius-xl: 28px; --login-radius-md: 12px;
+        }}
+        .login-page {{ width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, #0a2f57 0%, #15528d 100%); overflow: hidden !important; margin: 0 !important; z-index: 9999999; }}
+        .login-container {{ width: 100%; max-width: 520px; position: relative; z-index: 1; }}
+        .login-box {{ background: var(--login-card-bg); border: 1px solid var(--login-card-border); border-radius: var(--login-radius-xl); padding: 30px 30px 26px; box-shadow: var(--login-shadow); backdrop-filter: blur(8px); }}
+        .login-box__brand {{ display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }}
+        .login-box__logo {{ width: 58px; height: 58px; object-fit: contain; flex-shrink: 0; border-radius: 12px; overflow: hidden; background: white; }}
+        .login-box__logo img {{ width: 100%; height: 100%; object-fit: contain; display: block; }}
+        .login-box__brand-text h2 {{ margin: 0 0 4px; font-size: 30px; line-height: 1.1; font-weight: 800; color: var(--login-title); }}
+        .login-box__brand-text p {{ margin: 0; font-size: 14px; color: var(--login-text); line-height: 1.4; }}
+        .login-form {{ display: flex; flex-direction: column; gap: 16px; }}
+        .input-group {{ display: flex; flex-direction: column; gap: 7px; }}
+        .input-group label {{ font-size: 14px; font-weight: 600; color: var(--login-title); }}
+        .input-group input {{ width: 100%; height: 50px; padding: 0 14px; border-radius: var(--login-radius-md); border: 1px solid var(--login-input-border); background: var(--login-input-bg); color: #21344d; font-size: 15px; box-sizing: border-box; font-family: "Inter", sans-serif; }}
+        .input-group input:focus {{ outline: none; border-color: var(--login-button); box-shadow: 0 0 0 4px rgba(55,113,176,0.14); }}
+        .login-btn {{ margin-top: 6px; height: 50px; border: none; border-radius: var(--login-radius-md); background: linear-gradient(135deg, var(--login-button) 0%, var(--login-button-hover) 100%); color: #ffffff; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 12px 24px rgba(41,93,150,0.26); font-family: "Inter", sans-serif; width: 100%; }}
+        .login-btn:hover {{ transform: translateY(-1px); box-shadow: 0 16px 28px rgba(41,93,150,0.32); }}
+        .login-btn:disabled {{ opacity: 0.7; cursor: not-allowed; }}
+        .login-error {{ min-height: 22px; margin: 16px 0 0; font-size: 14px; font-weight: 500; color: #c0392b; display: none; font-family: "Inter", sans-serif; }}
+        .login-error.show {{ display: block; }}
+        @media (max-width: 768px) {{ .login-box {{ padding: 24px 18px 22px; border-radius: 22px; }} .login-box__brand {{ gap: 12px; margin-bottom: 20px; }} .login-box__logo {{ width: 50px; height: 50px; }} .login-box__brand-text h2 {{ font-size: 24px; }} .input-group input, .login-btn {{ height: 48px; }} }}
+    </style>
+    </head>
+    <body>
+        <div class="login-page">
+            <div class="login-container">
+                <div class="login-box">
+                    <div class="login-box__brand">
+                        <div class="login-box__logo">
+                            <img src="data:image/png;base64,{logo_base64}" alt="Holoss" />
+                        </div>
+                        <div class="login-box__brand-text">
+                            <h2>Document Platform</h2>
+                            <p>Sign in to continue</p>
+                        </div>
+                    </div>
+                    <form id="loginForm" class="login-form" novalidate>
+                        <div class="input-group">
+                            <label for="username">Username</label>
+                            <input type="text" id="username" placeholder="Enter your username" required />
+                        </div>
+                        <div class="input-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" placeholder="Enter your password" required />
+                        </div>
+                        <button type="submit" id="loginButton" class="login-btn">Log in</button>
+                    </form>
+                    <p id="errorMsg" class="login-error"></p>
+                </div>
+            </div>
+        </div>
+        <script>
+        (function() {{
+            const API_URL = 'http://127.0.0.1:8000';
+            document.getElementById('loginForm').addEventListener('submit', function(e) {{
+                e.preventDefault();
+                var username = document.getElementById('username').value.trim();
+                var password = document.getElementById('password').value.trim();
+                var errorMsg = document.getElementById('errorMsg');
+                var loginBtn = document.getElementById('loginButton');
+                errorMsg.classList.remove('show');
+                errorMsg.textContent = '';
+                if (!username || !password) {{
+                    errorMsg.textContent = 'Please enter both username and password.';
+                    errorMsg.classList.add('show');
+                    return;
+                }}
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'Signing in...';
+                fetch(API_URL + '/login', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/x-www-form-urlencoded' }},
+                    body: 'username=' + encodeURIComponent(username) + '&password=' + encodeURIComponent(password)
+                }})
+                .then(function(response) {{
+                    if (!response.ok) {{
+                        return response.text().then(function(text) {{ throw new Error(text || 'Invalid credentials'); }});
+                    }}
+                    return response.json();
+                }})
+                .then(function(data) {{
+                    if (data.access_token) {{
+                        window.parent.location.href = '?login_success=true';
+                    }} else {{
+                        errorMsg.textContent = 'Invalid credentials. Please try again.';
+                        errorMsg.classList.add('show');
+                        loginBtn.disabled = false;
+                        loginBtn.textContent = 'Log in';
+                    }}
+                }})
+                .catch(function(error) {{
+                    errorMsg.textContent = error.message || 'Connection error. Please check if the server is running.';
+                    errorMsg.classList.add('show');
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Log in';
+                }});
+            }});
+        }})();
+        </script>
+    </body>
+    </html>
+    '''
+    
+    # Renderizar o HTML
+    components.html(login_html, height=800, scrolling=False)
+    
     st.stop()
+    
+# ============================================================
+# A PARTIR DAQUI O UTILIZADOR ESTÁ AUTENTICADO
+# ============================================================
 
-# ============================================================
-# AUTHENTICATED USER
-# ============================================================
+# Mostrar mensagem de sucesso
 if st.session_state.success_message:
     st.toast(st.session_state.success_message, icon="✅")
     st.session_state.success_message = None
 
+# Processar abertura de documento a partir de notificações
 if "doc_id" in st.query_params and st.query_params["doc_id"]:
     try:
         doc_id = int(st.query_params["doc_id"])
@@ -1035,21 +1125,44 @@ if st.session_state.get("close_doc_after_action", False):
     st.session_state.edit_data = None
     st.session_state.close_doc_after_action = False
 
-render_topbar()
+# Verificar novas notificações
+if st.session_state.token is not None:
+    verificar_novas_notificacoes()
 
 # ============================================================
-# MAIN CONTENT
+# SIDEBAR
 # ============================================================
+with st.sidebar:
+    st.write(f"Logged in as: **{st.session_state.username}**")
+    st.divider()
+    
+    if st.session_state.token is not None:
+        try:
+            count = get_notificacoes_nao_lidas()
+            if count > 0:
+                st.warning(f"🔔 {count} unread notification{'s' if count > 1 else ''}")
+            else:
+                st.info("🔔 No notifications")
+        except:
+            pass
+    
+    st.divider()
+    
+    if st.session_state.perfil == "admin":
+        if st.button("Dashboard", use_container_width=True, key="app_dashboard"):
+            st.switch_page("pages/dashboard.py")
+    
+    if st.button("Notifications", use_container_width=True, key="app_notificacoes"):
+        st.switch_page("pages/notificacoes.py")
+    
+    st.divider()
+    
+    if st.button("Logout", use_container_width=True, key="app_logout"):
+        logout()
+        st.rerun()
 
-# Document summary for non-admin
-if st.session_state.perfil != "admin":
-    documentos = listar_documentos()
-    if documentos:
-        st.subheader("Document summary")
-        show_document_summary(documentos)
-        st.divider()
-    else:
-        st.info("No documents found. Start by creating a new document.")
+st.title("Document Management Platform")
+
 
 # ============================================================
 # PARTNER AREA
@@ -2015,10 +2128,13 @@ elif st.session_state.perfil == "admin":
                         st.info("No history available.")
 
 # ============================================================
-# CLOSE DASHBOARD-SHELL
+# CLOSE MAIN CONTENT
 # ============================================================
 st.markdown('</div>', unsafe_allow_html=True)
 
+# ============================================================
+# PROCESS CLOSE_DOC_AFTER_ACTION
+# ============================================================
 if st.session_state.get("close_doc_after_action", False):
     if st.session_state.doc_selecionado is not None:
         st.session_state.doc_selecionado = None
