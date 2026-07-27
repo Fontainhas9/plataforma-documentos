@@ -37,6 +37,32 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+st.markdown("""
+<style>
+    /* FORÇAR TODOS OS WIDGETS A APARECEREM */
+    .stTextInput, .stTextInput > div, .stTextInput > div > div, .stTextInput > div > div > input {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    .stButton, .stButton > button {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    .stForm {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    .stAlert {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # ============================================================
 # INICIALIZAÇÃO DAS VARIÁVEIS DE SESSÃO
 # ============================================================
