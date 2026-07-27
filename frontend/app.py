@@ -1127,8 +1127,8 @@ if st.session_state.token is None:
             
             # Buscar o perfil do usuário
             try:
-                headers = {"Authorization": f"Bearer {token}"}
                 backend_url = "https://plataforma-documentos-backend.onrender.com"
+                headers = {"Authorization": f"Bearer {token}"}
                 me = requests.get(f"{backend_url}/me", headers=headers)
                 if me.status_code == 200:
                     user_info = me.json()
@@ -1151,7 +1151,7 @@ if st.session_state.token is None:
         with open(img_path, "rb") as f:
             logo_base64 = base64.b64encode(f.read()).decode()
     
-    # URL DO BACKEND NO RENDER
+    # URL DO BACKEND - ATUALIZE PARA A URL CORRETA DO SEU BACKEND
     backend_url = "https://plataforma-documentos-backend.onrender.com"
     
     # HTML do login - VISUAL PERFEITO
@@ -1224,6 +1224,7 @@ if st.session_state.token is None:
         <script>
         (function() {{
             const API_URL = '{backend_url}';
+            console.log('📡 API_URL:', API_URL);
             
             document.getElementById('loginForm').addEventListener('submit', function(e) {{
                 e.preventDefault();
@@ -1244,20 +1245,25 @@ if st.session_state.token is None:
                 loginBtn.disabled = true;
                 loginBtn.textContent = 'Signing in...';
                 
+                console.log('📤 Enviando para:', API_URL + '/login');
+                console.log('📤 Username:', username);
+                
                 fetch(API_URL + '/login', {{
                     method: 'POST',
                     headers: {{ 'Content-Type': 'application/x-www-form-urlencoded' }},
                     body: 'username=' + encodeURIComponent(username) + '&password=' + encodeURIComponent(password)
                 }})
                 .then(function(response) {{
+                    console.log('📥 Status:', response.status);
                     if (!response.ok) {{
                         return response.text().then(function(text) {{ throw new Error(text || 'Invalid credentials'); }});
                     }}
                     return response.json();
                 }})
                 .then(function(data) {{
+                    console.log('📥 Dados:', data);
                     if (data.access_token) {{
-                        // Redirecionar para a página principal com os dados na URL
+                        console.log('✅ Login bem-sucedido!');
                         window.location.href = '?login_success=true&token=' + encodeURIComponent(data.access_token) + '&username=' + encodeURIComponent(username);
                     }} else {{
                         errorMsg.textContent = 'Invalid credentials. Please try again.';
@@ -1267,6 +1273,7 @@ if st.session_state.token is None:
                     }}
                 }})
                 .catch(function(error) {{
+                    console.error('❌ Erro:', error);
                     errorMsg.textContent = error.message || 'Connection error. Please check if the server is running.';
                     errorMsg.classList.add('show');
                     loginBtn.disabled = false;
@@ -1283,6 +1290,7 @@ if st.session_state.token is None:
     components.html(login_html, height=800, scrolling=False)
     
     st.stop()
+
 # ============================================================
 # A PARTIR DAQUI O UTILIZADOR ESTÁ AUTENTICADO
 # ============================================================
