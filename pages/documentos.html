@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document Platform - Documents</title>
+
+    <link rel="icon" type="image/png" href="../imagen/logo-holoss.png" />
+    <link rel="stylesheet" href="../css/dashboard-topbar.css" />
+    <link rel="stylesheet" href="../css/dashboard-documents.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- ✅ 1º: AUTH - BLOQUEIA A PÁGINA SE NÃO ESTIVER AUTENTICADO -->
+    <script src="../js/auth.js"></script>
+</head>
+<body>
+    <!-- TOPBAR -->
+    <header class="dashboard-topbar" id="topbar">
+        <div class="dashboard-topbar__inner">
+            <h1 class="dashboard-topbar__title" id="pageTitle">📄 Documents</h1>
+            <nav class="dashboard-topbar__nav" id="topbarNav">
+                <!-- Preenchido por JS -->
+            </nav>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="dashboard-shell" id="mainContent">
+        <section class="dashboard-hero">
+            <div class="dashboard-hero-inner">
+                <div class="dashboard-hero-main">
+                    <h2 id="dashboardGreeting">Document Management</h2>
+                    <p id="dashboardSubtitle">Manage LCA/LCC documents</p>
+                </div>
+            </div>
+        </section>
+        <div id="appContent">
+            <!-- Renderizado por JS -->
+        </div>
+    </main>
+
+    <!-- ✅ 2º: OUTROS SCRIPTS -->
+    <script src="../js/config.js"></script>
+    <script src="../js/dashboard-documents.js"></script>
+</body>
+</html>

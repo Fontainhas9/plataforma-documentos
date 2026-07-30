@@ -1,30 +1,33 @@
-plataforma-documentos/
-├── .gitignore
+├── .devcontainer/
 ├── .streamlit/
-│   └── secrets.toml 
 ├── backend/
-│   ├── __init__.py
-│   ├── auth.py      
-│   ├── dashboard.py 
-│   ├── database.py  
-│   ├── email_utils.py
-│   ├── main.py       
-│   ├── models.py     
+│   ├── __pycache__/
+│   ├── auth.py
+│   ├── dashboard.py
+│   ├── database.py
+│   ├── main.py
+│   ├── models.py
 │   ├── notificacoes.py
-│   ├── schemas.py     
-│   ├── templates.py   
-│   └── requirements.txt
-├── frontend/
-│   ├── app.py          
 │   ├── requirements.txt
-│   ├── componentes/
-│   │   └── notificacoes.py
-│   └── pages/
-│       ├── dashboard.py   
-│       └── notificacoes.py
-├── basics.txt             
-├── docker-compose.yml     
-├── render.yaml            
-└── requirements.txt     
+│   ├── schemas.py
+│   └── templates.py
+├── css/
+│   ├── dashboard-documentos.css
+│   ├── dashboard-topbar.css
+│   └── login.css
+├── js/
+│   ├── dashboard-documentos.js
+│   ├── login.js
+│   └── notificacoes.js
+├── pages/
+│   ├── dashboard.html
+│   ├── documentos.html
+│   ├── login.html
+│   └── notificacoes.html
+├── venv/
+├── .gitignore
+├── basics.txt
+├── docker-compose.yml
+├── render.yaml
+├── requirements.txt
 └── structure.txt
-└── venv/                               

@@ -50,18 +50,28 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# CORS
+# ============================================================
+# ✅ CORS - PERMITIR TODAS AS ORIGENS PARA TESTE
+# ============================================================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:8501", 
-        "http://127.0.0.1:8501", 
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://localhost:8501",
+        "http://127.0.0.1:8501",
+        "https://plataforma-documentos-backend.onrender.com",
+        "https://*.onrender.com",
+        "https://*.streamlit.app",
         "https://holossdocs.streamlit.app",
-        "https://*.streamlit.app"
+        "*"  # PERMITIR TODAS AS ORIGENS EM DESENVOLVIMENTO
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 def get_db():
@@ -281,14 +291,10 @@ def pesquisar_documentos(
 
 @app.post("/documentos/", response_model=DocumentoOut)
 def criar_documento(
-    doc: DocumentoCreate,
+    doc: DocumentoCreate,  # ← RECEBE O DocumentoCreate COM empresa_id
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
-    """
-    Creates a new document.
-    Only company or admin can create documents.
-    """
     try:
         if current_user.perfil not in [PerfilUtilizador.EMPRESA, PerfilUtilizador.ADMIN]:
             raise HTTPException(status_code=403, detail="Only companies and administrators can create documents")
@@ -301,18 +307,12 @@ def criar_documento(
         if not parceiro:
             raise HTTPException(status_code=400, detail="Partner not found or not a valid partner")
 
-        # Check if data is empty and create structure if needed
-        if not doc.dados or doc.dados == {}:
-            from templates import criar_estrutura_com_processos
-            dados = criar_estrutura_com_processos(PROCESSOS_PADRAO)
-        else:
-            dados = doc.dados
-
+        # ✅ Usar o empresa_id enviado pelo frontend
         documento = Documento(
             titulo=doc.titulo,
             parceiro_id=doc.parceiro_id,
-            empresa_id=current_user.username,
-            dados=dados,
+            empresa_id=doc.empresa_id,  # ← USA O QUE VEIO DO FRONTEND
+            dados=doc.dados,
             estado=EstadoDocumento.RASCUNHO,
             versao_atual=1
         )
@@ -320,15 +320,13 @@ def criar_documento(
         db.commit()
         db.refresh(documento)
         
-        # Create initial version
         criar_versao(db, documento, EstadoDocumento.RASCUNHO, criado_por=current_user.username)
         
-        # Notify partner
         criar_notificacao_para_utilizador(
             db=db,
             username=doc.parceiro_id,
             titulo="📄 New document created for you",
-            mensagem=f"The company {current_user.username} created the document '{doc.titulo}' for you.",
+            mensagem=f"The company {doc.empresa_id} created the document '{doc.titulo}' for you.",
             link=f"/documentos?doc_id={documento.id}",
             icone="📄"
         )
