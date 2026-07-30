@@ -9,10 +9,20 @@
     linear-gradient(180deg, rgba(2, 28, 53, 0.96) 0%, rgba(3, 41, 73, 0.96) 100%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   box-sizing: border-box;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 999999;
+  padding: 0 clamp(20px, 2.2vw, 56px);
+  min-height: 74px;
+  display: flex;
+  align-items: center;
+  height: 74px;
 }
 
 .dashboard-topbar__inner {
-  width: calc(100% - (clamp(20px, 2.2vw, 56px) * 2));
+  width: 100%;
   max-width: none;
   min-height: 74px;
   margin: 0 auto;
@@ -21,6 +31,7 @@
   justify-content: space-between;
   gap: 24px;
   box-sizing: border-box;
+  height: 74px;
 }
 
 .dashboard-topbar__title {
@@ -34,6 +45,7 @@
   position: relative;
   cursor: pointer;
   text-decoration: none;
+  padding-left: 0 !important;
 }
 
 .dashboard-topbar__title::after {
@@ -71,6 +83,7 @@
   background: none;
   border: none;
   padding: 8px 4px;
+  display: inline-block;
 }
 
 .dashboard-topbar__link:hover {
@@ -88,23 +101,22 @@
   display: none !important;
 }
 
-/* separador visual opcional entre links */
+/* Separador entre links - exatamente como no exemplo */
 .dashboard-topbar__nav .dashboard-topbar__link + .dashboard-topbar__link {
   position: relative;
 }
 
 .dashboard-topbar__nav .dashboard-topbar__link + .dashboard-topbar__link::before {
-  content: "";
-  position: absolute;
-  left: -11px;
-  top: 50%;
-  width: 1px;
-  height: 14px;
-  background: rgb(254, 200, 0);
-  transform: translateY(-50%);
+    content: "";
+    position: absolute;
+    left: -11px;
+    top: 50%;
+    width: 1px;
+    height: 14px;
+    background: rgb(254, 200, 0);
+    transform: translateY(-50%);
 }
 
-/* si el link de change password está vacío, no ocupa espacio */
 .dashboard-topbar__link:empty {
   display: none;
 }
@@ -114,7 +126,7 @@ body {
 }
 
 /* =====================================================
-   RESPONSIVE
+   RESPONSIVE TOPBAR
 ===================================================== */
 
 @media (max-width: 900px) {
@@ -143,6 +155,13 @@ body {
 }
 
 @media (max-width: 640px) {
+  .dashboard-topbar {
+    min-height: auto;
+    height: auto;
+    padding: 14px 10px;
+    flex-wrap: wrap;
+  }
+
   .dashboard-topbar__inner {
     width: calc(100% - 20px);
     min-height: auto;
@@ -151,6 +170,7 @@ body {
     align-items: flex-start;
     justify-content: center;
     gap: 10px;
+    height: auto;
   }
 
   .dashboard-topbar__title {
@@ -243,6 +263,8 @@ body {
   margin: 0 auto;
   padding: 20px 0 42px;
   box-sizing: border-box;
+  margin-top: 90px;
+  min-height: calc(100vh - 90px);
 }
 
 /* =====================================================
@@ -446,7 +468,6 @@ body {
   transition: transform 0.2s ease, filter 0.2s ease;
 }
 
-/* ICONOS (MISMO COLOR PERO SUAVE) */
 .dashboard-grid .card-dashboard:nth-child(1) .card-img {
   background-color: rgba(0, 54, 98, 0.12);
 }
@@ -592,228 +613,16 @@ body {
 }
 
 /* =====================================================
-   ESPAÇO PARA A TOPBAR FIXA
+   ESTILOS PARA CONTEÚDO STREAMLIT - FUNDO ESCURO
 ===================================================== */
 
-.dashboard-shell {
-  margin-top: 90px !important;
-}
-
-/* =====================================================
-   ESCONDER SIDEBAR E BOTÕES STREAMLIT
-===================================================== */
-
-[data-testid="stSidebar"] {
-  display: none !important;
-}
-
-[data-testid="stSidebarNav"] {
-  display: none !important;
-}
-
-[data-testid="stSidebarUserContent"] {
-  display: none !important;
-}
-
-.main > div {
-  padding: 0 !important;
-  max-width: 100% !important;
-}
-
-.block-container {
-  padding: 0 !important;
-  max-width: 100% !important;
-}
-
-/* =====================================================
-   TODOS OS TEXTOS COM 3 TABS DE ESPAÇO À ESQUERDA
-===================================================== */
-
-h1, h2, h3, h4, h5, h6 {
-  padding-left: 3em !important;
-}
-
-.stCaption, .stMarkdown p, .stMarkdown li, .stMarkdown div {
-  padding-left: 3em !important;
-}
-
-.stAlert .stAlertContent {
-  padding-left: 3em !important;
-}
-
-.element-container {
-  padding-left: 0 !important;
-}
-
-.dashboard-topbar__title {
-  padding-left: 0 !important;
-}
-
-.streamlit-expanderHeader {
-  padding-left: 16px !important;
-}
-
-[data-testid="stMetricLabel"] {
-  padding-left: 0 !important;
-}
-
-.stTextInput label, .stSelectbox label, .stTextArea label, .stCheckbox label {
-  padding-left: 0 !important;
-}
-
-/* =====================================================
-   TABELAS - 80% DE LARGURA E CENTRALIZADAS
-===================================================== */
-
-.stDataFrame {
-  width: 80% !important;
-  max-width: 80% !important;
-  margin: 0 auto !important;
-  overflow: visible !important;
-  display: block !important;
-  background: #ffffff !important;
-  border-radius: 14px !important;
-  border: 1px solid rgba(15, 23, 42, 0.06) !important;
-}
-
-.stDataFrame > div {
-  max-width: 100% !important;
-  overflow: visible !important;
-  margin: 0 auto !important;
-}
-
-.stDataFrame table {
-  width: 100% !important;
-  table-layout: auto !important;
-  margin: 0 auto !important;
-}
-
-.stDataFrame thead tr th {
-  white-space: nowrap !important;
-  overflow: visible !important;
-  text-overflow: clip !important;
-  max-width: none !important;
-  min-width: auto !important;
-  background: #f0f2f5 !important;
-  color: #17345a !important;
-  font-weight: 600 !important;
-  padding: 10px 14px !important;
-  font-size: 13px !important;
-}
-
-.stDataFrame tbody tr td {
-  word-break: break-word !important;
-  max-width: none !important;
-  min-width: auto !important;
-  overflow: visible !important;
-  text-overflow: clip !important;
-  color: #1c2f50 !important;
-  padding: 8px 14px !important;
-  font-size: 14px !important;
-}
-
-[data-testid="stDataFrameResizable"] {
-  overflow: visible !important;
-  max-width: 100% !important;
-  margin: 0 auto !important;
-}
-
-.element-container:has(.stDataFrame) {
-  max-width: 100% !important;
-  overflow: visible !important;
-  margin: 0 auto !important;
-}
-
-.streamlit-expanderContent .stDataFrame {
-  width: 80% !important;
-  max-width: 80% !important;
-  margin: 0 auto !important;
-  overflow: visible !important;
-}
-
-[data-testid="column"] {
-  overflow: visible !important;
-}
-
-[data-testid="stVerticalBlock"] {
-  overflow: visible !important;
-}
-
-div[data-testid="stDataFrame"] {
-  overflow: visible !important;
-  max-width: 100% !important;
-  width: 80% !important;
-  margin: 0 auto !important;
-}
-
-.stDataFrame tbody {
-  overflow-y: auto !important;
-  display: block !important;
-  max-height: 500px !important;
-}
-
-.stDataFrame thead,
-.stDataFrame tbody tr {
-  display: table !important;
-  width: 100% !important;
-  table-layout: fixed !important;
-}
-
-/* =====================================================
-   REMOVER ELEMENTOS INDESEJADOS DO STREAMLIT
-===================================================== */
-
-[data-testid="stAppViewContainer"] > div:first-child {
-  display: none !important;
-}
-
-.stApp > header {
-  display: none !important;
-}
-
-.stAppHeader, .stDecoration {
-  display: none !important;
-}
-
-.stApp > header + div {
-  padding-top: 0 !important;
-}
-
-/* =====================================================
-   REMOVER SCROLL DO LOGIN E ELEMENTOS STREAMLIT
-===================================================== */
-
-/* Remover scroll da página */
-body {
-  overflow: hidden !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-html {
-  overflow: hidden !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-/* Remover barras brancas do Streamlit */
+/* FUNDO ESCURO PARA A APLICAÇÃO */
 .stApp {
-  background: transparent !important;
+  background: radial-gradient(circle at top left, rgba(67, 116, 170, 0.18), transparent 28%),
+              linear-gradient(180deg, #032949 0%, #083b67 100%) !important;
 }
 
 .stAppViewContainer {
-  background: transparent !important;
-}
-
-.st-emotion-cache-1v0mbdj {
-  background: transparent !important;
-}
-
-.st-emotion-cache-16idsys {
-  background: transparent !important;
-}
-
-.st-emotion-cache-1r6slb0 {
   background: transparent !important;
 }
 
@@ -821,66 +630,338 @@ html {
   background: transparent !important;
 }
 
-/* =====================================================
-   REMOVER BARRAS BRANCAS DO LOGIN
-===================================================== */
-
-/* Remover scroll da página */
-body {
-  overflow: hidden !important;
-  margin: 0 !important;
+.block-container {
+  background: transparent !important;
   padding: 0 !important;
+  max-width: 100% !important;
 }
 
-html {
-  overflow: hidden !important;
-  margin: 0 !important;
-  padding: 0 !important;
+/* SIDEBAR - VISÍVEL COM OS BOTÕES DE NAVEGAÇÃO */
+[data-testid="stSidebar"] {
+  display: block !important;
+  position: fixed !important;
+  top: 74px !important;
+  left: 0 !important;
+  bottom: 0 !important;
+  z-index: 99999 !important;
+  background: rgba(2, 28, 53, 0.97) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+  padding: 20px 16px !important;
+  width: 260px !important;
+  overflow-y: auto !important;
 }
 
-/* Esconder sidebar e headers */
-[data-testid="stSidebar"] { display: none !important; }
+[data-testid="stSidebar"] .stMarkdown {
+  color: #e8edf3 !important;
+}
+
+[data-testid="stSidebar"] .stMarkdown p {
+  color: #e8edf3 !important;
+}
+
+[data-testid="stSidebar"] .stMarkdown strong {
+  color: #ffffff !important;
+}
+
+[data-testid="stSidebar"] .stButton > button {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #e8edf3 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 8px !important;
+  width: 100% !important;
+  text-align: center !important;
+  padding: 10px !important;
+}
+
+[data-testid="stSidebar"] .stButton > button:hover {
+  background: rgba(254, 200, 0, 0.15) !important;
+  border-color: rgb(254, 200, 0) !important;
+}
+
+[data-testid="stSidebar"] .stRadio label {
+  color: #e8edf3 !important;
+}
+
+[data-testid="stSidebar"] .stRadio [role="radiogroup"] label {
+  color: #e8edf3 !important;
+}
+
+[data-testid="stSidebar"] .stAlert {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #e8edf3 !important;
+}
+
+[data-testid="stSidebar"] .stAlert .stAlertContent {
+  color: #e8edf3 !important;
+}
+
+[data-testid="stSidebar"] .stDivider {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Esconder apenas elementos desnecessários do Streamlit */
 [data-testid="stSidebarNav"] { display: none !important; }
 [data-testid="stSidebarUserContent"] { display: none !important; }
 .stApp > header { display: none !important; }
 .stAppHeader, .stDecoration { display: none !important; }
-.main > div { padding: 0 !important; max-width: 100% !important; }
-.block-container { padding: 0 !important; max-width: 100% !important; }
+[data-testid="stToolbar"] { display: none !important; }
 
-/* Remover barras brancas do Streamlit */
-.stApp { background: transparent !important; }
-.stAppViewContainer { background: transparent !important; }
-.st-emotion-cache-1v0mbdj { background: transparent !important; }
-.st-emotion-cache-16idsys { background: transparent !important; }
-.st-emotion-cache-1r6slb0 { background: transparent !important; }
-.stMain { background: transparent !important; }
-
-/* Remover padding do container do iframe */
-.st-emotion-cache-1r6slb0 {
-  padding: 0 !important;
-  margin: 0 !important;
-  overflow: hidden !important;
-  height: 100vh !important;
-  width: 100% !important;
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
+/* CONTEÚDO PRINCIPAL */
+.dashboard-shell .stMarkdown {
+  color: #e8edf3;
 }
 
-/* Forçar o iframe a ocupar toda a área */
-iframe {
-  border: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  display: block !important;
+.dashboard-shell h1, 
+.dashboard-shell h2, 
+.dashboard-shell h3, 
+.dashboard-shell h4, 
+.dashboard-shell h5, 
+.dashboard-shell h6 {
+  color: #e8edf3 !important;
+  padding-left: 0 !important;
+}
+
+.dashboard-shell .stAlert {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #e8edf3 !important;
+}
+
+.dashboard-shell .stAlert .stAlertContent {
+  color: #e8edf3 !important;
+}
+
+.dashboard-shell .stAlert svg {
+  fill: #e8edf3 !important;
+}
+
+.dashboard-shell .stDataFrame {
+  background: #ffffff !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(15, 23, 42, 0.06) !important;
   width: 100% !important;
-  height: 100vh !important;
+  max-width: 100% !important;
+}
+
+.dashboard-shell .stDataFrame thead tr th {
+  background: #f0f2f5 !important;
+  color: #17345a !important;
+}
+
+.dashboard-shell .stDataFrame tbody tr td {
+  color: #1c2f50 !important;
+}
+
+.dashboard-shell .stTextInput label,
+.dashboard-shell .stSelectbox label,
+.dashboard-shell .stTextArea label,
+.dashboard-shell .stCheckbox label {
+  color: #e8edf3 !important;
+}
+
+.dashboard-shell .stTextInput input,
+.dashboard-shell .stSelectbox select,
+.dashboard-shell .stTextArea textarea {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #e8edf3 !important;
+  border-radius: 8px !important;
+}
+
+.dashboard-shell .stTextInput input::placeholder,
+.dashboard-shell .stSelectbox select::placeholder,
+.dashboard-shell .stTextArea textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.dashboard-shell .stTextInput input:focus,
+.dashboard-shell .stSelectbox select:focus,
+.dashboard-shell .stTextArea textarea:focus {
+  border-color: rgb(254, 200, 0) !important;
+  box-shadow: 0 0 0 2px rgba(254, 200, 0, 0.2) !important;
+  outline: none !important;
+}
+
+.dashboard-shell .stButton > button {
+  background: linear-gradient(135deg, #003662 0%, #295d96 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+.dashboard-shell .stButton > button:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 20px rgba(41, 93, 150, 0.3) !important;
+}
+
+.dashboard-shell .stExpander {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 12px !important;
+}
+
+.dashboard-shell .stExpander .streamlit-expanderHeader {
+  color: #e8edf3 !important;
+}
+
+.dashboard-shell .stExpander .streamlit-expanderContent {
+  color: #e8edf3 !important;
+}
+
+.dashboard-shell .stMetric {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+}
+
+.dashboard-shell .stMetric label {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.dashboard-shell .stMetric .stMetricValue {
+  color: #ffffff !important;
+}
+
+.dashboard-shell .stMetric .stMetricDelta {
+  color: rgb(254, 200, 0) !important;
+}
+
+/* =====================================================
+   LOGIN
+===================================================== */
+
+.login-wrapper {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  min-height: 100vh !important;
+  width: 100% !important;
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
+  background: linear-gradient(180deg, #0a2f57 0%, #15528d 100%) !important;
+  z-index: 999999 !important;
+  margin: 0 !important;
+  padding: 20px !important;
+}
+
+.login-card {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-radius: 28px !important;
+  padding: 30px 30px 26px !important;
+  max-width: 440px !important;
+  width: 100% !important;
+  box-shadow: 0 24px 48px rgba(5, 20, 40, 0.22) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.login-brand {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+  margin-bottom: 24px !important;
+}
+
+.login-brand-logo {
+  width: 58px !important;
+  height: 58px !important;
+  border-radius: 12px !important;
   overflow: hidden !important;
+  background: white !important;
+  flex-shrink: 0 !important;
+}
+
+.login-brand-logo img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+
+.login-brand-text h2 {
+  margin: 0 0 4px !important;
+  font-size: 30px !important;
+  line-height: 1.1 !important;
+  font-weight: 800 !important;
+  color: #123b72 !important;
+}
+
+.login-brand-text p {
+  margin: 0 !important;
+  font-size: 14px !important;
+  color: #5f6f86 !important;
+  line-height: 1.4 !important;
+}
+
+.login-card .stTextInput > div > div > input {
+  height: 50px !important;
+  border-radius: 12px !important;
+  border: 1px solid #d2d9e3 !important;
+  font-size: 15px !important;
+  padding: 0 14px !important;
+  background: #ffffff !important;
+  color: #21344d !important;
+  width: 100% !important;
+}
+
+.login-card .stTextInput > div > div > input:focus {
+  border-color: #003662 !important;
+  box-shadow: 0 0 0 4px rgba(55, 113, 176, 0.14) !important;
+  outline: none !important;
+}
+
+.login-card .stTextInput label {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #123b72 !important;
+  margin-bottom: 6px !important;
+}
+
+.login-card .stButton > button {
+  width: 100% !important;
+  height: 50px !important;
+  border: none !important;
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, #003662 0%, #295d96 100%) !important;
+  color: #ffffff !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  box-shadow: 0 12px 24px rgba(41, 93, 150, 0.26) !important;
+  margin-top: 6px !important;
+}
+
+.login-card .stButton > button:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 16px 28px rgba(41, 93, 150, 0.32) !important;
+}
+
+.login-card .stAlert {
+  margin-top: 12px !important;
+  border-radius: 10px !important;
+  padding: 10px 14px !important;
+}
+
+@media (max-width: 768px) {
+  .login-card { padding: 24px 18px 22px !important; border-radius: 22px !important; }
+  .login-brand-logo { width: 50px !important; height: 50px !important; }
+  .login-brand-text h2 { font-size: 24px !important; }
+  .login-card .stTextInput > div > div > input { height: 48px !important; }
+  .login-card .stButton > button { height: 48px !important; }
+  [data-testid="stSidebar"] { width: 200px !important; }
+}
+
+@media (max-width: 480px) {
+  .login-brand { align-items: flex-start !important; }
+  .login-brand-text h2 { font-size: 22px !important; }
+  .login-brand-text p { font-size: 13px !important; }
+  [data-testid="stSidebar"] { display: none !important; }
 }

@@ -25,818 +25,522 @@ DATASOURCE_OPTIONS = ["Measured", "Calculated", "Estimated", "Literature"]
 st.set_page_config(
     page_title="Document Platform",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 # ============================================================
-# CSS GLOBAL - REMOVER BORDAS E GARANTIR VISIBILIDADE
+# CSS COMPLETO - INLINE PARA GARANTIR APLICAÇÃO
 # ============================================================
 st.markdown("""
 <style>
     /* =====================================================
-       DASHBOARD TOPBAR
-       CSS aislado para la barra superior del dashboard
+       RESET E BASE
     ===================================================== */
-
-    .dashboard-topbar {
-      width: 100%;
-      background:
-        linear-gradient(180deg, rgba(2, 28, 53, 0.96) 0%, rgba(3, 41, 73, 0.96) 100%);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      box-sizing: border-box;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 999999;
-      padding: 0 clamp(20px, 2.2vw, 56px);
-      min-height: 74px;
-      display: flex;
-      align-items: center;
-      height: 74px;
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
     }
 
-    .dashboard-topbar__inner {
-      width: 100%;
-      max-width: none;
-      min-height: 74px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 24px;
-      box-sizing: border-box;
-      height: 74px;
-    }
-
-    .dashboard-topbar__title {
-      margin: 0;
-      color: #ffffff !important;
-      font-family: "Inter", "Segoe UI", Arial, sans-serif;
-      font-size: 24px;
-      line-height: 1.1;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      position: relative;
-      cursor: pointer;
-      text-decoration: none;
-      padding-left: 0 !important;
-    }
-
-    .dashboard-topbar__title::after {
-      content: "";
-      position: absolute;
-      left: 2px;
-      bottom: -6px;
-      width: 60%;
-      height: 2px;
-      background: linear-gradient(
-        90deg,
-        rgb(254, 200, 0),
-        rgba(254, 200, 0, 0.3)
-      );
-      border-radius: 2px;
-    }
-
-    .dashboard-topbar__nav {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 22px;
-      flex-wrap: wrap;
-    }
-
-    .dashboard-topbar__link {
-      color: rgba(255, 255, 255, 0.94) !important;
-      text-decoration: none !important;
-      font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
-      font-size: 15px !important;
-      line-height: 1.2 !important;
-      font-weight: 600 !important;
-      transition: color 0.18s ease, opacity 0.18s ease !important;
-      cursor: pointer !important;
-      background: none !important;
-      border: none !important;
-      padding: 8px 4px !important;
-    }
-
-    .dashboard-topbar__link:hover {
-      color: #ffffff !important;
-      opacity: 0.82 !important;
-    }
-
-    .dashboard-topbar__link:focus-visible {
-      outline: 2px solid rgba(255, 255, 255, 0.45);
-      outline-offset: 3px;
-      border-radius: 6px;
-    }
-
-    .dashboard-topbar__link.hidden {
-      display: none !important;
-    }
-
-    /* separador visual opcional entre links */
-    .dashboard-topbar__nav .dashboard-topbar__link + .dashboard-topbar__link {
-      position: relative;
-    }
-
-    .dashboard-topbar__nav .dashboard-topbar__link + .dashboard-topbar__link::before {
-      content: "";
-      position: absolute;
-      left: -11px;
-      top: 50%;
-      width: 1px;
-      height: 14px;
-      background: rgb(254, 200, 0);
-      transform: translateY(-50%);
-    }
-
-    /* si el link de change password está vacío, no ocupa espacio */
-    .dashboard-topbar__link:empty {
-      display: none;
-    }
-
-    body {
-      font-family: "Inter", "Segoe UI", Arial, sans-serif;
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        height: 100% !important;
+        width: 100% !important;
+        font-family: "Inter", "Segoe UI", Arial, sans-serif;
+        background: radial-gradient(circle at top left, rgba(67, 116, 170, 0.18), transparent 28%),
+                    linear-gradient(180deg, #032949 0%, #083b67 100%) !important;
     }
 
     /* =====================================================
-       RESPONSIVE
+       REMOVER TODOS OS FUNDOS BRANCOS DO STREAMLIT
     ===================================================== */
-
-    @media (max-width: 900px) {
-      .dashboard-topbar__inner {
-        width: min(1820px, calc(100% - 72px));
-        min-height: 70px;
-        gap: 18px;
-      }
-
-      .dashboard-topbar__title {
-        font-size: 22px;
-      }
-
-      .dashboard-topbar__nav {
-        gap: 18px;
-      }
-
-      .dashboard-topbar__link {
-        font-size: 14px !important;
-      }
-
-      .dashboard-topbar__nav .dashboard-topbar__link + .dashboard-topbar__link::before {
-        left: -9px;
-        height: 12px;
-      }
+    .stApp {
+        background: radial-gradient(circle at top left, rgba(67, 116, 170, 0.18), transparent 28%),
+                    linear-gradient(180deg, #032949 0%, #083b67 100%) !important;
     }
 
-    @media (max-width: 640px) {
-      .dashboard-topbar {
-        min-height: auto;
-        height: auto;
-        padding: 14px 10px;
-        flex-wrap: wrap;
-      }
-
-      .dashboard-topbar__inner {
-        width: calc(100% - 20px);
-        min-height: auto;
-        padding: 14px 0;
-        flex-direction: column;
-        align-items: flex-start;
-        justify-content: center;
-        gap: 10px;
-        height: auto;
-      }
-
-      .dashboard-topbar__title {
-        font-size: 22px;
-      }
-
-      .dashboard-topbar__nav {
-        width: 100%;
-        justify-content: flex-start;
-        gap: 14px;
-      }
-
-      .dashboard-topbar__link {
-        font-size: 14px !important;
-        padding: 6px 2px !important;
-      }
-
-      .dashboard-topbar__nav .dashboard-topbar__link + .dashboard-topbar__link::before {
-        left: -7px;
-        height: 12px;
-      }
+    .stAppViewContainer {
+        background: transparent !important;
+        overflow: hidden !important;
+        height: 100vh !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
-    @media (max-width: 420px) {
-      .dashboard-topbar__title {
-        font-size: 20px;
-      }
-
-      .dashboard-topbar__nav {
-        gap: 12px;
-      }
-
-      .dashboard-topbar__link {
-        font-size: 13px !important;
-      }
+    .stMain {
+        background: transparent !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
-    /* =====================================================
-       DASHBOARD V2 - versão fluida
-    ===================================================== */
-
-    :root {
-      --shell-gap: clamp(20px, 2.2vw, 56px);
-      --card-gap: clamp(14px, 1vw, 18px);
-      --hero-padding-y: clamp(18px, 1.6vw, 30px);
-      --hero-padding-x: clamp(18px, 1.8vw, 28px);
-
-      --radius-xl: 18px;
-      --radius-lg: 16px;
-      --radius-md: 14px;
-
-      --title-size: clamp(24px, 1.2vw + 18px, 42px);
-      --subtitle-size: clamp(14px, 0.45vw + 11px, 18px);
-
-      --stat-value-size: clamp(24px, 0.9vw + 16px, 38px);
-      --stat-label-size: clamp(14px, 0.25vw + 12px, 17px);
-      --stat-meta-size: clamp(12px, 0.15vw + 11px, 14px);
-
-      --tile-title-size: clamp(18px, 0.45vw + 14px, 26px);
-      --tile-text-size: clamp(14px, 0.2vw + 13px, 16px);
-
-      --stat-icon-size: clamp(70px, 2.5vw + 30px, 95px);
-      --tile-icon-size: clamp(64px, 2vw + 40px, 88px);
-
-      --stats-min-col: 240px;
-      --tiles-min-col: 330px;
+    .st-emotion-cache-1r6slb0 {
+        background: transparent !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
-    html,
-    body {
-      margin: 0;
-      padding: 0;
+    .st-emotion-cache-16idsys {
+        background: transparent !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
-    body {
-      min-height: 100vh;
-      font-family: "Inter", "Segoe UI", Arial, sans-serif;
-      background:
-        radial-gradient(circle at top left, rgba(67, 116, 170, 0.18), transparent 28%),
-        linear-gradient(180deg, #032949 0%, #083b67 100%);
-      color: #0f172a;
+    .st-emotion-cache-1v0mbdj {
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
-    /* =====================================================
-       WRAPPER
-    ===================================================== */
-
-    .dashboard-shell {
-      width: calc(100% - (var(--shell-gap) * 2));
-      max-width: none;
-      margin: 0 auto;
-      padding: 20px 0 42px;
-      box-sizing: border-box;
-      margin-top: 90px !important;
+    .st-emotion-cache-6qob1r {
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
-    /* =====================================================
-       HERO
-    ===================================================== */
-
-    .dashboard-hero {
-      margin-bottom: 24px;
+    .st-emotion-cache-12fmjuu {
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
-    .dashboard-hero-inner {
-      background: #e6e6e7;
-      border-radius: var(--radius-xl);
-      padding: var(--hero-padding-y) var(--hero-padding-x) calc(var(--hero-padding-y) - 4px);
-      box-shadow: 0 14px 34px rgba(2, 8, 23, 0.12);
+    [data-testid="stAppViewContainer"] > div:first-child {
+        display: none !important;
     }
 
-    .dashboard-hero-main {
-      margin-bottom: 20px;
-    }
-
-    .dashboard-eyebrow {
-      display: none;
-    }
-
-    #dashboardGreeting {
-      margin: 0;
-      font-size: var(--title-size);
-      line-height: 1.15;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      color: #17345a;
-    }
-
-    #dashboardSubtitle {
-      margin: 8px 0 0;
-      font-size: var(--subtitle-size);
-      color: #6b7280;
-      font-weight: 500;
-    }
-
-    /* =====================================================
-       TOP STATS
-    ===================================================== */
-
-    .dashboard-stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(var(--stats-min-col), 1fr));
-      gap: 16px;
-    }
-
-    .dashboard-stat-card {
-      background: #f7f7f8;
-      border: 1px solid rgba(15, 23, 42, 0.06);
-      border-radius: var(--radius-md);
-      padding: clamp(14px, 0.8vw + 10px, 20px);
-      min-height: clamp(98px, 6vw, 128px);
-      display: flex;
-      align-items: center;
-      gap: clamp(12px, 0.7vw + 8px, 18px);
-      box-sizing: border-box;
-      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04);
-    }
-
-    .stat-icon {
-      width: var(--stat-icon-size);
-      height: var(--stat-icon-size);
-      border-radius: 16px;
-      flex: 0 0 var(--stat-icon-size);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    }
-
-    .icon-annual { background: #f3e5be; }
-    .icon-wfh { background: #d7e9f4; }
-    .icon-approvals { background: #f2dcc8; }
-    .icon-tasks { background: #d9e7f7; }
-
-    .stat-icon-img {
-      width: clamp(36px, 1.3vw + 24px, 46px);
-      height: clamp(36px, 1.3vw + 24px, 46px);
-      background-size: contain;
-      background-repeat: no-repeat;
-      background-position: center;
-    }
-
-    .stat-copy {
-      min-width: 0;
-      flex: 1;
-    }
-
-    .stat-value {
-      display: block;
-      margin: 0 0 4px;
-      font-size: var(--stat-value-size);
-      line-height: 1;
-      font-weight: 700;
-      color: #1c2f50;
-    }
-
-    .stat-label {
-      display: block;
-      font-size: var(--stat-label-size);
-      line-height: 1.22;
-      color: #314155;
-      font-weight: 600;
-    }
-
-    .stat-meta {
-      display: block;
-      margin-top: 4px;
-      font-size: var(--stat-meta-size);
-      line-height: 1.2;
-      color: #6b7280;
-      font-weight: 500;
-    }
-
-    /* =====================================================
-       LOWER GRID
-    ===================================================== */
-
-    .dashboard-panels {
-      margin-top: 6px;
-    }
-
-    .dashboard-panels-inner {
-      background: #e6e6e7;
-      border-radius: 18px;
-      padding: 20px 18px;
-      box-shadow: 0 14px 34px rgba(2, 8, 23, 0.12);
-    }
-
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 18px;
-      align-items: stretch;
-    }
-
-    .dashboard-grid .card-dashboard {
-      position: relative;
-      background: #f7f7f8;
-      border-radius: var(--radius-lg);
-      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
-      text-decoration: none;
-      color: inherit;
-      min-width: 0;
-      min-height: 120px;
-      display: flex;
-      align-items: center;
-      gap: var(--card-gap);
-      padding: 16px 18px;
-      box-sizing: border-box;
-      overflow: hidden;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .dashboard-grid .card-dashboard:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 18px 35px rgba(0, 0, 0, 0.12);
-    }
-
-    .dashboard-grid .card-dashboard::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 12px;
-      height: 100%;
-      border-radius: 16px 0 0 16px;
-      background: #1b5f97;
-      transition: filter 0.2s ease;
-    }
-
-    .dashboard-grid .card-dashboard:nth-child(1)::before { background: rgb(0, 54, 98); }
-    .dashboard-grid .card-dashboard:nth-child(2)::before { background: rgb(254, 200, 0); }
-    .dashboard-grid .card-dashboard:nth-child(3)::before { background: rgb(55, 113, 176); }
-    .dashboard-grid .card-dashboard:nth-child(4)::before { background: rgb(102, 153, 102); }
-    .dashboard-grid .card-dashboard:nth-child(5)::before { background: rgb(204, 174, 67); }
-    .dashboard-grid .card-dashboard:nth-child(6)::before { background: rgb(0, 128, 128); }
-    .dashboard-grid .card-dashboard:nth-child(7)::before { background: rgb(41, 189, 112); }
-    .dashboard-grid .card-dashboard:nth-child(8)::before { background: rgb(220, 110, 80); }
-    .dashboard-grid .card-dashboard:nth-child(9)::before { background: rgb(0, 54, 98); }
-
-    .dashboard-grid .card-dashboard .card-img {
-      width: var(--tile-icon-size);
-      height: var(--tile-icon-size);
-      min-width: var(--tile-icon-size);
-      flex: 0 0 var(--tile-icon-size);
-      border-radius: 16px;
-      background-size: 70%;
-      background-repeat: no-repeat;
-      background-position: center;
-      background-color: #dfe8ef;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      filter: contrast(1.1) saturate(1.2);
-      transition: transform 0.2s ease, filter 0.2s ease;
-    }
-
-    /* ICONOS (MISMO COLOR PERO SUAVE) */
-    .dashboard-grid .card-dashboard:nth-child(1) .card-img {
-      background-color: rgba(0, 54, 98, 0.12);
-    }
-
-    .dashboard-grid .card-dashboard:nth-child(2) .card-img {
-      background-color: rgba(254, 200, 0, 0.18);
-    }
-
-    .dashboard-grid .card-dashboard:nth-child(3) .card-img {
-      background-color: rgba(55, 113, 176, 0.14);
-    }
-
-    .dashboard-grid .card-dashboard:nth-child(4) .card-img {
-      background-color: rgba(102, 153, 102, 0.16);
-    }
-
-    .dashboard-grid .card-dashboard:nth-child(5) .card-img {
-      background-color: rgba(204, 174, 67, 0.18);
-    }
-
-    .dashboard-grid .card-dashboard:nth-child(6) .card-img {
-      background-color: rgba(0, 128, 128, 0.14);
-    }
-
-    .dashboard-grid .card-dashboard:nth-child(7) .card-img {
-      background-color: rgba(41, 189, 112, 0.16);
-    }
-    .dashboard-grid .card-dashboard:nth-child(8) .card-img {
-      background-color: rgba(220, 110, 80, 0.16);
-    }
-    .dashboard-grid .card-dashboard:nth-child(9) .card-img {
-      background-color: rgba(0, 54, 98, 0.12);
-    }
-
-    .dashboard-grid .card-dashboard:hover .card-img {
-      transform: scale(1.05);
-      filter: contrast(1.12) saturate(1.24);
-    }
-
-    .dashboard-grid .card-dashboard:hover::before {
-      filter: brightness(1.15);
-    }
-
-    .dashboard-grid .card-content {
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-      align-items: flex-start;
-      gap: 4px;
-      text-align: left;
-      min-width: 0;
-      max-width: none;
-    }
-
-    .dashboard-grid .card-content h3 {
-      margin: 0 0 6px;
-      font-size: var(--tile-title-size);
-      line-height: 1.15;
-      font-weight: 600;
-      color: #17345a;
-      letter-spacing: -0.02em;
-      display: block;
-      text-align: left;
-    }
-
-    .dashboard-grid .card-content p {
-      margin: 0;
-      font-size: var(--tile-text-size);
-      line-height: 1.42;
-      color: #526172;
-      text-align: left;
-      font-weight: 500;
-      display: block;
-    }
-
-    /* =====================================================
-       RESPONSIVE
-    ===================================================== */
-
-    @media (max-width: 1200px) {
-      :root {
-        --tiles-min-col: 290px;
-      }
-
-      .dashboard-shell {
-        width: calc(100% - 36px);
-      }
-    }
-
-    @media (max-width: 1100px) {
-      .dashboard-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
-    @media (max-width: 900px) {
-      :root {
-        --stats-min-col: 220px;
-        --tiles-min-col: 260px;
-      }
-
-      .dashboard-shell {
-        width: calc(100% - 28px);
-        padding: 16px 0 30px;
-      }
-
-      .dashboard-hero-inner {
-        padding: 22px 18px 18px;
-      }
-    }
-
-    @media (max-width: 700px) {
-      .dashboard-panels-inner {
-        padding: 16px 14px;
-        border-radius: 16px;
-      }
-
-      .dashboard-grid {
-        grid-template-columns: 1fr;
-        gap: 14px;
-      }
-    }
-
-    @media (max-width: 640px) {
-      .dashboard-shell {
-        width: calc(100% - 20px);
-        padding: 14px 0 24px;
-      }
-
-      .dashboard-hero-inner {
-        border-radius: 16px;
-        padding: 18px 14px 16px;
-      }
-
-      .dashboard-stats {
-        grid-template-columns: 1fr;
-        gap: 12px;
-      }
-
-      .dashboard-grid .card-dashboard {
-        align-items: center;
-      }
-    }
-
-    /* =====================================================
-       ESCONDER SIDEBAR E BOTÕES STREAMLIT
-    ===================================================== */
-
-    [data-testid="stSidebar"] {
-      display: none !important;
-    }
-
-    [data-testid="stSidebarNav"] {
-      display: none !important;
-    }
-
-    [data-testid="stSidebarUserContent"] {
-      display: none !important;
-    }
-
-    .main > div {
-      padding: 0 !important;
-      max-width: 100% !important;
+    [data-testid="stAppViewBlockContainer"] {
+        overflow: hidden !important;
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
     .block-container {
-      padding: 0 !important;
-      max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+    }
+
+    .main > div {
+        padding: 0 !important;
+        max-width: 100% !important;
+        margin: 0 !important;
     }
 
     /* =====================================================
-       TODOS OS TEXTOS COM 3 TABS DE ESPAÇO À ESQUERDA
+       ESCONDER A TOPBAR QUANDO NÃO HÁ TOKEN (LOGIN)
     ===================================================== */
-
-    h1, h2, h3, h4, h5, h6 {
-      padding-left: 3em !important;
+    body:has(.login-page) .dashboard-topbar,
+    .login-page ~ .dashboard-topbar {
+        display: none !important;
     }
 
-    .stCaption, .stMarkdown p, .stMarkdown li, .stMarkdown div {
-      padding-left: 3em !important;
+    /* =====================================================
+       DASHBOARD TOPBAR - ESTILO EXATO DO EXEMPLO
+    ===================================================== */
+    .dashboard-topbar {
+        width: 100%;
+        background: linear-gradient(180deg, rgba(2, 28, 53, 0.96) 0%, rgba(3, 41, 73, 0.96) 100%);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        box-sizing: border-box;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 999999 !important;
+        padding: 0 clamp(20px, 2.2vw, 56px);
+        min-height: 74px;
+        display: flex !important;
+        align-items: center;
+        height: 74px;
+        margin: 0 !important;
     }
 
-    .stAlert .stAlertContent {
-      padding-left: 3em !important;
-    }
-
-    .element-container {
-      padding-left: 0 !important;
+    .dashboard-topbar__inner {
+        width: 100%;
+        max-width: none;
+        margin: 0 auto;
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        box-sizing: border-box;
+        height: 74px;
     }
 
     .dashboard-topbar__title {
-      padding-left: 0 !important;
+        margin: 0;
+        color: #ffffff !important;
+        font-family: "Inter", "Segoe UI", Arial, sans-serif;
+        font-size: 24px;
+        line-height: 1.1;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        position: relative;
+        cursor: pointer;
+        text-decoration: none !important;
+        padding-left: 0 !important;
+        background: none !important;
     }
 
-    .streamlit-expanderHeader {
-      padding-left: 16px !important;
+    .dashboard-topbar__title::after {
+        content: "";
+        position: absolute;
+        left: 2px;
+        bottom: -6px;
+        width: 60%;
+        height: 2px;
+        background: linear-gradient(90deg, rgb(254, 200, 0), rgba(254, 200, 0, 0.3));
+        border-radius: 2px;
     }
 
-    [data-testid="stMetricLabel"] {
-      padding-left: 0 !important;
+    .dashboard-topbar__nav {
+        display: flex !important;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 22px;
+        flex-wrap: wrap;
     }
 
-    .stTextInput label, .stSelectbox label, .stTextArea label, .stCheckbox label {
-      padding-left: 0 !important;
+    .dashboard-topbar__link {
+        color: rgba(255, 255, 255, 0.94) !important;
+        text-decoration: none !important;
+        font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+        font-size: 15px !important;
+        line-height: 1.2 !important;
+        font-weight: 600 !important;
+        transition: color 0.18s ease, opacity 0.18s ease !important;
+        cursor: pointer !important;
+        background: none !important;
+        border: none !important;
+        padding: 8px 4px !important;
+        display: inline-block !important;
     }
 
-    /* =====================================================
-       TABELAS - 80% DE LARGURA E CENTRALIZADAS
-    ===================================================== */
-
-    .stDataFrame {
-      width: 80% !important;
-      max-width: 80% !important;
-      margin: 0 auto !important;
-      overflow: visible !important;
-      display: block !important;
-      background: #ffffff !important;
-      border-radius: 14px !important;
-      border: 1px solid rgba(15, 23, 42, 0.06) !important;
+    .dashboard-topbar__link:hover {
+        color: #ffffff !important;
+        opacity: 0.82 !important;
     }
 
-    .stDataFrame > div {
-      max-width: 100% !important;
-      overflow: visible !important;
-      margin: 0 auto !important;
+    .dashboard-topbar__link.hidden {
+        display: none !important;
     }
 
-    .stDataFrame table {
-      width: 100% !important;
-      table-layout: auto !important;
-      margin: 0 auto !important;
+    /* Separador entre links - linha amarela */
+    .dashboard-topbar__nav .dashboard-topbar__link + .dashboard-topbar__link {
+        position: relative;
     }
 
-    .stDataFrame thead tr th {
-      white-space: nowrap !important;
-      overflow: visible !important;
-      text-overflow: clip !important;
-      max-width: none !important;
-      min-width: auto !important;
-      background: #f0f2f5 !important;
-      color: #17345a !important;
-      font-weight: 600 !important;
-      padding: 10px 14px !important;
-      font-size: 13px !important;
+    .dashboard-topbar__nav .dashboard-topbar__link + .dashboard-topbar__link::before {
+        content: "";
+        position: absolute;
+        left: -11px;
+        top: 50%;
+        width: 1px;
+        height: 14px;
+        background: rgb(254, 200, 0);
+        transform: translateY(-50%);
     }
 
-    .stDataFrame tbody tr td {
-      word-break: break-word !important;
-      max-width: none !important;
-      min-width: auto !important;
-      overflow: visible !important;
-      text-overflow: clip !important;
-      color: #1c2f50 !important;
-      padding: 8px 14px !important;
-      font-size: 14px !important;
-    }
-
-    [data-testid="stDataFrameResizable"] {
-      overflow: visible !important;
-      max-width: 100% !important;
-      margin: 0 auto !important;
-    }
-
-    .element-container:has(.stDataFrame) {
-      max-width: 100% !important;
-      overflow: visible !important;
-      margin: 0 auto !important;
-    }
-
-    .streamlit-expanderContent .stDataFrame {
-      width: 80% !important;
-      max-width: 80% !important;
-      margin: 0 auto !important;
-      overflow: visible !important;
-    }
-
-    [data-testid="column"] {
-      overflow: visible !important;
-    }
-
-    [data-testid="stVerticalBlock"] {
-      overflow: visible !important;
-    }
-
-    div[data-testid="stDataFrame"] {
-      overflow: visible !important;
-      max-width: 100% !important;
-      width: 80% !important;
-      margin: 0 auto !important;
-    }
-
-    .stDataFrame tbody {
-      overflow-y: auto !important;
-      display: block !important;
-      max-height: 500px !important;
-    }
-
-    .stDataFrame thead,
-    .stDataFrame tbody tr {
-      display: table !important;
-      width: 100% !important;
-      table-layout: fixed !important;
+    .dashboard-topbar__link:empty {
+        display: none !important;
     }
 
     /* =====================================================
-       REMOVER ELEMENTOS INDESEJADOS DO STREAMLIT
+       RESPONSIVE TOPBAR
     ===================================================== */
-
-    [data-testid="stAppViewContainer"] > div:first-child {
-      display: none !important;
+    @media (max-width: 900px) {
+        .dashboard-topbar__inner {
+            width: min(1820px, calc(100% - 72px));
+            min-height: 70px;
+            gap: 18px;
+        }
+        .dashboard-topbar__title { font-size: 22px; }
+        .dashboard-topbar__nav { gap: 18px; }
+        .dashboard-topbar__link { font-size: 14px !important; }
+        .dashboard-topbar__nav .dashboard-topbar__link + .dashboard-topbar__link::before {
+            left: -9px;
+            height: 12px;
+        }
     }
 
-    .stApp > header {
-      display: none !important;
+    @media (max-width: 640px) {
+        .dashboard-topbar {
+            min-height: auto;
+            height: auto;
+            padding: 14px 10px;
+            flex-wrap: wrap;
+        }
+        .dashboard-topbar__inner {
+            width: calc(100% - 20px);
+            min-height: auto;
+            padding: 14px 0;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 10px;
+            height: auto;
+        }
+        .dashboard-topbar__title { font-size: 22px; }
+        .dashboard-topbar__nav {
+            width: 100%;
+            justify-content: flex-start;
+            gap: 14px;
+        }
+        .dashboard-topbar__link { font-size: 14px !important; }
+        .dashboard-topbar__nav .dashboard-topbar__link + .dashboard-topbar__link::before {
+            left: -7px;
+            height: 12px;
+        }
     }
 
-    .stAppHeader, .stDecoration {
-      display: none !important;
+    @media (max-width: 420px) {
+        .dashboard-topbar__title { font-size: 20px; }
+        .dashboard-topbar__nav { gap: 12px; }
+        .dashboard-topbar__link { font-size: 13px !important; }
     }
 
-    .stApp > header + div {
-      padding-top: 0 !important;
+    /* =====================================================
+       DASHBOARD SHELL - CONTEÚDO PRINCIPAL (SEM FUNDO BRANCO)
+    ===================================================== */
+    .dashboard-shell {
+        position: fixed !important;
+        top: 74px !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        padding: 20px clamp(20px, 2.2vw, 56px) 42px !important;
+        background: transparent !important;
+        box-sizing: border-box;
+        width: 100% !important;
+        margin: 0 !important;
     }
 
-    .stTextInput { display: block !important; visibility: visible !important; opacity: 1 !important; }
-    .stTextInput > div { display: block !important; visibility: visible !important; opacity: 1 !important; }
-    .stTextInput > div > div { display: block !important; visibility: visible !important; opacity: 1 !important; }
-    .stTextInput > div > div > input { display: block !important; visibility: visible !important; opacity: 1 !important; }
-    .stButton { display: block !important; visibility: visible !important; opacity: 1 !important; }
-    .stButton > button { display: block !important; visibility: visible !important; opacity: 1 !important; }
-    .stForm { display: block !important; visibility: visible !important; opacity: 1 !important; }
-    .stAlert { display: block !important; visibility: visible !important; opacity: 1 !important; }
+    .dashboard-shell::-webkit-scrollbar {
+        width: 6px;
+    }
 
+    .dashboard-shell::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 3px;
+    }
+
+    .dashboard-shell::-webkit-scrollbar-thumb {
+        background: rgba(254, 200, 0, 0.4);
+        border-radius: 3px;
+    }
+
+    .dashboard-shell::-webkit-scrollbar-thumb:hover {
+        background: rgba(254, 200, 0, 0.6);
+    }
+
+    /* =====================================================
+       CONTEÚDO DO SHELL - FUNDO ESCURO
+    ===================================================== */
+    .dashboard-shell .stMarkdown {
+        color: #e8edf3;
+    }
+
+    .dashboard-shell h1, 
+    .dashboard-shell h2, 
+    .dashboard-shell h3, 
+    .dashboard-shell h4, 
+    .dashboard-shell h5, 
+    .dashboard-shell h6 {
+        color: #e8edf3 !important;
+        padding-left: 0 !important;
+    }
+
+    .dashboard-shell .stAlert {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        color: #e8edf3 !important;
+    }
+
+    .dashboard-shell .stAlert .stAlertContent {
+        color: #e8edf3 !important;
+    }
+
+    .dashboard-shell .stAlert svg {
+        fill: #e8edf3 !important;
+    }
+
+    .dashboard-shell .stDataFrame {
+        background: #ffffff !important;
+        border-radius: 14px !important;
+        border: 1px solid rgba(15, 23, 42, 0.06) !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .dashboard-shell .stDataFrame thead tr th {
+        background: #f0f2f5 !important;
+        color: #17345a !important;
+    }
+
+    .dashboard-shell .stDataFrame tbody tr td {
+        color: #1c2f50 !important;
+    }
+
+    .dashboard-shell .stTextInput label,
+    .dashboard-shell .stSelectbox label,
+    .dashboard-shell .stTextArea label,
+    .dashboard-shell .stCheckbox label {
+        color: #e8edf3 !important;
+    }
+
+    .dashboard-shell .stTextInput input,
+    .dashboard-shell .stSelectbox select,
+    .dashboard-shell .stTextArea textarea {
+        background: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        color: #e8edf3 !important;
+        border-radius: 8px !important;
+    }
+
+    .dashboard-shell .stTextInput input::placeholder,
+    .dashboard-shell .stSelectbox select::placeholder,
+    .dashboard-shell .stTextArea textarea::placeholder {
+        color: rgba(255, 255, 255, 0.4) !important;
+    }
+
+    .dashboard-shell .stTextInput input:focus,
+    .dashboard-shell .stSelectbox select:focus,
+    .dashboard-shell .stTextArea textarea:focus {
+        border-color: rgb(254, 200, 0) !important;
+        box-shadow: 0 0 0 2px rgba(254, 200, 0, 0.2) !important;
+        outline: none !important;
+    }
+
+    .dashboard-shell .stButton > button {
+        background: linear-gradient(135deg, #003662 0%, #295d96 100%) !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .dashboard-shell .stButton > button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 20px rgba(41, 93, 150, 0.3) !important;
+    }
+
+    .dashboard-shell .stExpander {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 12px !important;
+    }
+
+    .dashboard-shell .stExpander .streamlit-expanderHeader {
+        color: #e8edf3 !important;
+    }
+
+    .dashboard-shell .stExpander .streamlit-expanderContent {
+        color: #e8edf3 !important;
+    }
+
+    .dashboard-shell .stMetric {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border-radius: 12px !important;
+        padding: 16px !important;
+    }
+
+    .dashboard-shell .stMetric label {
+        color: rgba(255, 255, 255, 0.7) !important;
+    }
+
+    .dashboard-shell .stMetric .stMetricValue {
+        color: #ffffff !important;
+    }
+
+    .dashboard-shell .stMetric .stMetricDelta {
+        color: rgb(254, 200, 0) !important;
+    }
+
+    /* =====================================================
+       SIDEBAR - VISÍVEL
+    ===================================================== */
+    [data-testid="stSidebar"] {
+        display: block !important;
+        position: fixed !important;
+        top: 74px !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        z-index: 99999 !important;
+        background: rgba(2, 28, 53, 0.97) !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+        padding: 20px 16px !important;
+        width: 260px !important;
+        overflow-y: auto !important;
+    }
+
+    [data-testid="stSidebar"] .stMarkdown {
+        color: #e8edf3 !important;
+    }
+
+    [data-testid="stSidebar"] .stMarkdown p {
+        color: #e8edf3 !important;
+    }
+
+    [data-testid="stSidebar"] .stMarkdown strong {
+        color: #ffffff !important;
+    }
+
+    [data-testid="stSidebar"] .stButton > button {
+        background: rgba(255, 255, 255, 0.08) !important;
+        color: #e8edf3 !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 8px !important;
+        width: 100% !important;
+        text-align: center !important;
+        padding: 10px !important;
+    }
+
+    [data-testid="stSidebar"] .stButton > button:hover {
+        background: rgba(254, 200, 0, 0.15) !important;
+        border-color: rgb(254, 200, 0) !important;
+    }
+
+    [data-testid="stSidebar"] .stRadio label {
+        color: #e8edf3 !important;
+    }
+
+    [data-testid="stSidebar"] .stRadio [role="radiogroup"] label {
+        color: #e8edf3 !important;
+    }
+
+    [data-testid="stSidebar"] .stAlert {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        color: #e8edf3 !important;
+    }
+
+    [data-testid="stSidebar"] .stAlert .stAlertContent {
+        color: #e8edf3 !important;
+    }
+
+    [data-testid="stSidebar"] .stDivider {
+        border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    /* Esconder elementos desnecessários */
+    [data-testid="stSidebarNav"] { display: none !important; }
+    [data-testid="stSidebarUserContent"] { display: none !important; }
+    .stApp > header { display: none !important; }
+    .stAppHeader, .stDecoration { display: none !important; }
+    [data-testid="stToolbar"] { display: none !important; }
+
+    /* =====================================================
+       LOGIN
+    ===================================================== */
     .login-wrapper {
         display: flex !important;
         justify-content: center !important;
@@ -873,6 +577,7 @@ st.markdown("""
         gap: 16px !important;
         margin-bottom: 24px !important;
     }
+
     .login-brand-logo {
         width: 58px !important;
         height: 58px !important;
@@ -881,12 +586,14 @@ st.markdown("""
         background: white !important;
         flex-shrink: 0 !important;
     }
+
     .login-brand-logo img {
         width: 100% !important;
         height: 100% !important;
         object-fit: contain !important;
         display: block !important;
     }
+
     .login-brand-text h2 {
         margin: 0 0 4px !important;
         font-size: 30px !important;
@@ -894,6 +601,7 @@ st.markdown("""
         font-weight: 800 !important;
         color: #123b72 !important;
     }
+
     .login-brand-text p {
         margin: 0 !important;
         font-size: 14px !important;
@@ -911,11 +619,13 @@ st.markdown("""
         color: #21344d !important;
         width: 100% !important;
     }
+
     .login-card .stTextInput > div > div > input:focus {
         border-color: #003662 !important;
         box-shadow: 0 0 0 4px rgba(55, 113, 176, 0.14) !important;
         outline: none !important;
     }
+
     .login-card .stTextInput label {
         font-size: 14px !important;
         font-weight: 600 !important;
@@ -936,6 +646,7 @@ st.markdown("""
         box-shadow: 0 12px 24px rgba(41, 93, 150, 0.26) !important;
         margin-top: 6px !important;
     }
+
     .login-card .stButton > button:hover {
         transform: translateY(-1px) !important;
         box-shadow: 0 16px 28px rgba(41, 93, 150, 0.32) !important;
@@ -954,11 +665,28 @@ st.markdown("""
         .login-card .stTextInput > div > div > input { height: 48px !important; }
         .login-card .stButton > button { height: 48px !important; }
     }
+
     @media (max-width: 480px) {
         .login-brand { align-items: flex-start !important; }
         .login-brand-text h2 { font-size: 22px !important; }
         .login-brand-text p { font-size: 13px !important; }
     }
+
+    /* =====================================================
+       GARANTIR VISIBILIDADE DOS INPUTS
+    ===================================================== */
+    .stTextInput { display: block !important; visibility: visible !important; opacity: 1 !important; }
+    .stTextInput > div { display: block !important; visibility: visible !important; opacity: 1 !important; }
+    .stTextInput > div > div { display: block !important; visibility: visible !important; opacity: 1 !important; }
+    .stTextInput > div > div > input { display: block !important; visibility: visible !important; opacity: 1 !important; }
+    .stButton { display: block !important; visibility: visible !important; opacity: 1 !important; }
+    .stButton > button { display: block !important; visibility: visible !important; opacity: 1 !important; }
+    .stForm { display: block !important; visibility: visible !important; opacity: 1 !important; }
+    .stAlert { display: block !important; visibility: visible !important; opacity: 1 !important; }
+    .stSelectbox { display: block !important; visibility: visible !important; opacity: 1 !important; }
+    .stMultiSelect { display: block !important; visibility: visible !important; opacity: 1 !important; }
+    .stDateInput { display: block !important; visibility: visible !important; opacity: 1 !important; }
+    .stExpander { display: block !important; visibility: visible !important; opacity: 1 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1118,6 +846,7 @@ def logout():
     st.session_state.processos_do_documento = []
     st.session_state.empresa_mostrar_form = False
     st.session_state.admin_mostrar_form = False
+    st.query_params.clear()
     st.rerun()
 
 # ============================================================
@@ -1714,7 +1443,7 @@ def render_processos_selecao(key_prefix="empresa"):
     return processos_selecionados
 
 # ============================================================
-# RENDER TOPBAR
+# RENDER TOPBAR - CORRIGIDA E FORMATADA
 # ============================================================
 def render_topbar():
     username = st.session_state.get("username", "User")
@@ -1726,54 +1455,223 @@ def render_topbar():
     is_dashboard = current_page == "dashboard"
     is_notifications = current_page == "notificacoes"
     
-    home_hidden = 'hidden' if is_home else ''
-    dashboard_hidden = 'hidden' if is_dashboard else ''
-    notifications_hidden = 'hidden' if is_notifications else ''
+    notif_display = f'({notif_count})' if notif_count > 0 else ''
     
-    notif_display = f'{notif_count}' if notif_count > 0 else ''
-    
-    dashboard_link = ''
+    # Botão Dashboard apenas para admin
+    dashboard_btn = ''
     if perfil == "admin":
-        dashboard_link = f'<a class="dashboard-topbar__link {dashboard_hidden}" href="?page=dashboard">Dashboard</a>'
+        if is_dashboard:
+            dashboard_btn = '<span class="topbar-link active">Dashboard</span>'
+        else:
+            dashboard_btn = f'<a class="topbar-link" href="?page=dashboard">Dashboard</a>'
     
+    # HTML da topbar
     topbar_html = f'''
-    <header class="dashboard-topbar">
-        <div class="dashboard-topbar__inner">
-            <a class="dashboard-topbar__title" href="?page=home">📄 DocPlatform</a>
-            <nav class="dashboard-topbar__nav">
-                <a class="dashboard-topbar__link {home_hidden}" href="?page=home">Home</a>
-                {dashboard_link}
-                <a class="dashboard-topbar__link {notifications_hidden}" href="?page=notificacoes">🔔 {notif_display}</a>
-                <span class="dashboard-topbar__link" style="color:rgba(255,255,255,0.3);cursor:default;padding:8px 0;">|</span>
-                <span class="dashboard-topbar__link" style="color:rgba(255,255,255,0.7);cursor:default;padding:8px 0;">{username}</span>
-                <span class="dashboard-topbar__link" style="color:rgba(255,255,255,0.4);cursor:default;padding:8px 0;">({perfil})</span>
-                <a class="dashboard-topbar__link" href="?logout=true">Logout</a>
+    <style>
+        /* TOPBAR PRINCIPAL */
+        .topbar-container {{
+            width: 100%;
+            background: linear-gradient(180deg, rgba(2, 28, 53, 0.96) 0%, rgba(3, 41, 73, 0.96) 100%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 999999;
+            padding: 0 clamp(20px, 2.2vw, 56px);
+            min-height: 74px;
+            display: flex;
+            align-items: center;
+            height: 74px;
+            box-sizing: border-box;
+        }}
+        .topbar-inner {{
+            width: 100%;
+            max-width: none;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            height: 74px;
+            box-sizing: border-box;
+        }}
+        
+        /* TÍTULO */
+        .topbar-title {{
+            margin: 0;
+            color: #ffffff !important;
+            font-family: "Inter", "Segoe UI", Arial, sans-serif;
+            font-size: 24px;
+            line-height: 1.1;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            text-decoration: none;
+            position: relative;
+            background: none !important;
+            border: none !important;
+            padding: 0 !important;
+            cursor: pointer;
+        }}
+        .topbar-title::after {{
+            content: "";
+            position: absolute;
+            left: 2px;
+            bottom: -6px;
+            width: 60%;
+            height: 2px;
+            background: linear-gradient(90deg, rgb(254, 200, 0), rgba(254, 200, 0, 0.3));
+            border-radius: 2px;
+        }}
+        .topbar-title:hover {{
+            color: #ffffff !important;
+            opacity: 0.82 !important;
+        }}
+        
+        /* NAVEGAÇÃO */
+        .topbar-nav {{
+            display: flex;
+            align-items: center;
+            gap: 22px;
+            flex-wrap: wrap;
+        }}
+        .topbar-link {{
+            color: rgba(255, 255, 255, 0.94) !important;
+            text-decoration: none !important;
+            font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+            font-size: 15px !important;
+            font-weight: 600 !important;
+            padding: 8px 4px !important;
+            transition: color 0.18s ease, opacity 0.18s ease !important;
+            cursor: pointer !important;
+            background: none !important;
+            border: none !important;
+            display: inline-block !important;
+            position: relative;
+        }}
+        .topbar-link:hover {{
+            color: #ffffff !important;
+            opacity: 0.82 !important;
+        }}
+        .topbar-link.active {{
+            color: rgba(255, 255, 255, 0.4) !important;
+            cursor: default !important;
+        }}
+        .topbar-link.active:hover {{
+            opacity: 1 !important;
+        }}
+        
+        /* Separador entre links */
+        .topbar-nav .topbar-link + .topbar-link::before,
+        .topbar-nav .topbar-link + .topbar-divider::before {{
+            content: "";
+            position: absolute;
+            left: -11px;
+            top: 50%;
+            width: 1px;
+            height: 14px;
+            background: rgb(254, 200, 0);
+            transform: translateY(-50%);
+        }}
+        .topbar-nav .topbar-link + .topbar-divider,
+        .topbar-nav .topbar-divider + .topbar-link {{
+            position: relative;
+        }}
+        
+        /* Separador texto */
+        .topbar-divider {{
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 14px;
+            padding: 0 4px;
+        }}
+        
+        /* User info */
+        .topbar-user {{
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            font-weight: 500;
+        }}
+        .topbar-perfil {{
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 13px;
+            font-weight: 400;
+        }}
+        
+        /* SHELL */
+        .dashboard-shell {{
+            margin-top: 90px;
+            padding: 20px clamp(20px, 2.2vw, 56px) 42px;
+            background: transparent !important;
+        }}
+        
+        /* RESPONSIVE */
+        @media (max-width: 640px) {{
+            .topbar-container {{ padding: 14px 10px; height: auto; min-height: auto; flex-wrap: wrap; }}
+            .topbar-inner {{ flex-wrap: wrap; gap: 10px; height: auto; }}
+            .topbar-title {{ font-size: 20px; }}
+            .topbar-nav {{ gap: 12px; flex-wrap: wrap; }}
+            .topbar-link {{ font-size: 13px !important; padding: 6px 2px !important; }}
+            .dashboard-shell {{ margin-top: 120px; padding: 14px 10px 24px; }}
+        }}
+    </style>
+    
+    <div class="topbar-container">
+        <div class="topbar-inner">
+            <a class="topbar-title" href="?page=home">📄 DocPlatform</a>
+            <nav class="topbar-nav">
+                <a class="topbar-link {'active' if is_home else ''}" href="?page=home">Home</a>
+                {dashboard_btn}
+                <a class="topbar-link {'active' if is_notifications else ''}" href="?page=notificacoes">Notifications {notif_display}</a>
+                <span class="topbar-divider">|</span>
+                <span class="topbar-user">{username}</span>
+                <span class="topbar-perfil">({perfil})</span>
+                <a class="topbar-link" href="?logout=true">Logout</a>
             </nav>
         </div>
-    </header>
+    </div>
     <div class="dashboard-shell">
     '''
     
     st.markdown(topbar_html, unsafe_allow_html=True)
     
+    # Processar navegação via query params
     page = st.query_params.get("page", "home")
-    if page == "dashboard":
-        st.switch_page("pages/dashboard.py")
-    elif page == "notificacoes":
-        st.switch_page("pages/notificacoes.py")
+    logout_param = st.query_params.get("logout", "false")
     
-    if st.query_params.get("logout") == "true":
+    if logout_param == "true" or page == "logout":
         st.query_params.clear()
         logout()
         st.rerun()
+        return
+    
+    if page == "dashboard" and perfil == "admin":
+        try:
+            st.switch_page("pages/dashboard.py")
+            return
+        except Exception as e:
+            print(f"Erro ao mudar para dashboard: {e}")
+            st.query_params.clear()
+            st.rerun()
+            return
+    
+    if page == "notificacoes":
+        try:
+            st.switch_page("pages/notificacoes.py")
+            return
+        except Exception as e:
+            print(f"Erro ao mudar para notificacoes: {e}")
+            st.query_params.clear()
+            st.rerun()
+            return
+    
+    if page == "home":
+        st.query_params.clear()
 
 # ============================================================
 # LOGIN SCREEN - HTML PURO COM COMPONENTS.HTML
 # ============================================================
 if st.session_state.token is None:
     import streamlit.components.v1 as components
-    import base64
-    import os
     
     # Verificar se o login foi bem-sucedido via query param
     if st.query_params.get("login_success") == "true":
@@ -1810,10 +1708,10 @@ if st.session_state.token is None:
         with open(img_path, "rb") as f:
             logo_base64 = base64.b64encode(f.read()).decode()
     
-    # URL DO BACKEND - ATUALIZE PARA A URL CORRETA DO SEU BACKEND
+    # URL DO BACKEND
     backend_url = "https://plataforma-documentos-backend.onrender.com"
     
-    # HTML do login - VISUAL PERFEITO
+    # HTML do login
     login_html = f'''
     <!DOCTYPE html>
     <html>
@@ -1883,7 +1781,6 @@ if st.session_state.token is None:
         <script>
         (function() {{
             const API_URL = '{backend_url}';
-            console.log('📡 API_URL:', API_URL);
             
             document.getElementById('loginForm').addEventListener('submit', function(e) {{
                 e.preventDefault();
@@ -1904,25 +1801,19 @@ if st.session_state.token is None:
                 loginBtn.disabled = true;
                 loginBtn.textContent = 'Signing in...';
                 
-                console.log('📤 Enviando para:', API_URL + '/login');
-                console.log('📤 Username:', username);
-                
                 fetch(API_URL + '/login', {{
                     method: 'POST',
                     headers: {{ 'Content-Type': 'application/x-www-form-urlencoded' }},
                     body: 'username=' + encodeURIComponent(username) + '&password=' + encodeURIComponent(password)
                 }})
                 .then(function(response) {{
-                    console.log('📥 Status:', response.status);
                     if (!response.ok) {{
                         return response.text().then(function(text) {{ throw new Error(text || 'Invalid credentials'); }});
                     }}
                     return response.json();
                 }})
                 .then(function(data) {{
-                    console.log('📥 Dados:', data);
                     if (data.access_token) {{
-                        console.log('✅ Login bem-sucedido!');
                         window.location.href = '?login_success=true&token=' + encodeURIComponent(data.access_token) + '&username=' + encodeURIComponent(username);
                     }} else {{
                         errorMsg.textContent = 'Invalid credentials. Please try again.';
@@ -1932,7 +1823,6 @@ if st.session_state.token is None:
                     }}
                 }})
                 .catch(function(error) {{
-                    console.error('❌ Erro:', error);
                     errorMsg.textContent = error.message || 'Connection error. Please check if the server is running.';
                     errorMsg.classList.add('show');
                     loginBtn.disabled = false;
@@ -1945,14 +1835,17 @@ if st.session_state.token is None:
     </html>
     '''
     
-    # Renderizar o HTML
     components.html(login_html, height=800, scrolling=False)
-    
     st.stop()
 
 # ============================================================
 # A PARTIR DAQUI O UTILIZADOR ESTÁ AUTENTICADO
 # ============================================================
+
+# ============================================================
+# RENDER TOPBAR (APENAS DEPOIS DO LOGIN)
+# ============================================================
+render_topbar()
 
 # Mostrar mensagem de sucesso
 if st.session_state.success_message:
@@ -1982,7 +1875,7 @@ if st.session_state.token is not None:
     verificar_novas_notificacoes()
 
 # ============================================================
-# SIDEBAR - ESCONDIDA PELO CSS, MAS MANTIDA PARA COMPATIBILIDADE
+# SIDEBAR - VISÍVEL PARA OS BOTÕES DE NAVEGAÇÃO
 # ============================================================
 with st.sidebar:
     st.write(f"Logged in as: **{st.session_state.username}**")
@@ -2013,6 +1906,9 @@ with st.sidebar:
         logout()
         st.rerun()
 
+# ============================================================
+# CONTEÚDO PRINCIPAL
+# ============================================================
 st.title("Document Management Platform")
 
 # ============================================================
