@@ -1,33 +1,37 @@
-├── .devcontainer/
-├── .streamlit/
+plataforma-documentos/
 ├── backend/
-│   ├── __pycache__/
-│   ├── auth.py
-│   ├── dashboard.py
-│   ├── database.py
 │   ├── main.py
 │   ├── models.py
-│   ├── notificacoes.py
-│   ├── requirements.txt
 │   ├── schemas.py
-│   └── templates.py
-├── css/
-│   ├── dashboard-documentos.css
-│   ├── dashboard-topbar.css
-│   └── login.css
-├── js/
-│   ├── dashboard-documentos.js
-│   ├── login.js
-│   └── notificacoes.js
+│   ├── auth.py
+│   ├── database.py
+│   ├── templates.py
+│   ├── notificacoes.py
+│   ├── dashboard.py
+│   └── requirements.txt
 ├── pages/
-│   ├── dashboard.html
-│   ├── documentos.html
 │   ├── login.html
+│   ├── documentos.html
+│   ├── dashboard.html
 │   └── notificacoes.html
-├── venv/
-├── .gitignore
-├── basics.txt
+├── css/
+│   ├── login.css
+│   ├── dashboard-topbar.css
+│   ├── dashboard-documents.css
+│   └── footer.css
+├── js/
+│   ├── auth.js
+│   ├── config.js
+│   ├── login.js
+│   └── dashboard-documents.js
+├── imagen/
+│   ├── logo-holoss.png
+│   ├── Foto-pie-sin-fondo.png
+│   ├── instagram (1).png
+│   ├── instagram (2).png
+│   └── instagram (3).png
 ├── docker-compose.yml
 ├── render.yaml
-├── requirements.txt
-└── structure.txt
+├── setup_db.py
+├── create_test_users.py
+└── requirements.txt
