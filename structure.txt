@@ -27,9 +27,9 @@ plataforma-documentos/
 ├── imagen/
 │   ├── logo-holoss.png
 │   ├── Foto-pie-sin-fondo.png
-│   ├── instagram (1).png
-│   ├── instagram (2).png
-│   └── instagram (3).png
+│   ├── Instagram.png
+│   ├── Twitter.png
+│   └── LinkedInpng
 ├── docker-compose.yml
 ├── render.yaml
 ├── setup_db.py
