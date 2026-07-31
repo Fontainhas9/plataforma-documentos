@@ -61,8 +61,81 @@ let state = {
         dataInicio: null,
         dataFim: null
     },
-    notificacoesNaoLidas: 0
+    notificacoesNaoLidas: 0,
+    toastTimer: null
 };
+
+// =====================================================
+// TOAST - MENSAGENS NO CENTRO DA PÁGINA
+// =====================================================
+
+function showToast(message, type = 'success') {
+    // Remover toast anterior
+    const oldToast = document.getElementById('customToast');
+    if (oldToast) {
+        oldToast.remove();
+    }
+    if (state.toastTimer) {
+        clearTimeout(state.toastTimer);
+        state.toastTimer = null;
+    }
+
+    const colors = {
+        success: '#2e7d32',
+        error: '#c62828',
+        warning: '#ed6c02',
+        info: '#0288d1'
+    };
+
+    const toast = document.createElement('div');
+    toast.id = 'customToast';
+    toast.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: ${colors[type] || colors.success};
+        color: white;
+        padding: 20px 40px;
+        border-radius: 12px;
+        font-size: 18px;
+        font-weight: 600;
+        font-family: 'Inter', sans-serif;
+        z-index: 999999;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+        text-align: center;
+        min-width: 300px;
+        max-width: 500px;
+        animation: fadeIn 0.3s ease;
+        border: 1px solid rgba(255,255,255,0.1);
+    `;
+    toast.textContent = message;
+
+    // Adicionar animação
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            to { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+        }
+    `;
+    document.head.appendChild(style);
+
+    document.body.appendChild(toast);
+
+    // ✅ REMOVER APÓS 4 SEGUNDOS (em vez de 5)
+    state.toastTimer = setTimeout(() => {
+        toast.style.animation = 'fadeOut 0.3s ease';
+        setTimeout(() => {
+            toast.remove();
+            state.toastTimer = null;
+        }, 300);
+    }, 4000);
+}
 
 // =====================================================
 // ADMIN - MENU
@@ -75,15 +148,12 @@ let adminMenuAtivo = 'documents'; // 'documents' ou 'users'
 // =====================================================
 
 function logout() {
-    // ✅ Limpar sessionStorage (apenas este separador)
     sessionStorage.removeItem('doc_token');
     sessionStorage.removeItem('doc_username');
     sessionStorage.removeItem('doc_perfil');
     sessionStorage.removeItem('doc_nome');
     
     console.log('🔓 Logout efetuado neste separador');
-    
-    // Redirecionar para login
     window.location.href = 'login.html';
 }
 
@@ -91,13 +161,11 @@ function logout() {
 // ADMIN - GESTÃO DE UTILIZADORES
 // =====================================================
 
-// Função para alternar entre views do admin
 function mudarAdminView(view) {
     adminMenuAtivo = view;
     carregarDocumentos();
 }
 
-// Carregar lista de utilizadores
 async function carregarUtilizadores() {
     try {
         const response = await fetch(`${API_URL}/admin/usuarios`, {
@@ -112,16 +180,14 @@ async function carregarUtilizadores() {
         renderListaUtilizadores(users);
     } catch (error) {
         console.error('Error:', error);
-        alert('Error loading users: ' + error.message);
+        showToast('Error loading users: ' + error.message, 'error');
     }
 }
 
-// Renderizar lista de utilizadores com opções de gestão
 function renderListaUtilizadores(users) {
     const container = document.getElementById('adminUsersContainer');
     if (!container) return;
 
-    // Mapear perfis para exibição
     const perfilMap = {
         'parceiro': 'Partner',
         'empresa': 'Company',
@@ -131,7 +197,7 @@ function renderListaUtilizadores(users) {
     let html = `
         <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:16px;margin-top:12px;">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
-                <h4 style="color:#fff;margin:0;">👥 Utilizadores (${users.length})</h4>
+                <h4 style="color:#fff;margin:0;">👥 Users (${users.length})</h4>
                 <button class="btn btn-primary btn-sm" onclick="abrirFormCriarUser()">➕ New User</button>
             </div>
             <div class="table-container">
@@ -174,37 +240,40 @@ function renderListaUtilizadores(users) {
     container.innerHTML = html;
 }
 
-// Abrir formulário para criar novo utilizador
+// =====================================================
+// ADMIN - CRIAR USER (COM AJUSTE LATERAL)
+// =====================================================
+
 function abrirFormCriarUser() {
     const container = document.getElementById('adminUsersContainer');
     if (!container) return;
 
     container.innerHTML = `
-        <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:20px;margin-top:12px;border:1px solid rgba(254,200,0,0.2);">
-            <h4 style="color:#fec800;margin:0 0 16px;">➕ Create New User</h4>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:24px;margin-top:12px;border:1px solid rgba(254,200,0,0.2);">
+            <h4 style="color:#fec800;margin:0 0 20px;">➕ Create New User</h4>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
                 <div class="form-group" style="margin:0;display:flex;flex-direction:column;">
                     <label style="color:rgba(255,255,255,0.7);font-size:12px;text-transform:uppercase;margin-bottom:4px;">Username *</label>
-                    <input type="text" id="newUserUsername" placeholder="Ex: new_partner" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.1);color:#fff;font-size:14px;">
+                    <input type="text" id="newUserUsername" placeholder="Ex: new_partner" style="width:100%;padding:10px 14px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.1);color:#fff;font-size:14px;box-sizing:border-box;">
                 </div>
                 <div class="form-group" style="margin:0;display:flex;flex-direction:column;">
                     <label style="color:rgba(255,255,255,0.7);font-size:12px;text-transform:uppercase;margin-bottom:4px;">Password *</label>
-                    <input type="password" id="newUserPassword" placeholder="Min 3 characters" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.1);color:#fff;font-size:14px;">
+                    <input type="password" id="newUserPassword" placeholder="Min 3 characters" style="width:100%;padding:10px 14px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.1);color:#fff;font-size:14px;box-sizing:border-box;">
                 </div>
                 <div class="form-group" style="margin:0;display:flex;flex-direction:column;">
                     <label style="color:rgba(255,255,255,0.7);font-size:12px;text-transform:uppercase;margin-bottom:4px;">Full Name</label>
-                    <input type="text" id="newUserNome" placeholder="Ex: John Doe" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.1);color:#fff;font-size:14px;">
+                    <input type="text" id="newUserNome" placeholder="Ex: John Doe" style="width:100%;padding:10px 14px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.1);color:#fff;font-size:14px;box-sizing:border-box;">
                 </div>
                 <div class="form-group" style="margin:0;display:flex;flex-direction:column;">
                     <label style="color:rgba(255,255,255,0.7);font-size:12px;text-transform:uppercase;margin-bottom:4px;">Profile *</label>
-                    <select id="newUserPerfil" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.1);color:#fff;font-size:14px;">
-                        <option value="parceiro">Partner</option>
-                        <option value="empresa">Company</option>
-                        <option value="admin">Admin</option>
+                    <select id="newUserPerfil" style="width:100%;padding:10px 14px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.12);color:#fff;font-size:14px;box-sizing:border-box;">
+                        <option value="parceiro" style="background:#1a2a4a;color:#fff;">Partner</option>
+                        <option value="empresa" style="background:#1a2a4a;color:#fff;">Company</option>
+                        <option value="admin" style="background:#1a2a4a;color:#fff;">Admin</option>
                     </select>
                 </div>
             </div>
-            <div style="display:flex;gap:10px;margin-top:16px;">
+            <div style="display:flex;gap:10px;margin-top:20px;">
                 <button class="btn btn-primary btn-sm" onclick="criarUtilizador()">✅ Create</button>
                 <button class="btn btn-secondary btn-sm" onclick="carregarUtilizadores()">❌ Cancel</button>
             </div>
@@ -212,7 +281,6 @@ function abrirFormCriarUser() {
     `;
 }
 
-// Criar novo utilizador
 async function criarUtilizador() {
     const username = document.getElementById('newUserUsername')?.value.trim();
     const password = document.getElementById('newUserPassword')?.value.trim();
@@ -220,17 +288,17 @@ async function criarUtilizador() {
     const perfil = document.getElementById('newUserPerfil')?.value;
 
     if (!username) {
-        alert('Username is required.');
+        showToast('Username is required.', 'error');
         return;
     }
 
     if (!password || password.length < 3) {
-        alert('Password is required and must be at least 3 characters.');
+        showToast('Password must be at least 3 characters.', 'error');
         return;
     }
 
     if (!perfil) {
-        alert('Profile is required.');
+        showToast('Profile is required.', 'error');
         return;
     }
 
@@ -251,25 +319,28 @@ async function criarUtilizador() {
             throw new Error(error.detail || 'Error creating user');
         }
 
-        alert(`✅ User '${username}' created successfully!`);
+        showToast(`✅ User '${username}' created successfully!`, 'success');
         carregarUtilizadores();
     } catch (error) {
         console.error('Error:', error);
-        alert(`Error creating user: ${error.message}`);
+        showToast('Error creating user: ' + error.message, 'error');
     }
 }
 
-// Abrir formulário para alterar password
+// =====================================================
+// ADMIN - ALTERAR PASSWORD (COM AJUSTE LATERAL)
+// =====================================================
+
 function abrirFormAlterarPassword(username) {
     const container = document.getElementById('adminUsersContainer');
     if (!container) return;
 
     container.innerHTML = `
-        <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:20px;margin-top:12px;border:1px solid rgba(254,200,0,0.2);">
+        <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:20px 24px;margin-top:12px;border:1px solid rgba(254,200,0,0.2);max-width:450px;">
             <h4 style="color:#fec800;margin:0 0 16px;">🔑 Change Password - ${username}</h4>
             <div class="form-group" style="margin:0;display:flex;flex-direction:column;">
                 <label style="color:rgba(255,255,255,0.7);font-size:12px;text-transform:uppercase;margin-bottom:4px;">New Password *</label>
-                <input type="password" id="newPasswordInput" placeholder="Min 3 characters" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.1);color:#fff;font-size:14px;">
+                <input type="password" id="newPasswordInput" placeholder="Min 3 characters" style="width:100%;padding:10px 14px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.1);color:#fff;font-size:14px;box-sizing:border-box;">
             </div>
             <div style="display:flex;gap:10px;margin-top:16px;">
                 <button class="btn btn-primary btn-sm" onclick="alterarPassword('${username}')">✅ Save</button>
@@ -279,12 +350,11 @@ function abrirFormAlterarPassword(username) {
     `;
 }
 
-// Alterar password de um utilizador
 async function alterarPassword(username) {
     const novaPassword = document.getElementById('newPasswordInput')?.value.trim();
 
     if (!novaPassword || novaPassword.length < 3) {
-        alert('Password must be at least 3 characters.');
+        showToast('Password must be at least 3 characters.', 'error');
         return;
     }
 
@@ -302,15 +372,14 @@ async function alterarPassword(username) {
             throw new Error(error.detail || 'Error changing password');
         }
 
-        alert(`✅ Password for '${username}' changed successfully!`);
+        showToast(`✅ Password for '${username}' changed successfully!`, 'success');
         carregarUtilizadores();
     } catch (error) {
         console.error('Error:', error);
-        alert(`Error changing password: ${error.message}`);
+        showToast('Error changing password: ' + error.message, 'error');
     }
 }
 
-// Eliminar utilizador
 async function eliminarUtilizador(username) {
     if (!confirm(`Are you sure you want to delete user '${username}'? This action cannot be undone.`)) {
         return;
@@ -327,11 +396,11 @@ async function eliminarUtilizador(username) {
             throw new Error(error.detail || 'Error deleting user');
         }
 
-        alert(`✅ User '${username}' deleted successfully!`);
+        showToast(`✅ User '${username}' deleted successfully!`, 'success');
         carregarUtilizadores();
     } catch (error) {
         console.error('Error:', error);
-        alert(`Error deleting user: ${error.message}`);
+        showToast('Error deleting user: ' + error.message, 'error');
     }
 }
 
@@ -396,7 +465,7 @@ function safeCopy(obj) {
 }
 
 // =====================================================
-// TOPBAR - CORRIGIDA (SEPARADORES IGUAIS AO CSS ORIGINAL)
+// TOPBAR
 // =====================================================
 
 function renderTopbar() {
@@ -413,11 +482,7 @@ function renderTopbar() {
     let html = '';
     let linkCount = 0;
 
-    // ============================================================
-    // ADMIN: Documents e Dashboard (nunca a página atual)
-    // ============================================================
     if (isAdmin) {
-        // Documents - só aparece se NÃO estiver em Documents
         if (currentPage !== 'documentos') {
             html += `
                 <a href="documentos.html" class="dashboard-topbar__link">
@@ -427,7 +492,6 @@ function renderTopbar() {
             linkCount++;
         }
         
-        // Dashboard - só aparece se NÃO estiver em Dashboard
         if (currentPage !== 'dashboard') {
             html += `
                 <a href="dashboard.html" class="dashboard-topbar__link">
@@ -437,9 +501,6 @@ function renderTopbar() {
             linkCount++;
         }
     } else {
-        // ============================================================
-        // NÃO ADMIN: Documents (se não estiver em Documents)
-        // ============================================================
         if (currentPage !== 'documentos') {
             html += `
                 <a href="documentos.html" class="dashboard-topbar__link">
@@ -450,9 +511,6 @@ function renderTopbar() {
         }
     }
 
-    // ============================================================
-    // NOTIFICATIONS - sempre visível (exceto se já estiver em Notifications)
-    // ============================================================
     if (currentPage !== 'notificacoes') {
         html += `
             <a href="notificacoes.html" class="dashboard-topbar__link">
@@ -464,9 +522,6 @@ function renderTopbar() {
         linkCount++;
     }
 
-    // ============================================================
-    // LOGOUT - sempre visível
-    // ============================================================
     html += `
         <a href="#" class="dashboard-topbar__link" id="logoutLink">
             Logout
@@ -481,7 +536,6 @@ function renderTopbar() {
         logout();
     });
 
-    // ✅ TÍTULO DA PÁGINA
     const titleMap = {
         'documentos': '📄 Documents',
         'dashboard': '📊 Dashboard',
@@ -493,13 +547,11 @@ function renderTopbar() {
         titleEl.textContent = titleMap[currentPage] || '📄 Documents';
     }
 
-    // ✅ SAUDAÇÃO COM O NOME DO UTILIZADOR
     const greetingEl = document.getElementById('dashboardGreeting');
     if (greetingEl) {
         greetingEl.textContent = `${getGreeting()}, ${state.username} 👋`;
     }
 
-    // ✅ SUBTÍTULO COM O PERFIL
     const subtitleEl = document.getElementById('dashboardSubtitle');
     if (subtitleEl) {
         const perfilMap = {
@@ -540,7 +592,7 @@ async function carregarNotificacoesNaoLidas() {
 }
 
 // =====================================================
-// FUNÇÃO PARA ALTERNAR VISIBILIDADE DOS FILTROS
+// FILTROS
 // =====================================================
 
 function toggleFiltros() {
@@ -643,13 +695,11 @@ function renderDocumentosList() {
     // DOCUMENTS VIEW (para todos os perfis)
     // ============================================================
 
-    // ✅ FILTROS FECHADOS POR PADRÃO
     const filtrosExpandidos = false;
 
     html += `
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-                <!-- ✅ APENAS EMPRESA PODE CRIAR DOCUMENTOS -->
                 ${isEmpresa ? `<button class="btn btn-primary" onclick="abrirFormCriar()">➕ New Document</button>` : ''}
                 <button class="btn btn-secondary" onclick="carregarDocumentos()">
                     🔄 Refresh
@@ -664,7 +714,7 @@ function renderDocumentosList() {
         </div>
     `;
 
-    // FILTROS - SEMPRE FECHADOS INICIALMENTE
+    // FILTROS
     html += `
         <div id="filtrosContainer" style="max-height:0;padding:0;margin-bottom:0;overflow:hidden;transition:max-height 0.3s ease, padding 0.3s ease, margin 0.3s ease;background:rgba(255,255,255,0.08);border-radius:10px;border:1px solid transparent;">
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;align-items:end;padding:0;">
@@ -777,10 +827,8 @@ async function abrirDocumento(docId) {
     state.docSelecionado = docId;
     state.editData = null;
     
-    // ✅ RECARREGAR A LISTA PARA GARANTIR QUE O DOCUMENTO ESTÁ ATUALIZADO
     await carregarDocumentos();
     
-    // ✅ SCROLL PARA O DETALHE
     setTimeout(() => {
         const detalhe = document.getElementById('documentoDetalhe');
         if (detalhe) {
@@ -825,7 +873,8 @@ function renderDocumentoDetalhe(doc) {
     const estadoDisplay = getEstadoDisplay(doc.estado);
     const estadoClass = getEstadoClass(doc.estado);
 
-    const podeEditar = isParceiro && doc.estado === 'Rascunho';
+    // ✅ PARCEIRO PODE EDITAR EM RASCUNHO OU CHANGES REQUESTED
+    const podeEditar = isParceiro && (doc.estado === 'Rascunho' || doc.estado === 'Alterações');
     const podeSubmeter = isParceiro && doc.estado === 'Rascunho';
     const podeRevisar = (isEmpresa || isAdmin) && doc.estado === 'Submetido';
     const podeAprovar = (isEmpresa || isAdmin) && doc.estado === 'Em Revisão';
@@ -864,11 +913,11 @@ function renderDocumentoDetalhe(doc) {
     // Conteúdo
     html += `
         <div style="margin-bottom:20px;">
-            <button class="btn btn-secondary btn-sm" onclick="toggleConteudoDocumento()">
+            <button class="btn btn-secondary btn-sm" onclick="toggleConteudoDocumento(${doc.id})">
                 📊 Show/Hide Document Content
             </button>
             <div id="conteudoDocumento" style="display:none;margin-top:12px;">
-                ${renderConteudoDocumento(doc.dados, processos)}
+                ${renderConteudoDocumento(doc.dados, processos, true)}
             </div>
         </div>
     `;
@@ -897,7 +946,7 @@ function renderDocumentoDetalhe(doc) {
     if (podePedirAlteracoes) {
         html += `
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-                <input type="text" id="comentarioAlteracoes" placeholder="Reason for changes..." style="flex:1;min-width:200px;" />
+                <input type="text" id="comentarioAlteracoes" placeholder="Reason for changes..." style="flex:1;min-width:200px;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;" />
                 <button class="btn btn-danger" onclick="pedirAlteracoes(${doc.id})">🔄 Request Changes</button>
             </div>
         `;
@@ -941,22 +990,23 @@ function renderDocumentoDetalhe(doc) {
 }
 
 // =====================================================
-// CONTEÚDO DO DOCUMENTO (LCA/LCC)
+// CONTEÚDO DO DOCUMENTO (LCA/LCC) - COM TODOS OS DROPDOWNS ABERTOS
 // =====================================================
 
-function renderConteudoDocumento(dados, processos) {
+function renderConteudoDocumento(dados, processos, allOpen = false) {
     let html = '';
 
     // LCA
     html += `<h4 style="color:#fff;margin:16px 0 8px;">🌱 LCA - Life Cycle Assessment</h4>`;
 
     ['inputs', 'processes', 'outputs'].forEach(section => {
-        html += `<h5 style="color:rgba(255,255,255,0.6);margin:12px 0 4px;">${section.charAt(0).toUpperCase() + section.slice(1)}</h5>`;
+        const sectionDisplay = section.charAt(0).toUpperCase() + section.slice(1);
+        html += `<h5 style="color:rgba(255,255,255,0.6);margin:12px 0 4px;">${sectionDisplay}</h5>`;
         processos.forEach(proc => {
             const items = dados?.lca?.[section]?.[proc] || [];
             if (items.length) {
                 html += `
-                    <details style="margin:4px 0 8px;">
+                    <details style="margin:4px 0 8px;" ${allOpen ? 'open' : ''}>
                         <summary style="color:rgba(255,255,255,0.7);cursor:pointer;">${proc} (${items.length} items)</summary>
                         <div style="padding:8px;background:rgba(255,255,255,0.03);border-radius:6px;margin-top:4px;overflow-x:auto;">
                             <table style="width:100%;font-size:12px;border-collapse:collapse;">
@@ -997,7 +1047,7 @@ function renderConteudoDocumento(dados, processos) {
             const items = dados?.lcc?.[section]?.[proc] || [];
             if (items.length) {
                 html += `
-                    <details style="margin:4px 0 8px;">
+                    <details style="margin:4px 0 8px;" ${allOpen ? 'open' : ''}>
                         <summary style="color:rgba(255,255,255,0.7);cursor:pointer;">${proc} (${items.length} items)</summary>
                         <div style="padding:8px;background:rgba(255,255,255,0.03);border-radius:6px;margin-top:4px;overflow-x:auto;">
                             <table style="width:100%;font-size:12px;border-collapse:collapse;">
@@ -1026,10 +1076,36 @@ function renderConteudoDocumento(dados, processos) {
     return html;
 }
 
-function toggleConteudoDocumento() {
+function toggleConteudoDocumento(docId) {
     const container = document.getElementById('conteudoDocumento');
     if (container) {
-        container.style.display = container.style.display === 'none' ? 'block' : 'none';
+        const isVisible = container.style.display === 'none' || container.style.display === '';
+        
+        if (isVisible) {
+            // ✅ ABRIR: carregar com allOpen=true
+            container.style.display = 'block';
+            
+            // Buscar o documento e re-renderizar com todos os dropdowns abertos
+            fetch(`${API_URL}/documentos/${docId}`, {
+                headers: getAuthHeaders()
+            })
+            .then(response => response.json())
+            .then(doc => {
+                const processos = getProcessosFromData(doc.dados);
+                container.innerHTML = renderConteudoDocumento(doc.dados, processos, true);
+                
+                // ✅ ABRIR TODOS OS DETAILS MANUALMENTE
+                const details = container.querySelectorAll('details');
+                details.forEach(d => d.setAttribute('open', ''));
+            })
+            .catch(error => {
+                console.error('Error loading document content:', error);
+                showToast('Error loading document content', 'error');
+            });
+        } else {
+            // FECHAR
+            container.style.display = 'none';
+        }
     }
 }
 
@@ -1057,7 +1133,7 @@ function abrirEdicaoDocumento(docId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error preparing editor.');
+        showToast('Error preparing editor: ' + error.message, 'error');
     });
 }
 
@@ -1103,37 +1179,9 @@ function criarEstruturaVazia(processos) {
     return dados;
 }
 
-function renderEditorDocumento(docId, processos) {
-    let html = `
-        <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:20px;margin-top:16px;border:1px solid rgba(254,200,0,0.2);">
-            <h4 style="color:#fec800;margin:0 0 16px;">✏️ Editing Document</h4>
-    `;
-
-    // LCA
-    html += `<h5 style="color:#fff;">🌱 LCA</h5>`;
-    html += renderEditorSecao('lca', 'inputs', docId, processos);
-    html += renderEditorSecao('lca', 'processes', docId, processos);
-    html += renderEditorSecao('lca', 'outputs', docId, processos);
-
-    // LCC
-    html += `<h5 style="color:#fff;margin-top:20px;">💰 LCC</h5>`;
-    html += renderEditorSecao('lcc', 'materials', docId, processos);
-    html += renderEditorSecao('lcc', 'equipment', docId, processos);
-    html += renderEditorSecao('lcc', 'labour', docId, processos);
-    html += renderEditorSecao('lcc', 'outputs', docId, processos);
-
-    // Botões
-    html += `
-        <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;">
-            <button class="btn btn-primary" onclick="salvarEdicao(${docId})">💾 Save Draft</button>
-            <button class="btn btn-success" onclick="submeterEdicao(${docId})">📤 Submit for Review</button>
-            <button class="btn btn-secondary" onclick="cancelarEdicao()">✖ Cancel</button>
-        </div>
-    `;
-
-    html += `</div>`;
-    return html;
-}
+// =====================================================
+// RENDER EDITOR SECAO - CORRIGIDO
+// =====================================================
 
 function renderEditorSecao(secao, campo, docId, processos) {
     const dados = state.editData;
@@ -1152,9 +1200,7 @@ function renderEditorSecao(secao, campo, docId, processos) {
     const nomeCampo = campo === 'outputs' && secao === 'lcc' ? 'outputs_lcc' : campo;
     const displayName = nomesCampos[nomeCampo] || campo;
 
-    // ✅ MAPEAR NOMES DOS CAMPOS EM INGLÊS (TUDO EM INGLÊS)
     const fieldLabels = {
-        // LCA - INPUTS
         material: 'Material',
         qty: 'Qty',
         unit: 'Unit',
@@ -1163,22 +1209,17 @@ function renderEditorSecao(secao, campo, docId, processos) {
         distance: 'Distance',
         country: 'Country',
         datasource: 'Data Source',
-        // LCA - PROCESSES
         tipo: 'Type',
         comments: 'Comments',
-        // LCA - OUTPUTS
         etapa: 'Step',
         sub_tipo: 'Sub Type',
-        // LCC - MATERIALS
         price: 'Price',
-        // LCC - EQUIPMENT
         equipment: 'Equipment',
         process: 'Process',
         unit_cost: 'Unit Cost',
         lifespan: 'Lifespan',
         maintenance: 'Maintenance',
         industrial_equiv: 'Industrial Equiv',
-        // LCC - LABOUR
         total_number: 'Total Number',
         total_cost: 'Total Cost',
         high_skilled: 'High Skilled',
@@ -1187,17 +1228,15 @@ function renderEditorSecao(secao, campo, docId, processos) {
         high_rate: 'High Rate',
         moderate_rate: 'Moderate Rate',
         unskilled_rate: 'Unskilled Rate',
-        // LCC - OUTPUTS
         market_price: 'Market Price',
         quantity: 'Quantity',
         amount_produced: 'Amount Produced'
     };
 
-    // ✅ CAMPOS QUE VÊM PRÉ-PREENCHIDOS E NÃO DEVEM SER EDITÁVEIS
     const camposReadOnly = ['tipo', 'unit'];
 
     let html = `
-        <details style="margin:12px 0;">
+        <details style="margin:12px 0;" open>
             <summary style="color:rgba(255,255,255,0.8);cursor:pointer;font-weight:600;font-size:15px;padding:4px 0;">${displayName}</summary>
             <div style="padding:16px 20px;background:rgba(255,255,255,0.02);border-radius:10px;margin-top:10px;">
     `;
@@ -1224,7 +1263,6 @@ function renderEditorSecao(secao, campo, docId, processos) {
                 const itemId = `${itemKey}_${idx}`;
                 const keys = Object.keys(item);
                 
-                // ✅ DIVIDIR OS CAMPOS EM GRUPOS DE 3
                 const grupos = [];
                 for (let i = 0; i < keys.length; i += 3) {
                     grupos.push(keys.slice(i, i + 3));
@@ -1241,8 +1279,6 @@ function renderEditorSecao(secao, campo, docId, processos) {
                     grupo.forEach(key => {
                         const value = item[key] || '';
                         const label = fieldLabels[key] || key.charAt(0).toUpperCase() + key.slice(1);
-                        
-                        // ✅ VERIFICAR SE O CAMPO É READ-ONLY
                         const isReadOnly = camposReadOnly.includes(key);
 
                         if (key === 'datasource') {
@@ -1307,6 +1343,42 @@ function renderEditorSecao(secao, campo, docId, processos) {
     return html;
 }
 
+// =====================================================
+// EDITOR DOCUMENTO - COMPLETO
+// =====================================================
+
+function renderEditorDocumento(docId, processos) {
+    let html = `
+        <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:20px;margin-top:16px;border:1px solid rgba(254,200,0,0.2);">
+            <h4 style="color:#fec800;margin:0 0 16px;">✏️ Editing Document</h4>
+    `;
+
+    html += `<h5 style="color:#fff;">🌱 LCA</h5>`;
+    html += renderEditorSecao('lca', 'inputs', docId, processos);
+    html += renderEditorSecao('lca', 'processes', docId, processos);
+    html += renderEditorSecao('lca', 'outputs', docId, processos);
+
+    html += `<h5 style="color:#fff;margin-top:20px;">💰 LCC</h5>`;
+    html += renderEditorSecao('lcc', 'materials', docId, processos);
+    html += renderEditorSecao('lcc', 'equipment', docId, processos);
+    html += renderEditorSecao('lcc', 'labour', docId, processos);
+    html += renderEditorSecao('lcc', 'outputs', docId, processos);
+
+    html += `
+        <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="salvarEdicao(${docId})">💾 Save Draft</button>
+            <button class="btn btn-success" onclick="submeterEdicao(${docId})">📤 Submit for Review</button>
+            <button class="btn btn-secondary" onclick="cancelarEdicao()">✖ Cancel</button>
+        </div>
+    `;
+
+    html += `</div>`;
+    return html;
+}
+
+// =====================================================
+// ADICIONAR ITEM - MANTÉM MENUS ABERTOS
+// =====================================================
 
 function adicionarItemEditor(secao, campo, proc) {
     if (!state.editData) return;
@@ -1314,7 +1386,41 @@ function adicionarItemEditor(secao, campo, proc) {
     if (!state.editData[secao][campo]) state.editData[secao][campo] = {};
     if (!state.editData[secao][campo][proc]) state.editData[secao][campo][proc] = [];
 
-    state.editData[secao][campo][proc].push({});
+    // ✅ CRIAR NOVO ITEM COM A MESMA ESTRUTURA DO PRIMEIRO ITEM
+    const currentItems = state.editData[secao][campo][proc];
+    let newItem = {};
+    
+    if (currentItems.length > 0) {
+        // Copiar a estrutura do primeiro item (com os campos vazios)
+        const firstItem = currentItems[0];
+        Object.keys(firstItem).forEach(key => {
+            newItem[key] = '';
+        });
+    } else {
+        // Se não houver itens, criar um item vazio com os campos padrão
+        const camposPadrao = {
+            'lca': {
+                'inputs': ['material', 'qty', 'unit', 'description', 'cas', 'distance', 'country', 'datasource'],
+                'processes': ['tipo', 'qty', 'unit', 'description', 'comments', 'datasource'],
+                'outputs': ['etapa', 'tipo', 'sub_tipo', 'qty', 'unit', 'description', 'comments', 'datasource']
+            },
+            'lcc': {
+                'materials': ['material', 'price', 'qty', 'unit', 'description', 'comments', 'distance', 'country', 'datasource'],
+                'equipment': ['equipment', 'process', 'unit_cost', 'lifespan', 'maintenance', 'industrial_equiv', 'comments', 'datasource'],
+                'labour': ['process', 'total_number', 'total_cost', 'high_skilled', 'moderate_skilled', 'unskilled', 'high_rate', 'moderate_rate', 'unskilled_rate', 'comments', 'datasource'],
+                'outputs': ['material', 'market_price', 'quantity', 'unit', 'amount_produced', 'comments', 'datasource']
+            }
+        };
+        
+        const campos = camposPadrao[secao]?.[campo] || [];
+        campos.forEach(key => {
+            newItem[key] = '';
+        });
+    }
+
+    currentItems.push(newItem);
+    
+    // ✅ RECARREGAR O DOCUMENTO MANTENDO OS MENUS ABERTOS
     carregarDocumentoDetalhe(state.docSelecionado);
 }
 
@@ -1323,8 +1429,14 @@ function removerItemEditor(secao, campo, proc, idx) {
     if (!state.editData[secao]?.[campo]?.[proc]) return;
 
     state.editData[secao][campo][proc].splice(idx, 1);
+    
+    // ✅ RECARREGAR O DOCUMENTO MANTENDO OS MENUS ABERTOS
     carregarDocumentoDetalhe(state.docSelecionado);
 }
+
+// =====================================================
+// SALVAR E SUBMETER EDIÇÃO
+// =====================================================
 
 function salvarEdicao(docId) {
     const dados = state.editData;
@@ -1340,14 +1452,14 @@ function salvarEdicao(docId) {
         return response.json();
     })
     .then(() => {
-        alert('✅ Document saved successfully!');
+        showToast('✅ Document saved successfully!', 'success');
         state.editData = null;
         carregarDocumentoDetalhe(docId);
         carregarDocumentos();
     })
     .catch(error => {
         console.error('Error:', error);
-        alert(`Error saving: ${error.message}`);
+        showToast('Error saving: ' + error.message, 'error');
     });
 }
 
@@ -1375,14 +1487,14 @@ function submeterEdicao(docId) {
         return response.json();
     })
     .then(() => {
-        alert('✅ Document submitted successfully!');
+        showToast('✅ Document submitted successfully!', 'success');
         state.editData = null;
         state.docSelecionado = null;
         carregarDocumentos();
     })
     .catch(error => {
         console.error('Error:', error);
-        alert(`Error: ${error.message}`);
+        showToast('Error: ' + error.message, 'error');
     });
 }
 
@@ -1406,12 +1518,12 @@ async function submeterDocumento(docId) {
 
         if (!response.ok) throw new Error('Error submitting');
 
-        alert('✅ Document submitted successfully!');
+        showToast('✅ Document submitted successfully!', 'success');
         state.docSelecionado = null;
         carregarDocumentos();
     } catch (error) {
         console.error('Error:', error);
-        alert(`Error: ${error.message}`);
+        showToast('Error: ' + error.message, 'error');
     }
 }
 
@@ -1426,12 +1538,12 @@ async function iniciarRevisao(docId) {
 
         if (!response.ok) throw new Error('Error starting review');
 
-        alert('✅ Review started!');
+        showToast('✅ Review started!', 'success');
         carregarDocumentoDetalhe(docId);
         carregarDocumentos();
     } catch (error) {
         console.error('Error:', error);
-        alert(`Error: ${error.message}`);
+        showToast('Error: ' + error.message, 'error');
     }
 }
 
@@ -1446,19 +1558,19 @@ async function aprovarDocumento(docId) {
 
         if (!response.ok) throw new Error('Error approving');
 
-        alert('✅ Document approved!');
+        showToast('✅ Document approved!', 'success');
         state.docSelecionado = null;
         carregarDocumentos();
     } catch (error) {
         console.error('Error:', error);
-        alert(`Error: ${error.message}`);
+        showToast('Error: ' + error.message, 'error');
     }
 }
 
 async function pedirAlteracoes(docId) {
     const comentario = document.getElementById('comentarioAlteracoes')?.value?.trim();
     if (!comentario) {
-        alert('Please enter a reason for the changes.');
+        showToast('Please enter a reason for the changes.', 'warning');
         return;
     }
 
@@ -1473,12 +1585,12 @@ async function pedirAlteracoes(docId) {
 
         if (!response.ok) throw new Error('Error requesting changes');
 
-        alert('✅ Changes requested!');
+        showToast('✅ Changes requested!', 'success');
         carregarDocumentoDetalhe(docId);
         carregarDocumentos();
     } catch (error) {
         console.error('Error:', error);
-        alert(`Error: ${error.message}`);
+        showToast('Error: ' + error.message, 'error');
     }
 }
 
@@ -1493,12 +1605,12 @@ async function reabrirDocumento(docId) {
 
         if (!response.ok) throw new Error('Error reopening');
 
-        alert('✅ Document reopened!');
+        showToast('✅ Document reopened!', 'success');
         carregarDocumentoDetalhe(docId);
         carregarDocumentos();
     } catch (error) {
         console.error('Error:', error);
-        alert(`Error: ${error.message}`);
+        showToast('Error: ' + error.message, 'error');
     }
 }
 
@@ -1513,12 +1625,12 @@ async function arquivarDocumento(docId) {
 
         if (!response.ok) throw new Error('Error archiving');
 
-        alert('✅ Document archived!');
+        showToast('✅ Document archived!', 'success');
         state.docSelecionado = null;
         carregarDocumentos();
     } catch (error) {
         console.error('Error:', error);
-        alert(`Error: ${error.message}`);
+        showToast('Error: ' + error.message, 'error');
     }
 }
 
@@ -1613,7 +1725,7 @@ async function exportarExcel(docId, titulo) {
         window.URL.revokeObjectURL(url);
     } catch (error) {
         console.error('Error:', error);
-        alert(`Error exporting: ${error.message}`);
+        showToast('Error exporting: ' + error.message, 'error');
     }
 }
 
@@ -1947,7 +2059,7 @@ async function marcarLida(notificacaoId) {
         carregarNotificacoes();
     } catch (error) {
         console.error('Error:', error);
-        alert('Error marking notification as read.');
+        showToast('Error marking notification as read.', 'error');
     }
 }
 
@@ -1963,7 +2075,7 @@ async function marcarTodasLidas() {
         carregarNotificacoes();
     } catch (error) {
         console.error('Error:', error);
-        alert('Error marking all as read.');
+        showToast('Error marking all as read.', 'error');
     }
 }
 
@@ -1983,12 +2095,12 @@ function irParaDocumento(link) {
 
 function abrirFormCriar() {
     if (state.perfil === 'parceiro') {
-        alert('Only companies can create documents.');
+        showToast('Only companies can create documents.', 'warning');
         return;
     }
 
     if (state.perfil === 'admin') {
-        alert('Administrators cannot create documents. Only companies can create documents.');
+        showToast('Administrators cannot create documents. Only companies can create documents.', 'warning');
         return;
     }
 
@@ -2004,7 +2116,7 @@ function abrirFormCriar() {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error loading partners. Please try again.');
+        showToast('Error loading partners. Please try again.', 'error');
     });
 }
 
@@ -2071,7 +2183,7 @@ function adicionarProcessoCustom() {
 
     const existing = container.querySelector(`[data-processo="${nome}"]`);
     if (existing) {
-        alert('This process already exists.');
+        showToast('This process already exists.', 'warning');
         return;
     }
 
@@ -2107,23 +2219,22 @@ async function criarDocumento() {
     const parceiro = document.getElementById('novoParceiro')?.value;
 
     if (!titulo) {
-        alert('Please enter a document title.');
+        showToast('Please enter a document title.', 'warning');
         return;
     }
 
     if (!parceiro) {
-        alert('Please select a partner.');
+        showToast('Please select a partner.', 'warning');
         return;
     }
 
     const processos = getProcessosSelecionados();
     
     if (processos.length === 0) {
-        alert('Please select at least one process.');
+        showToast('Please select at least one process.', 'warning');
         return;
     }
 
-    // ✅ CRIAR ESTRUTURA COMPLETA COM A ESTRUTURA ORIGINAL
     const dados = criarEstruturaDocumento(processos);
 
     const payload = {
@@ -2177,17 +2288,16 @@ async function criarDocumento() {
         }
 
         console.log('✅ Documento criado:', responseData);
-        alert(`✅ Document created successfully! ID: ${responseData.id}`);
+        showToast(`✅ Document created successfully! ID: ${responseData.id}`, 'success');
         state.docSelecionado = null;
         state.editData = null;
         carregarDocumentos();
     } catch (error) {
         console.error('❌ Error creating document:', error);
-        alert(`Error creating document: ${error.message}`);
+        showToast('Error creating document: ' + error.message, 'error');
     }
 }
 
-// ✅ FUNÇÃO QUE CRIA A ESTRUTURA COMPLETA LCA/LCC - MANTENDO A ORIGINAL
 function criarEstruturaDocumento(processos) {
     const estrutura = {
         lca: {
@@ -2204,133 +2314,34 @@ function criarEstruturaDocumento(processos) {
     };
 
     processos.forEach(p => {
-        // ============================================================
-        // LCA - INPUTS (mantendo a estrutura original)
-        // ============================================================
         estrutura.lca.inputs[p] = [
-            {
-                material: "",
-                qty: "",
-                unit: "",
-                description: "",
-                cas: "",
-                distance: "",
-                country: "",
-                datasource: ""
-            }
+            { material: "", qty: "", unit: "", description: "", cas: "", distance: "", country: "", datasource: "" }
         ];
 
-        // ============================================================
-        // LCA - PROCESSES (mantendo a estrutura original)
-        // ============================================================
         estrutura.lca.processes[p] = [
-            {
-                tipo: "Energy Consumption (kWh)",
-                qty: "",
-                unit: "kWh",
-                description: "",
-                comments: "",
-                datasource: ""
-            },
-            {
-                tipo: "Rate Power of the Equipment (W)",
-                qty: "",
-                unit: "W",
-                description: "",
-                comments: "",
-                datasource: ""
-            },
-            {
-                tipo: "Operating Time (h)",
-                qty: "",
-                unit: "h",
-                description: "",
-                comments: "",
-                datasource: ""
-            }
+            { tipo: "Energy Consumption (kWh)", qty: "", unit: "kWh", description: "", comments: "", datasource: "" },
+            { tipo: "Rate Power of the Equipment (W)", qty: "", unit: "W", description: "", comments: "", datasource: "" },
+            { tipo: "Operating Time (h)", qty: "", unit: "h", description: "", comments: "", datasource: "" }
         ];
 
-        // ============================================================
-        // LCA - OUTPUTS (mantendo a estrutura original)
-        // ============================================================
         estrutura.lca.outputs[p] = [
-            {
-                etapa: "",
-                tipo: "",
-                sub_tipo: "",
-                qty: "",
-                unit: "",
-                description: "",
-                comments: "",
-                datasource: ""
-            }
+            { etapa: "", tipo: "", sub_tipo: "", qty: "", unit: "", description: "", comments: "", datasource: "" }
         ];
 
-        // ============================================================
-        // LCC - MATERIALS (mantendo a estrutura original)
-        // ============================================================
         estrutura.lcc.materials[p] = [
-            {
-                material: "",
-                price: "",
-                qty: "",
-                unit: "€",
-                description: "",
-                comments: "",
-                distance: "",
-                country: "",
-                datasource: ""
-            }
+            { material: "", price: "", qty: "", unit: "€", description: "", comments: "", distance: "", country: "", datasource: "" }
         ];
 
-        // ============================================================
-        // LCC - EQUIPMENT (mantendo a estrutura original)
-        // ============================================================
         estrutura.lcc.equipment[p] = [
-            {
-                equipment: "",
-                process: "",
-                unit_cost: "",
-                lifespan: "",
-                maintenance: "",
-                industrial_equiv: "",
-                comments: "",
-                datasource: ""
-            }
+            { equipment: "", process: "", unit_cost: "", lifespan: "", maintenance: "", industrial_equiv: "", comments: "", datasource: "" }
         ];
 
-        // ============================================================
-        // LCC - LABOUR (mantendo a estrutura original)
-        // ============================================================
         estrutura.lcc.labour[p] = [
-            {
-                process: "",
-                total_number: "",
-                total_cost: "",
-                high_skilled: "",
-                moderate_skilled: "",
-                unskilled: "",
-                high_rate: "",
-                moderate_rate: "",
-                unskilled_rate: "",
-                comments: "",
-                datasource: ""
-            }
+            { process: "", total_number: "", total_cost: "", high_skilled: "", moderate_skilled: "", unskilled: "", high_rate: "", moderate_rate: "", unskilled_rate: "", comments: "", datasource: "" }
         ];
 
-        // ============================================================
-        // LCC - OUTPUTS (mantendo a estrutura original)
-        // ============================================================
         estrutura.lcc.outputs[p] = [
-            {
-                material: "",
-                market_price: "",
-                quantity: "",
-                unit: "€",
-                amount_produced: "",
-                comments: "",
-                datasource: ""
-            }
+            { material: "", market_price: "", quantity: "", unit: "€", amount_produced: "", comments: "", datasource: "" }
         ];
     });
 
@@ -2390,14 +2401,12 @@ function limparFiltros() {
 // =====================================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    // ✅ USAR AUTH DO WINDOW (definido pelo auth.js com sessionStorage)
     if (!window.AUTH || !window.AUTH.isAuthenticated) {
         console.log('🔒 Sem autenticação neste separador, redirecionar...');
         window.location.href = 'login.html';
         return;
     }
 
-    // Atualizar estado com os dados do AUTH
     state.token = window.AUTH.token;
     state.username = window.AUTH.username;
     state.perfil = window.AUTH.perfil;
@@ -2405,7 +2414,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log('✅ Inicializando com utilizador:', state.username, '(apenas neste separador)');
 
-    // ✅ Restaurar menu admin
     adminMenuAtivo = 'documents';
 
     const params = new URLSearchParams(window.location.search);
@@ -2469,7 +2477,6 @@ window.adicionarProcessoCustom = adicionarProcessoCustom;
 window.removerProcessoCustom = removerProcessoCustom;
 window.criarDocumento = criarDocumento;
 window.fecharFormCriar = fecharFormCriar;
-// ✅ NOVAS FUNÇÕES ADMIN
 window.mudarAdminView = mudarAdminView;
 window.carregarUtilizadores = carregarUtilizadores;
 window.abrirFormCriarUser = abrirFormCriarUser;
@@ -2477,3 +2484,4 @@ window.criarUtilizador = criarUtilizador;
 window.abrirFormAlterarPassword = abrirFormAlterarPassword;
 window.alterarPassword = alterarPassword;
 window.eliminarUtilizador = eliminarUtilizador;
+window.showToast = showToast;
