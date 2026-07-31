@@ -2449,3 +2449,47 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setInterval(carregarNotificacoesNaoLidas, 30000);
 });
+
+// =====================================================
+// EXPORTAÇÕES GLOBAIS
+// =====================================================
+
+window.abrirFormCriar = abrirFormCriar;
+window.carregarDocumentos = carregarDocumentos;
+window.aplicarFiltros = aplicarFiltros;
+window.limparFiltros = limparFiltros;
+window.toggleFiltros = toggleFiltros;
+window.abrirDocumento = abrirDocumento;
+window.fecharDocumento = fecharDocumento;
+window.submeterDocumento = submeterDocumento;
+window.iniciarRevisao = iniciarRevisao;
+window.aprovarDocumento = aprovarDocumento;
+window.pedirAlteracoes = pedirAlteracoes;
+window.reabrirDocumento = reabrirDocumento;
+window.arquivarDocumento = arquivarDocumento;
+window.exportarExcel = exportarExcel;
+window.abrirEdicaoDocumento = abrirEdicaoDocumento;
+window.salvarEdicao = salvarEdicao;
+window.submeterEdicao = submeterEdicao;
+window.cancelarEdicao = cancelarEdicao;
+window.adicionarItemEditor = adicionarItemEditor;
+window.removerItemEditor = removerItemEditor;
+window.carregarHistorico = carregarHistorico;
+window.toggleConteudoDocumento = toggleConteudoDocumento;
+window.carregarDashboard = carregarDashboard;
+window.carregarNotificacoes = carregarNotificacoes;
+window.marcarLida = marcarLida;
+window.marcarTodasLidas = marcarTodasLidas;
+window.irParaDocumento = irParaDocumento;
+window.adicionarProcessoCustom = adicionarProcessoCustom;
+window.removerProcessoCustom = removerProcessoCustom;
+window.criarDocumento = criarDocumento;
+window.fecharFormCriar = fecharFormCriar;
+window.mudarAdminView = mudarAdminView;
+window.carregarUtilizadores = carregarUtilizadores;
+window.abrirFormCriarUser = abrirFormCriarUser;
+window.criarUtilizador = criarUtilizador;
+window.abrirFormAlterarPassword = abrirFormAlterarPassword;
+window.alterarPassword = alterarPassword;
+window.eliminarUtilizador = eliminarUtilizador;
+window.showToast = showToast;
