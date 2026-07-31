@@ -1785,6 +1785,7 @@ function renderDashboard(kpis, documentos, topParceiros) {
     const taxaAprovacao = kpis.taxa_aprovacao || 0;
 
     let html = `
+        <!-- STATS -->
         <div class="dashboard-stats" style="margin-bottom:24px;">
             <div class="dashboard-stat-card">
                 <div class="stat-icon stat-icon-draft">
@@ -1818,6 +1819,7 @@ function renderDashboard(kpis, documentos, topParceiros) {
             </div>
         </div>
 
+        <!-- GRÁFICOS -->
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-bottom:24px;">
             <div style="background:#f7f7f8;border-radius:16px;padding:16px;">
                 <h4 style="color:#17345a;margin:0 0 12px;">Documents by Status</h4>
@@ -1830,6 +1832,7 @@ function renderDashboard(kpis, documentos, topParceiros) {
         </div>
     `;
 
+    // ✅ TOP PARTNERS (mantido)
     if (topParceiros && topParceiros.length > 0) {
         html += `
             <div style="background:#f7f7f8;border-radius:16px;padding:16px;margin-bottom:24px;">
@@ -1839,43 +1842,39 @@ function renderDashboard(kpis, documentos, topParceiros) {
         `;
     }
 
-    if (documentos && documentos.length > 0) {
-        html += `
-            <div style="background:#f7f7f8;border-radius:16px;padding:16px;">
-                <h4 style="color:#17345a;margin:0 0 12px;">📄 Recent Documents</h4>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Title</th>
-                                <th>Partner</th>
-                                <th>Status</th>
-                                <th>Created</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${documentos.slice(0, 20).map(doc => `
-                                <tr>
-                                    <td>${doc.id}</td>
-                                    <td>${doc.titulo}</td>
-                                    <td>${doc.parceiro_id}</td>
-                                    <td><span class="status-tag ${getEstadoClass(doc.estado)}">${getEstadoDisplay(doc.estado)}</span></td>
-                                    <td>${formatDate(doc.created_at)}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-    }
+    // ❌ TABELA DE DOCUMENTOS RECENTES REMOVIDA
 
     container.innerHTML = html;
+
+    // Renderizar gráficos
     renderGraficos(estados, topParceiros);
 }
 
 function renderGraficos(estados, topParceiros) {
+    // ✅ CONFIGURAÇÃO PARA REMOVER TODOS OS BOTÕES
+    const config = {
+        displaylogo: false,
+        responsive: true,
+        staticPlot: false, // Mantém false para exibir, mas remove botões
+        modeBarButtonsToRemove: [
+            'zoom2d',
+            'pan2d',
+            'select2d',
+            'lasso2d',
+            'zoomIn2d',
+            'zoomOut2d',
+            'autoScale2d',
+            'resetScale2d',
+            'hoverClosestCartesian',
+            'hoverCompareCartesian',
+            'toImage',
+            'sendDataToCloud',
+            'toggleSpikelines',
+            'resetViews',
+            'toggleHover'
+        ]
+    };
+
     const pizzaEl = document.getElementById('chartPizza');
     if (pizzaEl && Object.keys(estados).length > 0) {
         const labels = Object.keys(estados);
@@ -1905,8 +1904,11 @@ function renderGraficos(estados, topParceiros) {
             paper_bgcolor: 'transparent',
             plot_bgcolor: 'transparent',
             font: { family: 'Inter, sans-serif' },
-            showlegend: false
-        });
+            showlegend: false,
+            staticPlot: true,
+            hovermode: false,
+            dragmode: false
+        }, config);
     }
 
     const barrasEl = document.getElementById('chartBarras');
@@ -1926,10 +1928,13 @@ function renderGraficos(estados, topParceiros) {
             paper_bgcolor: 'transparent',
             plot_bgcolor: 'transparent',
             font: { family: 'Inter, sans-serif' },
-            xaxis: { gridcolor: 'rgba(0,0,0,0.05)' },
-            yaxis: { gridcolor: 'rgba(0,0,0,0.05)' },
-            showlegend: false
-        });
+            xaxis: { gridcolor: 'rgba(0,0,0,0.05)', fixedrange: true },
+            yaxis: { gridcolor: 'rgba(0,0,0,0.05)', fixedrange: true },
+            showlegend: false,
+            staticPlot: true,
+            hovermode: false,
+            dragmode: false
+        }, config);
     }
 
     const topEl = document.getElementById('chartTop');
@@ -1955,10 +1960,13 @@ function renderGraficos(estados, topParceiros) {
             paper_bgcolor: 'transparent',
             plot_bgcolor: 'transparent',
             font: { family: 'Inter, sans-serif' },
-            xaxis: { gridcolor: 'rgba(0,0,0,0.05)', title: 'Documents' },
-            yaxis: { gridcolor: 'rgba(0,0,0,0.05)' },
-            showlegend: false
-        });
+            xaxis: { gridcolor: 'rgba(0,0,0,0.05)', title: 'Documents', fixedrange: true },
+            yaxis: { gridcolor: 'rgba(0,0,0,0.05)', fixedrange: true },
+            showlegend: false,
+            staticPlot: true,
+            hovermode: false,
+            dragmode: false
+        }, config);
     }
 }
 
