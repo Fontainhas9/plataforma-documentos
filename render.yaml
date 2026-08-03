@@ -1,4 +1,4 @@
-# render.yaml - CORRIGIDO
+# render.yaml - VERSÃO SEM MIGRATE_DB.PY
 services:
   - type: web
     name: plataforma-documentos-backend
