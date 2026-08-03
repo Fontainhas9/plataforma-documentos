@@ -1,6 +1,6 @@
 // =====================================================
 // AUTH - Verificação centralizada de autenticação
-// VERSÃO DEFINITIVA - SESSÃO POR SEPARADOR (NÃO PARTILHADA)
+// VERSÃO CORRIGIDA - NÃO BLOQUEIA A PÁGINA DE LOGIN
 // =====================================================
 
 (function() {
@@ -10,36 +10,42 @@
     // Obter o nome da página atual
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
     
-    // ✅ USAR sessionStorage EM VEZ DE localStorage
-    // sessionStorage é EXCLUSIVO por separador/janela
+    // Verificar autenticação (sessionStorage)
     const token = sessionStorage.getItem('doc_token');
     const username = sessionStorage.getItem('doc_username');
     const isAuthenticated = token && username;
     
-    console.log('🔐 Auth Check (sessionStorage):', {
+    console.log('🔐 Auth Check:', {
         page: currentPage,
         isPublic: PUBLIC_PAGES.includes(currentPage),
         isAuthenticated: isAuthenticated,
         token: token ? '✅' : '❌',
-        username: username || '❌',
-        storageType: 'sessionStorage (separador único)'
+        username: username || '❌'
     });
+    
+    // ✅ SE ESTIVER NA PÁGINA DE LOGIN, NÃO FAZ NADA (deixa o login.js trabalhar)
+    if (currentPage === 'login.html' || currentPage === 'index.html') {
+        console.log('📄 Página de login - a permitir acesso');
+        // Expor estado de autenticação globalmente
+        window.AUTH = {
+            isAuthenticated: isAuthenticated,
+            token: token,
+            username: username,
+            perfil: sessionStorage.getItem('doc_perfil'),
+            nome: sessionStorage.getItem('doc_nome'),
+            isLoginPage: true
+        };
+        return;
+    }
     
     // Se NÃO estiver autenticado E NÃO for uma página pública → REDIRECIONAR
     if (!isAuthenticated && !PUBLIC_PAGES.includes(currentPage)) {
-        console.log('🔒 Sem sessão neste separador - redirecionar para login');
+        console.log('🔒 Sem autenticação - redirecionar para login');
         window.location.replace('login.html');
-        throw new Error('Redirecting to login');
+        return;
     }
     
-    // Se estiver autenticado E estiver na página de login → REDIRECIONAR PARA DOCUMENTOS
-    if (isAuthenticated && currentPage === 'login.html') {
-        console.log('✅ Já autenticado neste separador, redirecionando para documentos...');
-        window.location.replace('documentos.html');
-        throw new Error('Redirecting to documents');
-    }
-    
-    console.log('✅ Autenticação OK neste separador');
+    console.log('✅ Autenticação OK');
     
     // Expor estado de autenticação globalmente
     window.AUTH = {
@@ -48,6 +54,6 @@
         username: username,
         perfil: sessionStorage.getItem('doc_perfil'),
         nome: sessionStorage.getItem('doc_nome'),
-        storageType: 'sessionStorage'
+        isLoginPage: false
     };
 })();
