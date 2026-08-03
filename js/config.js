@@ -3,8 +3,18 @@
 // =====================================================
 
 (function() {
-    // URL FIXA para desenvolvimento local
-    const API_URL = 'http://localhost:8000';
+    // DETECTAR AMBIENTE AUTOMATICAMENTE
+    const hostname = window.location.hostname;
+    const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+    
+    // URL do backend
+    let API_URL;
+    if (isLocal) {
+        API_URL = 'http://localhost:8000';
+    } else {
+        // Em produção (Render), usa o nome do serviço
+        API_URL = 'https://plataforma-documentos-backend.onrender.com';
+    }
     
     // URLs do frontend
     const FRONTEND_URL = window.location.origin;
@@ -13,9 +23,9 @@
     window.CONFIG = {
         API_URL: API_URL,
         FRONTEND_URL: FRONTEND_URL,
-        IS_LOCAL: true,
-        IS_RENDER: false,
-        ENVIRONMENT: 'development'
+        IS_LOCAL: isLocal,
+        IS_RENDER: !isLocal,
+        ENVIRONMENT: isLocal ? 'development' : 'production'
     };
     
     console.log('📋 Configuração carregada:');

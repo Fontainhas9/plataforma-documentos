@@ -1,13 +1,13 @@
-# render.yaml
+# render.yaml - CORRIGIDO para HTML/CSS/JS
 services:
   - type: web
     name: plataforma-documentos-backend
     runtime: python
-    rootDir: backend
+    rootDir: .
     buildCommand: |
       pip install -r requirements.txt
-      python migrate_db.py
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+      python -c "from backend.database import engine; from backend.models import Base; Base.metadata.create_all(bind=engine); print('✅ Tabelas criadas!')"
+    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -19,10 +19,15 @@ services:
 
   - type: web
     name: plataforma-documentos-frontend
-    runtime: python
-    rootDir: frontend
-    buildCommand: pip install -r requirements.txt
-    startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0
+    runtime: static
+    rootDir: .
+    buildCommand: |
+      echo "📁 Static site - no build needed"
+    staticPublishPath: .
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /pages/login.html
     envVars:
       - key: API_URL
         value: https://plataforma-documentos-backend.onrender.com

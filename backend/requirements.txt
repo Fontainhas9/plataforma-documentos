@@ -4,11 +4,7 @@ sqlalchemy
 psycopg2-binary
 alembic
 python-dotenv
-streamlit
-requests
-pandas
 python-jose[cryptography]
 bcrypt
 python-multipart
 openpyxl
-plotly
