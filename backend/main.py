@@ -13,27 +13,31 @@ from io import BytesIO
 import json
 import traceback
 
-from .database import SessionLocal, engine
-from .models import Base, Documento, VersaoDocumento, EstadoDocumento, Utilizador, PerfilUtilizador, Notificacao
-from .schemas import (
+from database import SessionLocal, engine
+from models import Base, Documento, VersaoDocumento, EstadoDocumento, Utilizador, PerfilUtilizador, Notificacao
+from schemas import (
     DocumentoCreate, DocumentoUpdate, DocumentoOut,
     VersaoOut, MudancaEstado, UtilizadorCreate, Token,
     PasswordUpdate
 )
-from .auth import (
+from auth import (
     hash_password,
     verificar_password,
     criar_token_acesso,
     get_current_user,
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
-from .templates import PROCESSOS_PADRAO, get_processos_from_data, criar_estrutura_com_processos
-from .dashboard import (
+from templates import PROCESSOS_PADRAO, get_processos_from_data, criar_estrutura_com_processos
+
+# Import dashboard functions
+from dashboard import (
     get_dashboard_kpis,
     get_top_parceiros,
     get_documentos_recentes
 )
-from .notificacoes import (
+
+# Import notification functions
+from notificacoes import (
     criar_notificacao_para_empresa,
     criar_notificacao_para_parceiro,
     criar_notificacao_para_utilizador,
