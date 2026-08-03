@@ -1,4 +1,4 @@
-# render.yaml - VERSÃO DEFINITIVA
+# render.yaml - COM PLANOS CORRETOS
 services:
   - type: web
     name: plataforma-documentos-backend
@@ -17,7 +17,7 @@ services:
         generateValue: true
       - key: PYTHONPATH
         value: .
-    plan: free
+    plan: starter  # ← MUDANÇA: free → starter
 
   - type: web
     name: plataforma-documentos-frontend
@@ -33,10 +33,10 @@ services:
     envVars:
       - key: API_URL
         value: https://plataforma-documentos-backend.onrender.com
-    plan: free
+    plan: starter  # ← MUDANÇA: free → starter
 
 databases:
   - name: plataforma-documentos-db
-    plan: free
+    plan: free  # ← Este continua free (bases de dados têm plano free)
     databaseName: documentos
     user: app
