@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, JSON, Text, Boolean
+# backend/models.py
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, JSON, Text, Boolean, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -18,6 +19,14 @@ class EstadoDocumento(str, enum.Enum):
     APROVADO = "Aprovado"
     ARQUIVADO = "Arquivado"
 
+# ✅ TABELA DE ASSOCIAÇÃO (Documento <-> Parceiros)
+documento_parceiros = Table(
+    'documento_parceiros',
+    Base.metadata,
+    Column('documento_id', Integer, ForeignKey('documentos.id'), primary_key=True),
+    Column('parceiro_id', String, ForeignKey('utilizadores.username'), primary_key=True)
+)
+
 class Utilizador(Base):
     __tablename__ = "utilizadores"
 
@@ -28,21 +37,25 @@ class Utilizador(Base):
     nome_completo = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    # ✅ Documentos onde este utilizador é parceiro
+    documentos_parceiro = relationship("Documento", secondary=documento_parceiros, back_populates="parceiros")
+
 class Documento(Base):
     __tablename__ = "documentos"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     titulo = Column(String, nullable=False)
-    parceiro_id = Column(String, nullable=False)  # Parceiro associado ao documento
-    empresa_id = Column(String, nullable=False)   # Empresa que criou o documento
+    parceiro_id = Column(String, nullable=True)  # ✅ MANTIDO PARA COMPATIBILIDADE
+    empresa_id = Column(String, nullable=False)
     estado = Column(Enum(EstadoDocumento), default=EstadoDocumento.RASCUNHO)
     versao_atual = Column(Integer, default=1)
     dados = Column(JSON, default={})
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
+    parceiros = relationship("Utilizador", secondary=documento_parceiros, back_populates="documentos_parceiro")
     versoes = relationship("VersaoDocumento", back_populates="documento", order_by="VersaoDocumento.numero_versao")
-
+    
 class VersaoDocumento(Base):
     __tablename__ = "versoes_documento"
 
@@ -66,8 +79,8 @@ class Notificacao(Base):
     titulo = Column(String, nullable=False)
     mensagem = Column(Text, nullable=False)
     lida = Column(Boolean, default=False)
-    link = Column(String, nullable=True)  # link para o documento (ex: "/documento/1")
-    icone = Column(String, nullable=True)  # emoji para a notificação
+    link = Column(String, nullable=True)
+    icone = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     def to_dict(self):

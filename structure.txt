@@ -1,5 +1,6 @@
 plataforma-documentos/
 ├── backend/
+│   ├── __pycache__/
 │   ├── main.py
 │   ├── models.py
 │   ├── schemas.py
@@ -29,7 +30,7 @@ plataforma-documentos/
 │   ├── Foto-pie-sin-fondo.png
 │   ├── Instagram.png
 │   ├── Twitter.png
-│   └── LinkedInpng
+│   └── LinkedIn.png
 ├── docker-compose.yml
 ├── render.yaml
 ├── setup_db.py

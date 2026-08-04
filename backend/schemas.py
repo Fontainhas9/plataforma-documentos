@@ -1,3 +1,4 @@
+# backend/schemas.py
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 from datetime import datetime
@@ -23,7 +24,7 @@ class TokenData(BaseModel):
 # ---------- Documentos ----------
 class DocumentoBase(BaseModel):
     titulo: str
-    parceiro_id: str
+    parceiros_ids: List[str]  # ✅ Lista de parceiros
     empresa_id: str
     dados: Dict[str, Any] = {}
 
@@ -39,7 +40,8 @@ class MudancaEstado(BaseModel):
 class DocumentoOut(BaseModel):
     id: int
     titulo: str
-    parceiro_id: str
+    parceiro_id: Optional[str] = None  # Mantido para compatibilidade
+    parceiros_ids: List[str] = []      # ✅ Lista de parceiros
     empresa_id: str
     estado: EstadoDocumento
     versao_atual: int

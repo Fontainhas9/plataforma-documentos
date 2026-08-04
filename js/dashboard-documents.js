@@ -66,11 +66,53 @@ let state = {
 };
 
 // =====================================================
+// PARCEIROS SELECIONADOS (CHIPS)
+// =====================================================
+
+window.parceirosSelecionados = [];
+
+function adicionarParceiroSelecionado() {
+    const select = document.getElementById('novoParceiroSelect');
+    if (!select) return;
+    
+    const selectedValue = select.value;
+    if (!selectedValue) {
+        showToast('Please select a partner first.', 'warning');
+        return;
+    }
+    
+    if (window.parceirosSelecionados.includes(selectedValue)) {
+        showToast('This partner is already added.', 'warning');
+        return;
+    }
+    
+    window.parceirosSelecionados.push(selectedValue);
+    select.value = '';
+    atualizarParceirosSelecionados();
+}
+
+function removerParceiroSelecionado(username) {
+    window.parceirosSelecionados = window.parceirosSelecionados.filter(p => p !== username);
+    atualizarParceirosSelecionados();
+}
+
+function atualizarParceirosSelecionados() {
+    const container = document.getElementById('parceirosSelecionadosContainer');
+    if (!container) return;
+    
+    container.innerHTML = window.parceirosSelecionados.map(p => `
+        <span class="status-tag status-submitted" style="padding:4px 12px;font-size:13px;display:inline-flex;align-items:center;gap:6px;">
+            ${p}
+            <span style="cursor:pointer;color:#ff6b6b;font-weight:bold;" onclick="removerParceiroSelecionado('${p}')">✕</span>
+        </span>
+    `).join('');
+}
+
+// =====================================================
 // TOAST - MENSAGENS NO CENTRO DA PÁGINA
 // =====================================================
 
 function showToast(message, type = 'success') {
-    // Remover toast anterior
     const oldToast = document.getElementById('customToast');
     if (oldToast) {
         oldToast.remove();
@@ -111,7 +153,6 @@ function showToast(message, type = 'success') {
     `;
     toast.textContent = message;
 
-    // Adicionar animação
     const style = document.createElement('style');
     style.textContent = `
         @keyframes fadeIn {
@@ -127,7 +168,6 @@ function showToast(message, type = 'success') {
 
     document.body.appendChild(toast);
 
-    // ✅ REMOVER APÓS 4 SEGUNDOS (em vez de 5)
     state.toastTimer = setTimeout(() => {
         toast.style.animation = 'fadeOut 0.3s ease';
         setTimeout(() => {
@@ -138,10 +178,110 @@ function showToast(message, type = 'success') {
 }
 
 // =====================================================
+// CONFIRMAÇÃO - MODAL COM ESTILO TOAST
+// =====================================================
+
+function showConfirm(message, onConfirm, onCancel = null) {
+    const oldConfirm = document.getElementById('customConfirm');
+    if (oldConfirm) {
+        oldConfirm.remove();
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'customConfirm';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 999999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(4px);
+        animation: fadeIn 0.3s ease;
+    `;
+
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        background: #1a2a4a;
+        color: white;
+        padding: 32px 40px;
+        border-radius: 16px;
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+        border: 1px solid rgba(254,200,0,0.2);
+        animation: fadeIn 0.3s ease;
+    `;
+
+    modal.innerHTML = `
+        <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+        <p style="font-size: 18px; font-weight: 500; margin: 0 0 24px 0; color: rgba(255,255,255,0.9); line-height: 1.5;">
+            ${message}
+        </p>
+        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+            <button id="confirmYes" class="btn btn-success" style="min-width: 120px; padding: 12px 24px; font-size: 15px;">
+                ✅ Yes
+            </button>
+            <button id="confirmNo" class="btn btn-secondary" style="min-width: 120px; padding: 12px 24px; font-size: 15px;">
+                ❌ No
+            </button>
+        </div>
+    `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.95); }
+        }
+    `;
+    document.head.appendChild(style);
+
+    document.getElementById('confirmYes').addEventListener('click', function() {
+        closeConfirm();
+        if (onConfirm) onConfirm();
+    });
+
+    document.getElementById('confirmNo').addEventListener('click', function() {
+        closeConfirm();
+        if (onCancel) onCancel();
+    });
+
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+            closeConfirm();
+            if (onCancel) onCancel();
+        }
+    });
+
+    function closeConfirm() {
+        const el = document.getElementById('customConfirm');
+        if (el) {
+            el.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => {
+                el.remove();
+            }, 300);
+        }
+    }
+}
+
+// =====================================================
 // ADMIN - MENU
 // =====================================================
 
-let adminMenuAtivo = 'documents'; // 'documents' ou 'users'
+let adminMenuAtivo = 'documents';
 
 // =====================================================
 // LOGOUT - LIMPAR sessionStorage (APENAS ESTE SEPARADOR)
@@ -240,10 +380,6 @@ function renderListaUtilizadores(users) {
     container.innerHTML = html;
 }
 
-// =====================================================
-// ADMIN - CRIAR USER (COM AJUSTE LATERAL)
-// =====================================================
-
 function abrirFormCriarUser() {
     const container = document.getElementById('adminUsersContainer');
     if (!container) return;
@@ -327,10 +463,6 @@ async function criarUtilizador() {
     }
 }
 
-// =====================================================
-// ADMIN - ALTERAR PASSWORD (COM AJUSTE LATERAL)
-// =====================================================
-
 function abrirFormAlterarPassword(username) {
     const container = document.getElementById('adminUsersContainer');
     if (!container) return;
@@ -381,27 +513,71 @@ async function alterarPassword(username) {
 }
 
 async function eliminarUtilizador(username) {
-    if (!confirm(`Are you sure you want to delete user '${username}'? This action cannot be undone.`)) {
-        return;
-    }
+    showConfirm(`Are you sure you want to delete user '${username}'? This action cannot be undone.`, async function() {
+        try {
+            const response = await fetch(`${API_URL}/admin/usuarios/${username}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
 
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Error deleting user');
+            }
+
+            showToast(`✅ User '${username}' deleted successfully!`, 'success');
+            carregarUtilizadores();
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Error deleting user: ' + error.message, 'error');
+        }
+    });
+}
+
+// =====================================================
+// ADMIN - ELIMINAR DOCUMENTO
+// =====================================================
+
+async function eliminarDocumento(docId) {
+    let titulo = 'document';
     try {
-        const response = await fetch(`${API_URL}/admin/usuarios/${username}`, {
-            method: 'DELETE',
+        const response = await fetch(`${API_URL}/documentos/${docId}`, {
             headers: getAuthHeaders()
         });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || 'Error deleting user');
+        if (response.ok) {
+            const doc = await response.json();
+            titulo = doc.titulo;
         }
-
-        showToast(`✅ User '${username}' deleted successfully!`, 'success');
-        carregarUtilizadores();
-    } catch (error) {
-        console.error('Error:', error);
-        showToast('Error deleting user: ' + error.message, 'error');
+    } catch (e) {
+        // Ignorar erro
     }
+
+    showConfirm(
+        `Are you sure you want to permanently delete document "${titulo}" (ID: ${docId})? This action cannot be undone. All versions and notifications will also be deleted.`,
+        async function() {
+            try {
+                const response = await fetch(`${API_URL}/admin/documentos/${docId}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Error deleting document');
+                }
+
+                const result = await response.json();
+                showToast(`✅ ${result.message || 'Document deleted successfully!'}`, 'success');
+                
+                state.docSelecionado = null;
+                state.editData = null;
+                carregarDocumentos();
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error deleting document: ' + error.message, 'error');
+            }
+        }
+    );
 }
 
 // =====================================================
@@ -462,6 +638,71 @@ function getEstadoClass(estado) {
 
 function safeCopy(obj) {
     return JSON.parse(JSON.stringify(obj));
+}
+
+// =====================================================
+// SINCRONIZAR INPUTS DO EDITOR
+// =====================================================
+
+function syncEditorInputs() {
+    document.querySelectorAll('.editor-input:not([disabled])').forEach(input => {
+        input.removeEventListener('input', handleInputChange);
+        input.addEventListener('input', handleInputChange);
+    });
+
+    document.querySelectorAll('.editor-select').forEach(select => {
+        select.removeEventListener('change', handleSelectChange);
+        select.addEventListener('change', handleSelectChange);
+    });
+}
+
+function handleInputChange(e) {
+    const input = e.target;
+    const section = input.getAttribute('data-section');
+    const campo = input.getAttribute('data-campo');
+    const proc = input.getAttribute('data-proc');
+    const idx = parseInt(input.getAttribute('data-idx'));
+    const key = input.getAttribute('data-key');
+    const value = input.value;
+
+    if (!state.editData) return;
+    if (!state.editData[section]) return;
+    if (!state.editData[section][campo]) return;
+    if (!state.editData[section][campo][proc]) return;
+    if (!state.editData[section][campo][proc][idx]) return;
+
+    state.editData[section][campo][proc][idx][key] = value;
+    
+    console.log(`📝 Atualizado: ${section}.${campo}.${proc}[${idx}].${key} = "${value}"`);
+}
+
+function handleSelectChange(e) {
+    const select = e.target;
+    const section = select.getAttribute('data-section');
+    const campo = select.getAttribute('data-campo');
+    const proc = select.getAttribute('data-proc');
+    const idx = parseInt(select.getAttribute('data-idx'));
+    const key = select.getAttribute('data-key');
+    const value = select.value;
+
+    if (!state.editData) return;
+    if (!state.editData[section]) return;
+    if (!state.editData[section][campo]) return;
+    if (!state.editData[section][campo][proc]) return;
+    if (!state.editData[section][campo][proc][idx]) return;
+
+    state.editData[section][campo][proc][idx][key] = value;
+    
+    console.log(`📝 Atualizado (select): ${section}.${campo}.${proc}[${idx}].${key} = "${value}"`);
+}
+
+function setupCheckboxListener() {
+    const checkbox = document.getElementById('confirmSubmissionCheckbox');
+    if (checkbox) {
+        checkbox.addEventListener('click', function() {
+            this.style.outline = 'none';
+        });
+    }
 }
 
 // =====================================================
@@ -663,9 +904,6 @@ function renderDocumentosList() {
 
     let html = '';
 
-    // ============================================================
-    // ADMIN MENU (apenas para admin)
-    // ============================================================
     if (isAdmin) {
         html += `
             <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
@@ -681,9 +919,6 @@ function renderDocumentosList() {
         `;
     }
 
-    // ============================================================
-    // ADMIN - USERS VIEW
-    // ============================================================
     if (isAdmin && adminMenuAtivo === 'users') {
         html += `<div id="adminUsersContainer"></div>`;
         container.innerHTML = html;
@@ -691,22 +926,14 @@ function renderDocumentosList() {
         return;
     }
 
-    // ============================================================
-    // DOCUMENTS VIEW (para todos os perfis)
-    // ============================================================
-
     const filtrosExpandidos = false;
 
     html += `
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
                 ${isEmpresa ? `<button class="btn btn-primary" onclick="abrirFormCriar()">➕ New Document</button>` : ''}
-                <button class="btn btn-secondary" onclick="carregarDocumentos()">
-                    🔄 Refresh
-                </button>
-                <button class="btn-filter-toggle" onclick="toggleFiltros()">
-                    ▶️ Filters
-                </button>
+                <button class="btn btn-secondary" onclick="carregarDocumentos()">🔄 Refresh</button>
+                <button class="btn-filter-toggle" onclick="toggleFiltros()">▶️ Filters</button>
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
                 <span style="color:rgba(255,255,255,0.7);font-size:14px;">${state.documentos.length} documents</span>
@@ -714,7 +941,6 @@ function renderDocumentosList() {
         </div>
     `;
 
-    // FILTROS
     html += `
         <div id="filtrosContainer" style="max-height:0;padding:0;margin-bottom:0;overflow:hidden;transition:max-height 0.3s ease, padding 0.3s ease, margin 0.3s ease;background:rgba(255,255,255,0.08);border-radius:10px;border:1px solid transparent;">
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;align-items:end;padding:0;">
@@ -751,7 +977,6 @@ function renderDocumentosList() {
         </div>
     `;
 
-    // Lista de documentos
     if (!state.documentos || state.documentos.length === 0) {
         html += `
             <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:40px;text-align:center;color:rgba(255,255,255,0.6);">
@@ -780,17 +1005,19 @@ function renderDocumentosList() {
         state.documentos.forEach(doc => {
             const estadoDisplay = getEstadoDisplay(doc.estado);
             const estadoClass = getEstadoClass(doc.estado);
+            const parceirosDisplay = doc.parceiros_ids ? doc.parceiros_ids.join(', ') : (doc.parceiro_id || 'No partners');
 
             html += `
                 <tr>
                     <td><strong>${doc.id}</strong></td>
                     <td>${doc.titulo}</td>
-                    <td>${doc.parceiro_id}</td>
+                    <td>${parceirosDisplay}</td>
                     <td><span class="status-tag ${estadoClass}">${estadoDisplay}</span></td>
                     <td>v${doc.versao_atual}</td>
                     <td>${formatDate(doc.updated_at)}</td>
                     <td>
                         <button class="btn btn-primary btn-sm" onclick="abrirDocumento(${doc.id})">Open</button>
+                        ${isAdmin ? `<button class="btn btn-danger btn-sm" onclick="eliminarDocumento(${doc.id})" style="margin-left:4px;">🗑️</button>` : ''}
                     </td>
                 </tr>
             `;
@@ -862,6 +1089,10 @@ async function carregarDocumentoDetalhe(docId) {
     }
 }
 
+// =====================================================
+// RENDER DOCUMENTO DETALHE
+// =====================================================
+
 function renderDocumentoDetalhe(doc) {
     const container = document.getElementById('documentoDetalhe');
     if (!container) return;
@@ -873,9 +1104,11 @@ function renderDocumentoDetalhe(doc) {
     const estadoDisplay = getEstadoDisplay(doc.estado);
     const estadoClass = getEstadoClass(doc.estado);
 
-    // ✅ PARCEIRO PODE EDITAR EM RASCUNHO OU CHANGES REQUESTED
-    const podeEditar = isParceiro && (doc.estado === 'Rascunho' || doc.estado === 'Alterações');
-    const podeSubmeter = isParceiro && doc.estado === 'Rascunho';
+    // ✅ VERIFICAR SE O UTILIZADOR ATUAL É UM DOS PARCEIROS
+    const isPartnerAssigned = doc.parceiros_ids && doc.parceiros_ids.includes(state.username);
+
+    const podeEditar = isParceiro && isPartnerAssigned && (doc.estado === 'Rascunho' || doc.estado === 'Alterações');
+    const podeSubmeter = isParceiro && isPartnerAssigned && doc.estado === 'Rascunho';
     const podeRevisar = (isEmpresa || isAdmin) && doc.estado === 'Submetido';
     const podeAprovar = (isEmpresa || isAdmin) && doc.estado === 'Em Revisão';
     const podePedirAlteracoes = (isEmpresa || isAdmin) && doc.estado === 'Em Revisão';
@@ -884,47 +1117,59 @@ function renderDocumentoDetalhe(doc) {
 
     const processos = getProcessosFromData(doc.dados);
 
+    const functionalUnit = doc.dados?.functional_unit || 'Not defined';
+    const systemBoundary = doc.dados?.system_boundary || 'Not defined';
+    const parceirosList = doc.parceiros_ids ? doc.parceiros_ids.join(', ') : (doc.parceiro_id || 'No partners');
+
+    const shouldBeOpen = doc.estado === 'Em Revisão' || doc.estado === 'Submetido';
+
     let html = `
         <div style="background:rgba(255,255,255,0.05);border-radius:16px;padding:24px;border-left:4px solid #fec800;">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
                 <div>
                     <h3 style="color:#fff;margin:0;">📄 ${doc.titulo}</h3>
-                    <p style="color:rgba(255,255,255,0.5);margin:4px 0 0;">ID: ${doc.id} | Partner: ${doc.parceiro_id} | Version: v${doc.versao_atual}</p>
+                    <p style="color:rgba(255,255,255,0.5);margin:4px 0 0;">ID: ${doc.id} | Partners: ${parceirosList} | Version: v${doc.versao_atual}</p>
                 </div>
                 <span class="status-tag ${estadoClass}" style="font-size:16px;padding:6px 16px;">${estadoDisplay}</span>
             </div>
 
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px;">
+            <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;margin-bottom:20px;">
                 <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:12px;">
-                    <span style="color:rgba(255,255,255,0.4);font-size:12px;">Created</span>
-                    <p style="color:rgba(255,255,255,0.8);margin:0;">${formatDate(doc.created_at)}</p>
+                    <span style="color:rgba(255,255,255,0.4);font-size:12px;">Functional Unit</span>
+                    <p style="color:rgba(255,255,255,0.8);margin:0;font-size:14px;font-weight:500;">${functionalUnit}</p>
                 </div>
                 <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:12px;">
-                    <span style="color:rgba(255,255,255,0.4);font-size:12px;">Last Update</span>
-                    <p style="color:rgba(255,255,255,0.8);margin:0;">${formatDate(doc.updated_at)}</p>
+                    <span style="color:rgba(255,255,255,0.4);font-size:12px;">System Boundary</span>
+                    <p style="color:rgba(255,255,255,0.8);margin:0;font-size:14px;font-weight:500;">${systemBoundary}</p>
                 </div>
                 <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:12px;">
-                    <span style="color:rgba(255,255,255,0.4);font-size:12px;">Processes</span>
-                    <p style="color:rgba(255,255,255,0.8);margin:0;">${processos.join(', ')}</p>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+                        <div>
+                            <span style="color:rgba(255,255,255,0.4);font-size:12px;">Created</span>
+                            <p style="color:rgba(255,255,255,0.8);margin:0;font-size:13px;">${formatDate(doc.created_at)}</p>
+                        </div>
+                        <div>
+                            <span style="color:rgba(255,255,255,0.4);font-size:12px;">Last Update</span>
+                            <p style="color:rgba(255,255,255,0.8);margin:0;font-size:13px;">${formatDate(doc.updated_at)}</p>
+                        </div>
+                    </div>
                 </div>
             </div>
     `;
 
-    // Conteúdo
     html += `
         <div style="margin-bottom:20px;">
             <button class="btn btn-secondary btn-sm" onclick="toggleConteudoDocumento(${doc.id})">
                 📊 Show/Hide Document Content
             </button>
-            <div id="conteudoDocumento" style="display:none;margin-top:12px;">
-                ${renderConteudoDocumento(doc.dados, processos, true)}
+            <div id="conteudoDocumento" style="display:${shouldBeOpen ? 'block' : 'none'};margin-top:12px;">
+                ${renderConteudoDocumento(doc.dados, processos, shouldBeOpen)}
             </div>
         </div>
     `;
 
-    // Ações
     html += `
-        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06);">
+        <div class="actions-container" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06);">
     `;
 
     if (podeEditar) {
@@ -969,12 +1214,13 @@ function renderDocumentoDetalhe(doc) {
         </div>
     `;
 
-    // Editor
-    if (state.editData !== null) {
-        html += renderEditorDocumento(doc.id, processos);
+    if (state.editData) {
+        const processos = getProcessosFromData(state.editData);
+        html += `<div class="editor-container">${renderEditorDocumento(doc.id, processos)}</div>`;
+    } else {
+        html += `<div class="editor-container"></div>`;
     }
 
-    // Histórico
     html += `
         <div style="margin-top:16px;">
             <button class="btn btn-secondary btn-sm" onclick="carregarHistorico(${doc.id})">📜 Version History</button>
@@ -987,16 +1233,30 @@ function renderDocumentoDetalhe(doc) {
     `;
 
     container.innerHTML = html;
+
+    setTimeout(() => {
+        syncEditorInputs();
+        setupCheckboxListener();
+    }, 100);
+
+    if (shouldBeOpen) {
+        setTimeout(() => {
+            const conteudo = document.getElementById('conteudoDocumento');
+            if (conteudo) {
+                const details = conteudo.querySelectorAll('details');
+                details.forEach(d => d.setAttribute('open', ''));
+            }
+        }, 100);
+    }
 }
 
 // =====================================================
-// CONTEÚDO DO DOCUMENTO (LCA/LCC) - COM TODOS OS DROPDOWNS ABERTOS
+// CONTEÚDO DO DOCUMENTO (LCA/LCC)
 // =====================================================
 
 function renderConteudoDocumento(dados, processos, allOpen = false) {
     let html = '';
 
-    // LCA
     html += `<h4 style="color:#fff;margin:16px 0 8px;">🌱 LCA - Life Cycle Assessment</h4>`;
 
     ['inputs', 'processes', 'outputs'].forEach(section => {
@@ -1032,7 +1292,6 @@ function renderConteudoDocumento(dados, processos, allOpen = false) {
         });
     });
 
-    // LCC
     html += `<h4 style="color:#fff;margin:16px 0 8px;">💰 LCC - Life Cycle Cost</h4>`;
 
     ['materials', 'equipment', 'labour', 'outputs'].forEach(section => {
@@ -1082,10 +1341,8 @@ function toggleConteudoDocumento(docId) {
         const isVisible = container.style.display === 'none' || container.style.display === '';
         
         if (isVisible) {
-            // ✅ ABRIR: carregar com allOpen=true
             container.style.display = 'block';
             
-            // Buscar o documento e re-renderizar com todos os dropdowns abertos
             fetch(`${API_URL}/documentos/${docId}`, {
                 headers: getAuthHeaders()
             })
@@ -1093,8 +1350,6 @@ function toggleConteudoDocumento(docId) {
             .then(doc => {
                 const processos = getProcessosFromData(doc.dados);
                 container.innerHTML = renderConteudoDocumento(doc.dados, processos, true);
-                
-                // ✅ ABRIR TODOS OS DETAILS MANUALMENTE
                 const details = container.querySelectorAll('details');
                 details.forEach(d => d.setAttribute('open', ''));
             })
@@ -1103,7 +1358,6 @@ function toggleConteudoDocumento(docId) {
                 showToast('Error loading document content', 'error');
             });
         } else {
-            // FECHAR
             container.style.display = 'none';
         }
     }
@@ -1122,13 +1376,25 @@ function getProcessosFromData(dados) {
 // =====================================================
 
 function abrirEdicaoDocumento(docId) {
+    if (state.perfil !== 'parceiro') {
+        showToast('Only partners can edit documents.', 'error');
+        return;
+    }
+
+    console.log('📤 A abrir editor para documento:', docId);
+
     fetch(`${API_URL}/documentos/${docId}`, {
         headers: getAuthHeaders()
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) throw new Error('Error loading document');
+        return response.json();
+    })
     .then(doc => {
+        console.log('📥 Documento carregado:', doc);
         const processos = getProcessosFromData(doc.dados);
         state.editData = ensureEstruturaCompleta(doc.dados, processos);
+        console.log('📊 state.editData inicializado');
         carregarDocumentoDetalhe(docId);
     })
     .catch(error => {
@@ -1180,7 +1446,7 @@ function criarEstruturaVazia(processos) {
 }
 
 // =====================================================
-// RENDER EDITOR SECAO - CORRIGIDO
+// RENDER EDITOR SECAO
 // =====================================================
 
 function renderEditorSecao(secao, campo, docId, processos) {
@@ -1233,7 +1499,18 @@ function renderEditorSecao(secao, campo, docId, processos) {
         amount_produced: 'Amount Produced'
     };
 
-    const camposReadOnly = ['tipo', 'unit'];
+    const isReadOnlyField = (key) => {
+        if (secao === 'lca' && campo === 'processes' && (key === 'tipo' || key === 'unit')) {
+            return true;
+        }
+        if (secao === 'lcc' && campo === 'materials' && key === 'unit') {
+            return true;
+        }
+        if (secao === 'lcc' && campo === 'outputs' && key === 'unit') {
+            return true;
+        }
+        return false;
+    };
 
     let html = `
         <details style="margin:12px 0;" open>
@@ -1260,16 +1537,14 @@ function renderEditorSecao(secao, campo, docId, processos) {
             `;
         } else {
             items.forEach((item, idx) => {
-                const itemId = `${itemKey}_${idx}`;
                 const keys = Object.keys(item);
-                
                 const grupos = [];
                 for (let i = 0; i < keys.length; i += 3) {
                     grupos.push(keys.slice(i, i + 3));
                 }
 
                 html += `
-                    <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:12px 14px;margin:6px 0 8px;border:1px solid rgba(255,255,255,0.05);">
+                    <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:12px 14px;margin:6px 0 8px;border:1px solid rgba(255,255,255,0.05);" data-item-idx="${idx}">
                 `;
 
                 grupos.forEach(grupo => {
@@ -1279,13 +1554,14 @@ function renderEditorSecao(secao, campo, docId, processos) {
                     grupo.forEach(key => {
                         const value = item[key] || '';
                         const label = fieldLabels[key] || key.charAt(0).toUpperCase() + key.slice(1);
-                        const isReadOnly = camposReadOnly.includes(key);
+                        const isReadOnly = isReadOnlyField(key);
 
                         if (key === 'datasource') {
                             html += `
                                 <div style="display:flex;flex-direction:column;gap:2px;">
                                     <span style="color:rgba(255,255,255,0.5);font-size:11px;font-weight:500;letter-spacing:0.3px;text-transform:uppercase;">${label}</span>
                                     <select data-section="${secao}" data-campo="${campo}" data-proc="${proc}" data-idx="${idx}" data-key="${key}" 
+                                            class="editor-select"
                                             style="width:100%;max-width:180px;background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:6px 10px;font-size:13px;font-family:'Inter',sans-serif;transition:border-color 0.2s;">
                                         ${DATASOURCE_OPTIONS.map(opt => `<option value="${opt}" ${opt === value ? 'selected' : ''} style="background:#1a2a4a;color:#fff;">${opt}</option>`).join('')}
                                     </select>
@@ -1298,6 +1574,7 @@ function renderEditorSecao(secao, campo, docId, processos) {
                                         <span style="color:rgba(255,255,255,0.5);font-size:11px;font-weight:500;letter-spacing:0.3px;text-transform:uppercase;">${label}</span>
                                         <input type="text" value="${value}" 
                                                disabled
+                                               class="editor-input"
                                                style="width:100%;max-width:180px;background:rgba(255,255,255,0.07);color:#fff;border:1px solid rgba(255,255,255,0.12);border-radius:5px;padding:6px 10px;font-size:13px;font-family:'Inter',sans-serif;opacity:0.8;cursor:not-allowed;" />
                                     </div>
                                 `;
@@ -1308,6 +1585,7 @@ function renderEditorSecao(secao, campo, docId, processos) {
                                         <input type="text" value="${value}" 
                                                data-section="${secao}" data-campo="${campo}" data-proc="${proc}" data-idx="${idx}" data-key="${key}"
                                                placeholder="${label}"
+                                               class="editor-input"
                                                style="width:100%;max-width:180px;background:rgba(255,255,255,0.07);color:#fff;border:1px solid rgba(255,255,255,0.12);border-radius:5px;padding:6px 10px;font-size:13px;font-family:'Inter',sans-serif;transition:border-color 0.2s, background 0.2s;" />
                                     </div>
                                 `;
@@ -1348,6 +1626,11 @@ function renderEditorSecao(secao, campo, docId, processos) {
 // =====================================================
 
 function renderEditorDocumento(docId, processos) {
+    const dados = state.editData;
+    if (!dados) {
+        return `<div style="color:rgba(255,255,255,0.5);padding:20px;text-align:center;">No data to edit</div>`;
+    }
+
     let html = `
         <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:20px;margin-top:16px;border:1px solid rgba(254,200,0,0.2);">
             <h4 style="color:#fec800;margin:0 0 16px;">✏️ Editing Document</h4>
@@ -1365,9 +1648,22 @@ function renderEditorDocumento(docId, processos) {
     html += renderEditorSecao('lcc', 'outputs', docId, processos);
 
     html += `
+        <div style="margin-top:20px;padding:16px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(254,200,0,0.15);">
+            <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;color:rgba(255,255,255,0.85);font-size:14px;line-height:1.5;">
+                <input type="checkbox" id="confirmSubmissionCheckbox" style="width:18px;height:18px;margin-top:2px;cursor:pointer;accent-color:#fec800;" />
+                <span>
+                    <strong>I confirm that all data provided is in accordance with the Functional Unit?</strong>
+                    <br>
+                    <span style="color:rgba(255,255,255,0.5);font-size:12px;">This confirmation is required to submit the document. You can save the document without confirming.</span>
+                </span>
+            </label>
+        </div>
+    `;
+
+    html += `
         <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;">
             <button class="btn btn-primary" onclick="salvarEdicao(${docId})">💾 Save Draft</button>
-            <button class="btn btn-success" onclick="submeterEdicao(${docId})">📤 Submit for Review</button>
+            <button class="btn btn-success" id="submitBtn_${docId}" onclick="submeterEdicao(${docId})">📤 Submit for Review</button>
             <button class="btn btn-secondary" onclick="cancelarEdicao()">✖ Cancel</button>
         </div>
     `;
@@ -1377,27 +1673,28 @@ function renderEditorDocumento(docId, processos) {
 }
 
 // =====================================================
-// ADICIONAR ITEM - MANTÉM MENUS ABERTOS
+// ADICIONAR ITEM
 // =====================================================
 
 function adicionarItemEditor(secao, campo, proc) {
-    if (!state.editData) return;
+    if (!state.editData) {
+        showToast('No document data to add item.', 'error');
+        return;
+    }
+    
     if (!state.editData[secao]) state.editData[secao] = {};
     if (!state.editData[secao][campo]) state.editData[secao][campo] = {};
     if (!state.editData[secao][campo][proc]) state.editData[secao][campo][proc] = [];
 
-    // ✅ CRIAR NOVO ITEM COM A MESMA ESTRUTURA DO PRIMEIRO ITEM
     const currentItems = state.editData[secao][campo][proc];
     let newItem = {};
     
     if (currentItems.length > 0) {
-        // Copiar a estrutura do primeiro item (com os campos vazios)
         const firstItem = currentItems[0];
         Object.keys(firstItem).forEach(key => {
             newItem[key] = '';
         });
     } else {
-        // Se não houver itens, criar um item vazio com os campos padrão
         const camposPadrao = {
             'lca': {
                 'inputs': ['material', 'qty', 'unit', 'description', 'cas', 'distance', 'country', 'datasource'],
@@ -1411,27 +1708,190 @@ function adicionarItemEditor(secao, campo, proc) {
                 'outputs': ['material', 'market_price', 'quantity', 'unit', 'amount_produced', 'comments', 'datasource']
             }
         };
-        
         const campos = camposPadrao[secao]?.[campo] || [];
         campos.forEach(key => {
             newItem[key] = '';
         });
     }
 
+    const newIdx = currentItems.length;
     currentItems.push(newItem);
+
+    const containerId = `${secao}_${campo}_${proc}_container`;
+    const container = document.getElementById(containerId);
     
-    // ✅ RECARREGAR O DOCUMENTO MANTENDO OS MENUS ABERTOS
-    carregarDocumentoDetalhe(state.docSelecionado);
+    if (container) {
+        const keys = Object.keys(newItem);
+        const grupos = [];
+        for (let i = 0; i < keys.length; i += 3) {
+            grupos.push(keys.slice(i, i + 3));
+        }
+
+        let itemHtml = `
+            <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:12px 14px;margin:6px 0 8px;border:1px solid rgba(255,255,255,0.05);" data-item-idx="${newIdx}">
+        `;
+
+        grupos.forEach(grupo => {
+            itemHtml += `
+                <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:10px 16px;margin-bottom:4px;">
+            `;
+            grupo.forEach(key => {
+                const label = key.charAt(0).toUpperCase() + key.slice(1);
+                const isReadOnly = (secao === 'lca' && campo === 'processes' && (key === 'tipo' || key === 'unit')) ||
+                                  (secao === 'lcc' && campo === 'materials' && key === 'unit') ||
+                                  (secao === 'lcc' && campo === 'outputs' && key === 'unit');
+
+                if (key === 'datasource') {
+                    itemHtml += `
+                        <div style="display:flex;flex-direction:column;gap:2px;">
+                            <span style="color:rgba(255,255,255,0.5);font-size:11px;font-weight:500;letter-spacing:0.3px;text-transform:uppercase;">${label}</span>
+                            <select data-section="${secao}" data-campo="${campo}" data-proc="${proc}" data-idx="${newIdx}" data-key="${key}" 
+                                    class="editor-select"
+                                    style="width:100%;max-width:180px;background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:6px 10px;font-size:13px;font-family:'Inter',sans-serif;">
+                                ${DATASOURCE_OPTIONS.map(opt => `<option value="${opt}" style="background:#1a2a4a;color:#fff;">${opt}</option>`).join('')}
+                            </select>
+                        </div>
+                    `;
+                } else {
+                    itemHtml += `
+                        <div style="display:flex;flex-direction:column;gap:2px;">
+                            <span style="color:rgba(255,255,255,0.5);font-size:11px;font-weight:500;letter-spacing:0.3px;text-transform:uppercase;">${label}</span>
+                            <input type="text" value="" 
+                                   data-section="${secao}" data-campo="${campo}" data-proc="${proc}" data-idx="${newIdx}" data-key="${key}"
+                                   placeholder="${label}"
+                                   class="editor-input"
+                                   ${isReadOnly ? 'disabled style="width:100%;max-width:180px;background:rgba(255,255,255,0.07);color:#fff;border:1px solid rgba(255,255,255,0.12);border-radius:5px;padding:6px 10px;font-size:13px;font-family:\'Inter\',sans-serif;opacity:0.8;cursor:not-allowed;"' : 'style="width:100%;max-width:180px;background:rgba(255,255,255,0.07);color:#fff;border:1px solid rgba(255,255,255,0.12);border-radius:5px;padding:6px 10px;font-size:13px;font-family:\'Inter\',sans-serif;"'} />
+                        </div>
+                    `;
+                }
+            });
+            itemHtml += `
+                </div>
+            `;
+        });
+
+        itemHtml += `
+                <div style="display:flex;justify-content:flex-end;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.05);">
+                    <button class="btn btn-danger btn-sm" onclick="removerItemEditor('${secao}','${campo}','${proc}',${newIdx})" style="padding:3px 10px;font-size:11px;border-radius:4px;">✕ Remove</button>
+                </div>
+            </div>
+        `;
+
+        const addButton = container.parentElement.querySelector('.btn-secondary');
+        if (addButton) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = itemHtml;
+            const newItemElement = tempDiv.firstElementChild;
+            if (newItemElement) {
+                addButton.parentElement.insertBefore(newItemElement, addButton);
+            }
+        }
+
+        const countSpan = container.parentElement.querySelector('span[style*="color:rgba(255,255,255,0.35)"]');
+        if (countSpan) {
+            const match = countSpan.textContent.match(/\d+/);
+            if (match) {
+                const currentCount = parseInt(match[0]);
+                countSpan.textContent = `${currentCount + 1} items`;
+            }
+        }
+
+        setTimeout(() => {
+            syncEditorInputs();
+        }, 100);
+
+        showToast('✅ New item added!', 'success');
+    } else {
+        const docId = state.docSelecionado;
+        if (docId) {
+            carregarDocumentoDetalhe(docId);
+        }
+    }
 }
 
 function removerItemEditor(secao, campo, proc, idx) {
     if (!state.editData) return;
     if (!state.editData[secao]?.[campo]?.[proc]) return;
 
+    // ✅ REMOVER DO state.editData
     state.editData[secao][campo][proc].splice(idx, 1);
-    
-    // ✅ RECARREGAR O DOCUMENTO MANTENDO OS MENUS ABERTOS
-    carregarDocumentoDetalhe(state.docSelecionado);
+
+    // ✅ REMOVER DO DOM DIRETAMENTE (SEM RECARREGAR O DOCUMENTO)
+    const container = document.getElementById(`${secao}_${campo}_${proc}_container`);
+    if (container) {
+        // Procurar o item com o índice correspondente
+        const items = container.querySelectorAll('[data-item-idx]');
+        let itemToRemove = null;
+        
+        for (const item of items) {
+            const itemIdx = parseInt(item.getAttribute('data-item-idx'));
+            if (itemIdx === idx) {
+                itemToRemove = item;
+                break;
+            }
+        }
+        
+        if (itemToRemove) {
+            // ✅ REMOVER O ELEMENTO DO DOM
+            itemToRemove.remove();
+            
+            // ✅ ATUALIZAR OS ÍNDICES DOS ITEMS RESTANTES
+            const remainingItems = container.querySelectorAll('[data-item-idx]');
+            remainingItems.forEach((item, newIdx) => {
+                item.setAttribute('data-item-idx', newIdx);
+            });
+            
+            // ✅ ATUALIZAR O CONTADOR DE ITEMS
+            const countSpan = container.parentElement.querySelector('span[style*="color:rgba(255,255,255,0.35)"]');
+            if (countSpan) {
+                const match = countSpan.textContent.match(/\d+/);
+                if (match) {
+                    const currentCount = parseInt(match[0]);
+                    const newCount = Math.max(0, currentCount - 1);
+                    countSpan.textContent = `${newCount} items`;
+                }
+            }
+
+            // ✅ ATUALIZAR OS data-idx DOS INPUTS E SELECTS
+            const allInputs = container.querySelectorAll('input[data-idx], select[data-idx]');
+            allInputs.forEach(input => {
+                const oldIdx = parseInt(input.getAttribute('data-idx'));
+                if (oldIdx > idx) {
+                    input.setAttribute('data-idx', oldIdx - 1);
+                }
+            });
+            
+            // ✅ ATUALIZAR OS onclick DOS BOTÕES DE REMOVER
+            const removeButtons = container.parentElement.querySelectorAll('.btn-danger');
+            removeButtons.forEach((btn) => {
+                const onclickAttr = btn.getAttribute('onclick');
+                if (onclickAttr) {
+                    const match = onclickAttr.match(/removerItemEditor\('([^']+)','([^']+)','([^']+)',(\d+)\)/);
+                    if (match) {
+                        const oldIdx = parseInt(match[4]);
+                        if (oldIdx > idx) {
+                            const newOnclick = `removerItemEditor('${match[1]}','${match[2]}','${match[3]}',${oldIdx - 1})`;
+                            btn.setAttribute('onclick', newOnclick);
+                        }
+                    }
+                }
+            });
+            
+            showToast('✅ Item removed!', 'success');
+        } else {
+            // Fallback: recarregar o documento (mas mantendo os dados)
+            const docId = state.docSelecionado;
+            if (docId) {
+                carregarDocumentoDetalhe(docId);
+            }
+        }
+    } else {
+        // Fallback: recarregar o documento (mas mantendo os dados)
+        const docId = state.docSelecionado;
+        if (docId) {
+            carregarDocumentoDetalhe(docId);
+        }
+    }
 }
 
 // =====================================================
@@ -1439,8 +1899,18 @@ function removerItemEditor(secao, campo, proc, idx) {
 // =====================================================
 
 function salvarEdicao(docId) {
+    if (state.perfil !== 'parceiro') {
+        showToast('Only partners can edit documents.', 'error');
+        return;
+    }
+
     const dados = state.editData;
-    if (!dados) return;
+    if (!dados) {
+        showToast('No data to save.', 'warning');
+        return;
+    }
+
+    console.log('📤 A salvar dados do parceiro:', JSON.stringify(dados, null, 2));
 
     fetch(`${API_URL}/documentos/${docId}/editar`, {
         method: 'PUT',
@@ -1448,53 +1918,92 @@ function salvarEdicao(docId) {
         body: JSON.stringify({ dados: dados })
     })
     .then(response => {
-        if (!response.ok) throw new Error('Error saving');
+        console.log('📥 Resposta salvar - Status:', response.status);
+        if (!response.ok) {
+            return response.json().then(err => { throw new Error(err.detail || 'Error saving'); });
+        }
         return response.json();
     })
-    .then(() => {
+    .then((doc) => {
+        console.log('✅ Documento salvo com sucesso!');
         showToast('✅ Document saved successfully!', 'success');
         state.editData = null;
         carregarDocumentoDetalhe(docId);
         carregarDocumentos();
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('❌ Error saving:', error);
         showToast('Error saving: ' + error.message, 'error');
     });
 }
 
 function submeterEdicao(docId) {
-    const dados = state.editData;
-    if (!dados) return;
+    if (state.perfil !== 'parceiro') {
+        showToast('Only partners can submit documents.', 'error');
+        return;
+    }
 
-    fetch(`${API_URL}/documentos/${docId}/editar`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ dados: dados })
-    })
-    .then(response => {
-        if (!response.ok) throw new Error('Error saving');
-        return response.json();
-    })
-    .then(() => {
-        return fetch(`${API_URL}/documentos/${docId}/submeter`, {
-            method: 'POST',
-            headers: getAuthHeaders()
+    const checkbox = document.getElementById('confirmSubmissionCheckbox');
+    if (!checkbox || !checkbox.checked) {
+        showToast('⚠️ Please confirm that all data is in accordance with the Functional Unit before submitting.', 'warning');
+        if (checkbox) {
+            checkbox.style.outline = '2px solid #ff6b6b';
+            checkbox.style.outlineOffset = '2px';
+            setTimeout(() => {
+                checkbox.style.outline = 'none';
+            }, 3000);
+        }
+        return;
+    }
+
+    const dados = state.editData;
+    if (!dados) {
+        showToast('No data to submit.', 'warning');
+        return;
+    }
+
+    console.log('📤 A submeter dados do parceiro:', JSON.stringify(dados, null, 2));
+
+    showConfirm('Submit this document for review?', function() {
+        // ✅ PRIMEIRO SALVAR AS ALTERAÇÕES
+        fetch(`${API_URL}/documentos/${docId}/editar`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ dados: dados })
+        })
+        .then(response => {
+            console.log('📥 Resposta salvar - Status:', response.status);
+            if (!response.ok) {
+                return response.json().then(err => { throw new Error(err.detail || 'Error saving'); });
+            }
+            return response.json();
+        })
+        .then((savedDoc) => {
+            console.log('✅ Documento salvo antes de submeter:', savedDoc);
+            // ✅ DEPOIS SUBMETER (o backend já permite de Rascunho ou Alterações)
+            return fetch(`${API_URL}/documentos/${docId}/submeter`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            });
+        })
+        .then(response => {
+            console.log('📥 Resposta submeter - Status:', response.status);
+            if (!response.ok) {
+                return response.json().then(err => { throw new Error(err.detail || 'Error submitting'); });
+            }
+            return response.json();
+        })
+        .then((submittedDoc) => {
+            console.log('✅ Documento submetido com sucesso!');
+            showToast('✅ Document submitted successfully!', 'success');
+            state.editData = null;
+            state.docSelecionado = null;
+            carregarDocumentos();
+        })
+        .catch(error => {
+            console.error('❌ Error:', error);
+            showToast('Error: ' + error.message, 'error');
         });
-    })
-    .then(response => {
-        if (!response.ok) throw new Error('Error submitting');
-        return response.json();
-    })
-    .then(() => {
-        showToast('✅ Document submitted successfully!', 'success');
-        state.editData = null;
-        state.docSelecionado = null;
-        carregarDocumentos();
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showToast('Error: ' + error.message, 'error');
     });
 }
 
@@ -1508,63 +2017,76 @@ function cancelarEdicao() {
 // =====================================================
 
 async function submeterDocumento(docId) {
-    if (!confirm('Submit this document for review?')) return;
+    showConfirm('Are you sure you want to submit this document for review?', async function() {
+        try {
+            const response = await fetch(`${API_URL}/documentos/${docId}/submeter`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            });
 
-    try {
-        const response = await fetch(`${API_URL}/documentos/${docId}/submeter`, {
-            method: 'POST',
-            headers: getAuthHeaders()
-        });
+            if (!response.ok) throw new Error('Error submitting');
 
-        if (!response.ok) throw new Error('Error submitting');
-
-        showToast('✅ Document submitted successfully!', 'success');
-        state.docSelecionado = null;
-        carregarDocumentos();
-    } catch (error) {
-        console.error('Error:', error);
-        showToast('Error: ' + error.message, 'error');
-    }
+            showToast('✅ Document submitted successfully!', 'success');
+            state.docSelecionado = null;
+            state.editData = null;
+            carregarDocumentos();
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Error: ' + error.message, 'error');
+        }
+    });
 }
 
 async function iniciarRevisao(docId) {
-    if (!confirm('Start review for this document?')) return;
+    showConfirm('Start review for this document?', async function() {
+        try {
+            const response = await fetch(`${API_URL}/documentos/${docId}/iniciar-revisao`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            });
 
-    try {
-        const response = await fetch(`${API_URL}/documentos/${docId}/iniciar-revisao`, {
-            method: 'POST',
-            headers: getAuthHeaders()
-        });
+            if (!response.ok) throw new Error('Error starting review');
 
-        if (!response.ok) throw new Error('Error starting review');
-
-        showToast('✅ Review started!', 'success');
-        carregarDocumentoDetalhe(docId);
-        carregarDocumentos();
-    } catch (error) {
-        console.error('Error:', error);
-        showToast('Error: ' + error.message, 'error');
-    }
+            showToast('✅ Review started!', 'success');
+            
+            await carregarDocumentoDetalhe(docId);
+            carregarDocumentos();
+            
+            setTimeout(() => {
+                const container = document.getElementById('conteudoDocumento');
+                if (container) {
+                    container.style.display = 'block';
+                    const details = container.querySelectorAll('details');
+                    details.forEach(d => d.setAttribute('open', ''));
+                }
+            }, 500);
+            
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Error: ' + error.message, 'error');
+        }
+    });
 }
 
 async function aprovarDocumento(docId) {
-    if (!confirm('Approve this document?')) return;
+    showConfirm('Approve this document?', async function() {
+        try {
+            const response = await fetch(`${API_URL}/documentos/${docId}/aprovar`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            });
 
-    try {
-        const response = await fetch(`${API_URL}/documentos/${docId}/aprovar`, {
-            method: 'POST',
-            headers: getAuthHeaders()
-        });
+            if (!response.ok) throw new Error('Error approving');
 
-        if (!response.ok) throw new Error('Error approving');
-
-        showToast('✅ Document approved!', 'success');
-        state.docSelecionado = null;
-        carregarDocumentos();
-    } catch (error) {
-        console.error('Error:', error);
-        showToast('Error: ' + error.message, 'error');
-    }
+            showToast('✅ Document approved!', 'success');
+            state.docSelecionado = null;
+            state.editData = null;
+            carregarDocumentos();
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Error: ' + error.message, 'error');
+        }
+    });
 }
 
 async function pedirAlteracoes(docId) {
@@ -1574,64 +2096,67 @@ async function pedirAlteracoes(docId) {
         return;
     }
 
-    if (!confirm('Request changes for this document?')) return;
+    showConfirm('Request changes for this document?', async function() {
+        try {
+            const response = await fetch(`${API_URL}/documentos/${docId}/pedir-alteracoes`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ comentario: comentario })
+            });
 
-    try {
-        const response = await fetch(`${API_URL}/documentos/${docId}/pedir-alteracoes`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ comentario: comentario })
-        });
+            if (!response.ok) throw new Error('Error requesting changes');
 
-        if (!response.ok) throw new Error('Error requesting changes');
-
-        showToast('✅ Changes requested!', 'success');
-        carregarDocumentoDetalhe(docId);
-        carregarDocumentos();
-    } catch (error) {
-        console.error('Error:', error);
-        showToast('Error: ' + error.message, 'error');
-    }
+            showToast('✅ Changes requested!', 'success');
+            state.docSelecionado = null;
+            state.editData = null;
+            carregarDocumentos();
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Error: ' + error.message, 'error');
+        }
+    });
 }
 
 async function reabrirDocumento(docId) {
-    if (!confirm('Reopen this document?')) return;
+    showConfirm('Reopen this document?', async function() {
+        try {
+            const response = await fetch(`${API_URL}/documentos/${docId}/reabrir`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            });
 
-    try {
-        const response = await fetch(`${API_URL}/documentos/${docId}/reabrir`, {
-            method: 'POST',
-            headers: getAuthHeaders()
-        });
+            if (!response.ok) throw new Error('Error reopening');
 
-        if (!response.ok) throw new Error('Error reopening');
-
-        showToast('✅ Document reopened!', 'success');
-        carregarDocumentoDetalhe(docId);
-        carregarDocumentos();
-    } catch (error) {
-        console.error('Error:', error);
-        showToast('Error: ' + error.message, 'error');
-    }
+            showToast('✅ Document reopened!', 'success');
+            state.docSelecionado = null;
+            state.editData = null;
+            carregarDocumentos();
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Error: ' + error.message, 'error');
+        }
+    });
 }
 
 async function arquivarDocumento(docId) {
-    if (!confirm('Archive this document?')) return;
+    showConfirm('Archive this document?', async function() {
+        try {
+            const response = await fetch(`${API_URL}/documentos/${docId}/arquivar`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            });
 
-    try {
-        const response = await fetch(`${API_URL}/documentos/${docId}/arquivar`, {
-            method: 'POST',
-            headers: getAuthHeaders()
-        });
+            if (!response.ok) throw new Error('Error archiving');
 
-        if (!response.ok) throw new Error('Error archiving');
-
-        showToast('✅ Document archived!', 'success');
-        state.docSelecionado = null;
-        carregarDocumentos();
-    } catch (error) {
-        console.error('Error:', error);
-        showToast('Error: ' + error.message, 'error');
-    }
+            showToast('✅ Document archived!', 'success');
+            state.docSelecionado = null;
+            state.editData = null;
+            carregarDocumentos();
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Error: ' + error.message, 'error');
+        }
+    });
 }
 
 function fecharDocumento() {
@@ -1785,7 +2310,6 @@ function renderDashboard(kpis, documentos, topParceiros) {
     const taxaAprovacao = kpis.taxa_aprovacao || 0;
 
     let html = `
-        <!-- STATS -->
         <div class="dashboard-stats" style="margin-bottom:24px;">
             <div class="dashboard-stat-card">
                 <div class="stat-icon stat-icon-draft">
@@ -1819,7 +2343,6 @@ function renderDashboard(kpis, documentos, topParceiros) {
             </div>
         </div>
 
-        <!-- GRÁFICOS -->
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-bottom:24px;">
             <div style="background:#f7f7f8;border-radius:16px;padding:16px;">
                 <h4 style="color:#17345a;margin:0 0 12px;">Documents by Status</h4>
@@ -1832,7 +2355,6 @@ function renderDashboard(kpis, documentos, topParceiros) {
         </div>
     `;
 
-    // ✅ TOP PARTNERS (mantido)
     if (topParceiros && topParceiros.length > 0) {
         html += `
             <div style="background:#f7f7f8;border-radius:16px;padding:16px;margin-bottom:24px;">
@@ -1842,36 +2364,21 @@ function renderDashboard(kpis, documentos, topParceiros) {
         `;
     }
 
-    // ❌ TABELA DE DOCUMENTOS RECENTES REMOVIDA
-
     container.innerHTML = html;
-
-    // Renderizar gráficos
     renderGraficos(estados, topParceiros);
 }
 
 function renderGraficos(estados, topParceiros) {
-    // ✅ CONFIGURAÇÃO PARA REMOVER TODOS OS BOTÕES
     const config = {
         displaylogo: false,
         responsive: true,
-        staticPlot: false, // Mantém false para exibir, mas remove botões
+        staticPlot: false,
         modeBarButtonsToRemove: [
-            'zoom2d',
-            'pan2d',
-            'select2d',
-            'lasso2d',
-            'zoomIn2d',
-            'zoomOut2d',
-            'autoScale2d',
-            'resetScale2d',
-            'hoverClosestCartesian',
-            'hoverCompareCartesian',
-            'toImage',
-            'sendDataToCloud',
-            'toggleSpikelines',
-            'resetViews',
-            'toggleHover'
+            'zoom2d', 'pan2d', 'select2d', 'lasso2d',
+            'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d',
+            'hoverClosestCartesian', 'hoverCompareCartesian',
+            'toImage', 'sendDataToCloud', 'toggleSpikelines',
+            'resetViews', 'toggleHover'
         ]
     };
 
@@ -1971,7 +2478,383 @@ function renderGraficos(estados, topParceiros) {
 }
 
 // =====================================================
-// NOTIFICAÇÕES
+// DOCUMENTOS - CRIAR
+// =====================================================
+
+function abrirFormCriar() {
+    if (state.perfil === 'parceiro') {
+        showToast('Only companies can create documents.', 'warning');
+        return;
+    }
+
+    if (state.perfil === 'admin') {
+        showToast('Administrators cannot create documents. Only companies can create documents.', 'warning');
+        return;
+    }
+
+    fetch(`${API_URL}/parceiros/disponiveis`, {
+        headers: getAuthHeaders()
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Error loading partners');
+        return response.json();
+    })
+    .then(parceiros => {
+        renderFormCriar(parceiros);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Error loading partners. Please try again.', 'error');
+    });
+}
+
+function renderFormCriar(parceiros) {
+    const container = document.getElementById('appContent');
+    if (!container) return;
+
+    window.parceirosSelecionados = [];
+
+    let html = `
+        <div style="background:rgba(255,255,255,0.05);border-radius:16px;padding:24px;margin:20px 0;max-width:100%;overflow:hidden;">
+            <h3 style="color:#fff;margin:0 0 16px;">📝 Create New Document</h3>
+            <p style="color:rgba(255,255,255,0.6);margin-bottom:20px;">
+                Company creating a document for partners to fill in.
+            </p>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div class="form-group" style="margin:0;">
+                    <label style="color:rgba(255,255,255,0.8);display:block;margin-bottom:4px;font-size:13px;">Document Title *</label>
+                    <input type="text" id="novoTitulo" placeholder="Ex: LCA/LCC NEO-CYCLE" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:14px;box-sizing:border-box;" />
+                </div>
+
+                <div class="form-group" style="margin:0;">
+                    <label style="color:rgba(255,255,255,0.8);display:block;margin-bottom:4px;font-size:13px;">Functional Unit *</label>
+                    <input type="text" id="novoFunctionalUnit" placeholder="Ex: 1 kg of product..." style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:14px;box-sizing:border-box;" />
+                </div>
+
+                <div class="form-group" style="margin:0;">
+                    <label style="color:rgba(255,255,255,0.8);display:block;margin-bottom:4px;font-size:13px;">System Boundary *</label>
+                    <input type="text" id="novoSystemBoundary" placeholder="Ex: Cradle-to-gate..." style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:14px;box-sizing:border-box;" />
+                </div>
+
+                <div class="form-group" style="margin:0;">
+                    <label style="color:rgba(255,255,255,0.8);display:block;margin-bottom:4px;font-size:13px;">Partners *</label>
+                    <select id="novoParceiroSelect" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.15);color:#fff;font-size:14px;box-sizing:border-box;">
+                        <option value="" style="background:#1a2a4a;color:rgba(255,255,255,0.6);">Select a partner...</option>
+                        ${parceiros.map(p => `<option value="${p.username}" style="background:#1a2a4a;color:#fff;padding:8px;">${p.username} - ${p.nome_completo}</option>`).join('')}
+                    </select>
+                    <button class="btn btn-secondary btn-sm" onclick="adicionarParceiroSelecionado()" style="margin-top:4px;width:100%;">➕ Add Partner</button>
+                    <div id="parceirosSelecionadosContainer" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
+                        ${window.parceirosSelecionados.map(p => `
+                            <span class="status-tag status-submitted" style="padding:4px 12px;font-size:13px;display:inline-flex;align-items:center;gap:6px;">
+                                ${p}
+                                <span style="cursor:pointer;color:#ff6b6b;font-weight:bold;" onclick="removerParceiroSelecionado('${p}')">✕</span>
+                            </span>
+                        `).join('')}
+                    </div>
+                    <p style="color:rgba(255,255,255,0.4);font-size:11px;margin-top:4px;">Select partners and click "Add Partner" to add them</p>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top:16px;">
+                <label style="color:rgba(255,255,255,0.8);display:block;margin-bottom:4px;font-size:13px;">Processes</label>
+                <p style="color:rgba(255,255,255,0.4);font-size:12px;margin-bottom:8px;">Select the processes that will be available in this document</p>
+                <div class="processo-check-container" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px;">
+                    ${PROCESSOS_PADRAO.map(proc => `
+                        <label style="color:rgba(255,255,255,0.7);font-size:13px;display:flex;align-items:center;gap:8px;cursor:pointer;">
+                            <input type="checkbox" value="${proc}" class="processo-check" style="width:15px;height:15px;cursor:pointer;" />
+                            ${proc}
+                        </label>
+                    `).join('')}
+                </div>
+                <div style="margin-top:8px;display:flex;gap:8px;">
+                    <input type="text" id="novoProcessoInput" placeholder="Add custom process..." style="flex:1;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:13px;box-sizing:border-box;" />
+                    <button class="btn btn-secondary btn-sm" onclick="adicionarProcessoCustom()" style="white-space:nowrap;">Add</button>
+                </div>
+                <div id="processosCustom" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;"></div>
+            </div>
+
+            <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;">
+                <button class="btn btn-primary" onclick="criarDocumento()">✅ Create Document</button>
+                <button class="btn btn-secondary" onclick="fecharFormCriar()">❌ Cancel</button>
+            </div>
+        </div>
+        <div id="documentosLista"></div>
+    `;
+
+    container.innerHTML = html;
+}
+
+function adicionarProcessoCustom() {
+    const input = document.getElementById('novoProcessoInput');
+    if (!input || !input.value.trim()) return;
+
+    const nome = input.value.trim();
+    const container = document.getElementById('processosCustom');
+    if (!container) return;
+
+    const existingCheck = document.querySelector(`.processo-check[value="${nome}"]`);
+    if (existingCheck) {
+        showToast('This process already exists in the list.', 'warning');
+        return;
+    }
+
+    const existing = container.querySelector(`[data-processo="${nome}"]`);
+    if (existing) {
+        showToast('This process already exists.', 'warning');
+        return;
+    }
+
+    const chip = document.createElement('span');
+    chip.className = 'status-tag status-draft';
+    chip.setAttribute('data-processo', nome);
+    chip.innerHTML = `${nome} <span style="cursor:pointer;margin-left:4px;color:#ff6b6b;" onclick="removerProcessoCustom(this)">✕</span>`;
+    container.appendChild(chip);
+    input.value = '';
+    
+    const checkboxContainer = document.querySelector('.processo-check-container');
+    if (checkboxContainer) {
+        const label = document.createElement('label');
+        label.style.cssText = 'color:rgba(255,255,255,0.7);font-size:14px;display:flex;align-items:center;gap:8px;cursor:pointer;';
+        label.innerHTML = `
+            <input type="checkbox" value="${nome}" checked class="processo-check" style="width:16px;height:16px;cursor:pointer;" />
+            ${nome}
+        `;
+        checkboxContainer.appendChild(label);
+    }
+    
+    showToast(`✅ Process '${nome}' added!`, 'success');
+}
+
+function removerProcessoCustom(el) {
+    const container = document.getElementById('processosCustom');
+    if (container) {
+        container.removeChild(el.closest('[data-processo]') || el.parentElement);
+    }
+}
+
+function getProcessosSelecionados() {
+    const checks = document.querySelectorAll('.processo-check:checked');
+    const processos = Array.from(checks).map(c => c.value);
+
+    const custom = document.querySelectorAll('#processosCustom [data-processo]');
+    custom.forEach(el => {
+        const nome = el.getAttribute('data-processo');
+        if (nome && !processos.includes(nome)) {
+            processos.push(nome);
+        }
+    });
+
+    console.log('📋 Processos selecionados:', processos);
+    return processos;
+}
+
+async function criarDocumento() {
+    const titulo = document.getElementById('novoTitulo')?.value.trim();
+    const functionalUnit = document.getElementById('novoFunctionalUnit')?.value.trim();
+    const systemBoundary = document.getElementById('novoSystemBoundary')?.value.trim();
+    const parceirosIds = window.parceirosSelecionados || [];
+
+    if (!titulo) {
+        showToast('Please enter a document title.', 'warning');
+        return;
+    }
+
+    if (!functionalUnit) {
+        showToast('Please enter the Functional Unit.', 'warning');
+        return;
+    }
+
+    if (!systemBoundary) {
+        showToast('Please enter the System Boundary.', 'warning');
+        return;
+    }
+
+    if (!parceirosIds || parceirosIds.length === 0) {
+        showToast('Please select at least one partner.', 'warning');
+        return;
+    }
+
+    const processos = getProcessosSelecionados();
+    
+    if (processos.length === 0) {
+        showToast('Please select at least one process.', 'warning');
+        return;
+    }
+
+    const dados = criarEstruturaDocumento(processos);
+    dados.functional_unit = functionalUnit;
+    dados.system_boundary = systemBoundary;
+
+    const payload = {
+        titulo: titulo,
+        parceiros_ids: parceirosIds,
+        empresa_id: state.username,
+        dados: dados
+    };
+
+    console.log('📤 Enviando documento:', JSON.stringify(payload, null, 2));
+
+    try {
+        const response = await fetch(`${API_URL}/documentos/`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(payload)
+        });
+
+        const responseText = await response.text();
+        console.log('📥 Status:', response.status);
+        console.log('📥 Resposta:', responseText);
+
+        let responseData;
+        try {
+            responseData = JSON.parse(responseText);
+        } catch (e) {
+            console.error('❌ Erro ao fazer parse do JSON:', e);
+            throw new Error(`Resposta do servidor: ${responseText.substring(0, 200)}`);
+        }
+
+        if (!response.ok) {
+            let errorMessage = 'Erro desconhecido';
+            if (responseData.detail) {
+                if (typeof responseData.detail === 'string') {
+                    errorMessage = responseData.detail;
+                } else if (Array.isArray(responseData.detail)) {
+                    errorMessage = responseData.detail.map(e => e.msg || e).join(', ');
+                } else {
+                    errorMessage = JSON.stringify(responseData.detail);
+                }
+            } else if (responseData.message) {
+                errorMessage = responseData.message;
+            } else if (responseData.error) {
+                errorMessage = responseData.error;
+            } else {
+                errorMessage = JSON.stringify(responseData);
+            }
+            
+            console.error('❌ Erro do backend:', errorMessage);
+            throw new Error(errorMessage);
+        }
+
+        console.log('✅ Documento criado:', responseData);
+        
+        window.parceirosSelecionados = [];
+        
+        showToast(`✅ Document created successfully! ID: ${responseData.id}`, 'success');
+        state.docSelecionado = null;
+        state.editData = null;
+        carregarDocumentos();
+    } catch (error) {
+        console.error('❌ Error creating document:', error);
+        showToast('Error creating document: ' + error.message, 'error');
+    }
+}
+
+function criarEstruturaDocumento(processos) {
+    console.log('📦 Criando estrutura para processos:', processos);
+    
+    const estrutura = {
+        lca: {
+            inputs: {},
+            processes: {},
+            outputs: {}
+        },
+        lcc: {
+            materials: {},
+            equipment: {},
+            labour: {},
+            outputs: {}
+        }
+    };
+
+    processos.forEach(p => {
+        console.log('📝 A criar estrutura para processo:', p);
+        
+        estrutura.lca.inputs[p] = [
+            { material: "", qty: "", unit: "", description: "", cas: "", distance: "", country: "", datasource: "" }
+        ];
+
+        estrutura.lca.processes[p] = [
+            { tipo: "Energy Consumption (kWh)", qty: "", unit: "kWh", description: "", comments: "", datasource: "" },
+            { tipo: "Rate Power of the Equipment (W)", qty: "", unit: "W", description: "", comments: "", datasource: "" },
+            { tipo: "Operating Time (h)", qty: "", unit: "h", description: "", comments: "", datasource: "" }
+        ];
+
+        estrutura.lca.outputs[p] = [
+            { etapa: "", tipo: "", sub_tipo: "", qty: "", unit: "", description: "", comments: "", datasource: "" }
+        ];
+
+        estrutura.lcc.materials[p] = [
+            { material: "", price: "", qty: "", unit: "€", description: "", comments: "", distance: "", country: "", datasource: "" }
+        ];
+
+        estrutura.lcc.equipment[p] = [
+            { equipment: "", process: "", unit_cost: "", lifespan: "", maintenance: "", industrial_equiv: "", comments: "", datasource: "" }
+        ];
+
+        estrutura.lcc.labour[p] = [
+            { process: "", total_number: "", total_cost: "", high_skilled: "", moderate_skilled: "", unskilled: "", high_rate: "", moderate_rate: "", unskilled_rate: "", comments: "", datasource: "" }
+        ];
+
+        estrutura.lcc.outputs[p] = [
+            { material: "", market_price: "", quantity: "", unit: "€", amount_produced: "", comments: "", datasource: "" }
+        ];
+    });
+
+    return estrutura;
+}
+
+function fecharFormCriar() {
+    window.parceirosSelecionados = [];
+    carregarDocumentos();
+}
+
+// =====================================================
+// DOCUMENTOS - FILTROS
+// =====================================================
+
+function aplicarFiltros() {
+    const busca = document.getElementById('filtroBusca')?.value || '';
+    const estadoSelect = document.getElementById('filtroEstados');
+    const estadoSelecionado = estadoSelect ? estadoSelect.value : '';
+    const dataInicio = document.getElementById('filtroDataInicio')?.value || '';
+    const dataFim = document.getElementById('filtroDataFim')?.value || '';
+
+    const estados = estadoSelecionado ? [estadoSelecionado] : [];
+
+    state.filtros = {
+        q: busca,
+        estados: estados,
+        dataInicio: dataInicio || null,
+        dataFim: dataFim || null
+    };
+
+    carregarDocumentos();
+}
+
+function limparFiltros() {
+    state.filtros = {
+        q: '',
+        estados: [],
+        dataInicio: null,
+        dataFim: null
+    };
+    
+    const buscaInput = document.getElementById('filtroBusca');
+    const estadoSelect = document.getElementById('filtroEstados');
+    const dataInicioInput = document.getElementById('filtroDataInicio');
+    const dataFimInput = document.getElementById('filtroDataFim');
+    
+    if (buscaInput) buscaInput.value = '';
+    if (estadoSelect) estadoSelect.value = '';
+    if (dataInicioInput) dataInicioInput.value = '';
+    if (dataFimInput) dataFimInput.value = '';
+    
+    carregarDocumentos();
+}
+
+// =====================================================
+// NOTIFICAÇÕES (mantido igual)
 // =====================================================
 
 async function carregarNotificacoes() {
@@ -2098,313 +2981,6 @@ function irParaDocumento(link) {
 }
 
 // =====================================================
-// DOCUMENTOS - CRIAR
-// =====================================================
-
-function abrirFormCriar() {
-    if (state.perfil === 'parceiro') {
-        showToast('Only companies can create documents.', 'warning');
-        return;
-    }
-
-    if (state.perfil === 'admin') {
-        showToast('Administrators cannot create documents. Only companies can create documents.', 'warning');
-        return;
-    }
-
-    fetch(`${API_URL}/parceiros/disponiveis`, {
-        headers: getAuthHeaders()
-    })
-    .then(response => {
-        if (!response.ok) throw new Error('Error loading partners');
-        return response.json();
-    })
-    .then(parceiros => {
-        renderFormCriar(parceiros);
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showToast('Error loading partners. Please try again.', 'error');
-    });
-}
-
-function renderFormCriar(parceiros) {
-    const container = document.getElementById('appContent');
-    if (!container) return;
-
-    let html = `
-        <div style="background:rgba(255,255,255,0.05);border-radius:16px;padding:24px;margin:20px 0;">
-            <h3 style="color:#fff;margin:0 0 16px;">📝 Create New Document</h3>
-            <p style="color:rgba(255,255,255,0.6);margin-bottom:20px;">
-                Company creating a document for a partner to fill in.
-            </p>
-
-            <div class="form-group">
-                <label style="color:rgba(255,255,255,0.8);">Document Title *</label>
-                <input type="text" id="novoTitulo" placeholder="Ex: LCA/LCC NEO-CYCLE" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:15px;" />
-            </div>
-
-            <div class="form-group">
-                <label style="color:rgba(255,255,255,0.8);">Partner *</label>
-                <select id="novoParceiro" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.15);color:#fff;font-size:15px;">
-                    <option value="" style="background:#1a2a4a;color:rgba(255,255,255,0.6);">Select a partner...</option>
-                    ${parceiros.map(p => `<option value="${p.username}" style="background:#1a2a4a;color:#fff;padding:8px;">${p.username} - ${p.nome_completo}</option>`).join('')}
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label style="color:rgba(255,255,255,0.8);">Processes</label>
-                <p style="color:rgba(255,255,255,0.4);font-size:13px;margin-bottom:8px;">Select the processes that will be available in this document</p>
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;">
-                    ${PROCESSOS_PADRAO.map(proc => `
-                        <label style="color:rgba(255,255,255,0.7);font-size:14px;display:flex;align-items:center;gap:8px;cursor:pointer;">
-                            <input type="checkbox" value="${proc}" class="processo-check" style="width:16px;height:16px;cursor:pointer;" />
-                            ${proc}
-                        </label>
-                    `).join('')}
-                </div>
-                <div style="margin-top:10px;display:flex;gap:10px;">
-                    <input type="text" id="novoProcessoInput" placeholder="Add custom process..." style="flex:1;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;" />
-                    <button class="btn btn-secondary btn-sm" onclick="adicionarProcessoCustom()">Add</button>
-                </div>
-                <div id="processosCustom" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;"></div>
-            </div>
-
-            <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;">
-                <button class="btn btn-primary" onclick="criarDocumento()">✅ Create Document</button>
-                <button class="btn btn-secondary" onclick="fecharFormCriar()">❌ Cancel</button>
-            </div>
-        </div>
-        <div id="documentosLista"></div>
-    `;
-
-    container.innerHTML = html;
-}
-
-function adicionarProcessoCustom() {
-    const input = document.getElementById('novoProcessoInput');
-    if (!input || !input.value.trim()) return;
-
-    const nome = input.value.trim();
-    const container = document.getElementById('processosCustom');
-    if (!container) return;
-
-    const existing = container.querySelector(`[data-processo="${nome}"]`);
-    if (existing) {
-        showToast('This process already exists.', 'warning');
-        return;
-    }
-
-    const chip = document.createElement('span');
-    chip.className = 'status-tag status-draft';
-    chip.setAttribute('data-processo', nome);
-    chip.innerHTML = `${nome} <span style="cursor:pointer;margin-left:4px;" onclick="removerProcessoCustom(this)">✕</span>`;
-    container.appendChild(chip);
-    input.value = '';
-}
-
-function removerProcessoCustom(el) {
-    const container = document.getElementById('processosCustom');
-    if (container) {
-        container.removeChild(el.closest('[data-processo]') || el.parentElement);
-    }
-}
-
-function getProcessosSelecionados() {
-    const checks = document.querySelectorAll('.processo-check:checked');
-    const processos = Array.from(checks).map(c => c.value);
-
-    const custom = document.querySelectorAll('#processosCustom [data-processo]');
-    custom.forEach(el => {
-        processos.push(el.getAttribute('data-processo'));
-    });
-
-    return processos;
-}
-
-async function criarDocumento() {
-    const titulo = document.getElementById('novoTitulo')?.value.trim();
-    const parceiro = document.getElementById('novoParceiro')?.value;
-
-    if (!titulo) {
-        showToast('Please enter a document title.', 'warning');
-        return;
-    }
-
-    if (!parceiro) {
-        showToast('Please select a partner.', 'warning');
-        return;
-    }
-
-    const processos = getProcessosSelecionados();
-    
-    if (processos.length === 0) {
-        showToast('Please select at least one process.', 'warning');
-        return;
-    }
-
-    const dados = criarEstruturaDocumento(processos);
-
-    const payload = {
-        titulo: titulo,
-        parceiro_id: parceiro,
-        empresa_id: state.username,
-        dados: dados
-    };
-
-    console.log('📤 Enviando documento:', JSON.stringify(payload, null, 2));
-
-    try {
-        const response = await fetch(`${API_URL}/documentos/`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(payload)
-        });
-
-        const responseText = await response.text();
-        console.log('📥 Status:', response.status);
-        console.log('📥 Resposta:', responseText);
-
-        let responseData;
-        try {
-            responseData = JSON.parse(responseText);
-        } catch (e) {
-            console.error('❌ Erro ao fazer parse do JSON:', e);
-            throw new Error(`Resposta do servidor: ${responseText.substring(0, 200)}`);
-        }
-
-        if (!response.ok) {
-            let errorMessage = 'Erro desconhecido';
-            if (responseData.detail) {
-                if (typeof responseData.detail === 'string') {
-                    errorMessage = responseData.detail;
-                } else if (Array.isArray(responseData.detail)) {
-                    errorMessage = responseData.detail.map(e => e.msg || e).join(', ');
-                } else {
-                    errorMessage = JSON.stringify(responseData.detail);
-                }
-            } else if (responseData.message) {
-                errorMessage = responseData.message;
-            } else if (responseData.error) {
-                errorMessage = responseData.error;
-            } else {
-                errorMessage = JSON.stringify(responseData);
-            }
-            
-            console.error('❌ Erro do backend:', errorMessage);
-            throw new Error(errorMessage);
-        }
-
-        console.log('✅ Documento criado:', responseData);
-        showToast(`✅ Document created successfully! ID: ${responseData.id}`, 'success');
-        state.docSelecionado = null;
-        state.editData = null;
-        carregarDocumentos();
-    } catch (error) {
-        console.error('❌ Error creating document:', error);
-        showToast('Error creating document: ' + error.message, 'error');
-    }
-}
-
-function criarEstruturaDocumento(processos) {
-    const estrutura = {
-        lca: {
-            inputs: {},
-            processes: {},
-            outputs: {}
-        },
-        lcc: {
-            materials: {},
-            equipment: {},
-            labour: {},
-            outputs: {}
-        }
-    };
-
-    processos.forEach(p => {
-        estrutura.lca.inputs[p] = [
-            { material: "", qty: "", unit: "", description: "", cas: "", distance: "", country: "", datasource: "" }
-        ];
-
-        estrutura.lca.processes[p] = [
-            { tipo: "Energy Consumption (kWh)", qty: "", unit: "kWh", description: "", comments: "", datasource: "" },
-            { tipo: "Rate Power of the Equipment (W)", qty: "", unit: "W", description: "", comments: "", datasource: "" },
-            { tipo: "Operating Time (h)", qty: "", unit: "h", description: "", comments: "", datasource: "" }
-        ];
-
-        estrutura.lca.outputs[p] = [
-            { etapa: "", tipo: "", sub_tipo: "", qty: "", unit: "", description: "", comments: "", datasource: "" }
-        ];
-
-        estrutura.lcc.materials[p] = [
-            { material: "", price: "", qty: "", unit: "€", description: "", comments: "", distance: "", country: "", datasource: "" }
-        ];
-
-        estrutura.lcc.equipment[p] = [
-            { equipment: "", process: "", unit_cost: "", lifespan: "", maintenance: "", industrial_equiv: "", comments: "", datasource: "" }
-        ];
-
-        estrutura.lcc.labour[p] = [
-            { process: "", total_number: "", total_cost: "", high_skilled: "", moderate_skilled: "", unskilled: "", high_rate: "", moderate_rate: "", unskilled_rate: "", comments: "", datasource: "" }
-        ];
-
-        estrutura.lcc.outputs[p] = [
-            { material: "", market_price: "", quantity: "", unit: "€", amount_produced: "", comments: "", datasource: "" }
-        ];
-    });
-
-    return estrutura;
-}
-
-function fecharFormCriar() {
-    carregarDocumentos();
-}
-
-// =====================================================
-// DOCUMENTOS - FILTROS
-// =====================================================
-
-function aplicarFiltros() {
-    const busca = document.getElementById('filtroBusca')?.value || '';
-    const estadoSelect = document.getElementById('filtroEstados');
-    const estadoSelecionado = estadoSelect ? estadoSelect.value : '';
-    const dataInicio = document.getElementById('filtroDataInicio')?.value || '';
-    const dataFim = document.getElementById('filtroDataFim')?.value || '';
-
-    const estados = estadoSelecionado ? [estadoSelecionado] : [];
-
-    state.filtros = {
-        q: busca,
-        estados: estados,
-        dataInicio: dataInicio || null,
-        dataFim: dataFim || null
-    };
-
-    carregarDocumentos();
-}
-
-function limparFiltros() {
-    state.filtros = {
-        q: '',
-        estados: [],
-        dataInicio: null,
-        dataFim: null
-    };
-    
-    const buscaInput = document.getElementById('filtroBusca');
-    const estadoSelect = document.getElementById('filtroEstados');
-    const dataInicioInput = document.getElementById('filtroDataInicio');
-    const dataFimInput = document.getElementById('filtroDataFim');
-    
-    if (buscaInput) buscaInput.value = '';
-    if (estadoSelect) estadoSelect.value = '';
-    if (dataInicioInput) dataInicioInput.value = '';
-    if (dataFimInput) dataFimInput.value = '';
-    
-    carregarDocumentos();
-}
-
-// =====================================================
 // INICIALIZAÇÃO - USAR AUTH DO WINDOW
 // =====================================================
 
@@ -2492,4 +3068,8 @@ window.criarUtilizador = criarUtilizador;
 window.abrirFormAlterarPassword = abrirFormAlterarPassword;
 window.alterarPassword = alterarPassword;
 window.eliminarUtilizador = eliminarUtilizador;
+window.eliminarDocumento = eliminarDocumento;
 window.showToast = showToast;
+window.adicionarParceiroSelecionado = adicionarParceiroSelecionado;
+window.removerParceiroSelecionado = removerParceiroSelecionado;
+window.atualizarParceirosSelecionados = atualizarParceirosSelecionados;
