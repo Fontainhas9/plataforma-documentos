@@ -1104,7 +1104,6 @@ function renderDocumentoDetalhe(doc) {
     const estadoDisplay = getEstadoDisplay(doc.estado);
     const estadoClass = getEstadoClass(doc.estado);
 
-    // ✅ VERIFICAR SE O UTILIZADOR ATUAL É UM DOS PARCEIROS
     const isPartnerAssigned = doc.parceiros_ids && doc.parceiros_ids.includes(state.username);
 
     const podeEditar = isParceiro && isPartnerAssigned && (doc.estado === 'Rascunho' || doc.estado === 'Alterações');
@@ -1123,6 +1122,62 @@ function renderDocumentoDetalhe(doc) {
 
     const shouldBeOpen = doc.estado === 'Em Revisão' || doc.estado === 'Submetido';
 
+    // ============================================================
+    // FUNÇÃO PARA GERAR BOTÕES DE AÇÃO (reutilizável)
+    // ============================================================
+    function gerarBotoesAcao(docId, titulo, posicao) {
+        let html = `
+            <div class="actions-container" style="display:flex;flex-wrap:wrap;gap:10px;margin:${posicao === 'topo' ? '0 0 20px 0' : '20px 0 0 0'};padding:${posicao === 'topo' ? '0 0 16px 0' : '16px 0 0 0'};border-bottom:${posicao === 'topo' ? '1px solid rgba(255,255,255,0.06)' : 'none'};border-top:${posicao === 'baixo' ? '1px solid rgba(255,255,255,0.06)' : 'none'};">
+        `;
+
+        if (podeEditar) {
+            html += `<button class="btn btn-primary" onclick="abrirEdicaoDocumento(${docId})">✏️ Edit</button>`;
+        }
+
+        if (podeSubmeter) {
+            html += `<button class="btn btn-success" onclick="submeterDocumento(${docId})">📤 Submit for Review</button>`;
+        }
+
+        if (podeRevisar) {
+            html += `<button class="btn btn-warning" onclick="iniciarRevisao(${docId})">🔍 Start Review</button>`;
+        }
+
+        if (podeAprovar) {
+            html += `<button class="btn btn-success" onclick="aprovarDocumento(${docId})">✅ Approve</button>`;
+        }
+
+        if (podePedirAlteracoes) {
+            html += `
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                    <input type="text" id="comentarioAlteracoes_${posicao}" placeholder="Reason for changes..." style="flex:1;min-width:200px;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;" />
+                    <button class="btn btn-danger" onclick="pedirAlteracoes(${docId})">🔄 Request Changes</button>
+                </div>
+            `;
+        }
+
+        if (podeReabrir) {
+            html += `<button class="btn btn-warning" onclick="reabrirDocumento(${docId})">🔁 Reopen</button>`;
+        }
+
+        if (podeArquivar) {
+            html += `<button class="btn btn-secondary" onclick="arquivarDocumento(${docId})">📁 Archive</button>`;
+        }
+
+        html += `
+            <button class="btn btn-secondary" onclick="exportarExcel(${docId}, '${doc.titulo}')">📊 Export Excel</button>
+            <button class="btn btn-secondary" onclick="fecharDocumento()">✖ Close</button>
+        `;
+
+        html += `
+            </div>
+        `;
+
+        return html;
+    }
+
+    // ============================================================
+    // HTML PRINCIPAL
+    // ============================================================
     let html = `
         <div style="background:rgba(255,255,255,0.05);border-radius:16px;padding:24px;border-left:4px solid #fec800;">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
@@ -1157,6 +1212,19 @@ function renderDocumentoDetalhe(doc) {
             </div>
     `;
 
+    // ============================================================
+    // BOTÕES DE AÇÃO - TOPO (acima da caixa de comentários)
+    // ============================================================
+    html += gerarBotoesAcao(doc.id, 'Actions', 'topo');
+
+    // ============================================================
+    // CAIXA DE COMENTÁRIOS - TOPO
+    // ============================================================
+    html += gerarCaixaComentarios(doc.id);
+
+    // ============================================================
+    // CONTEÚDO DO DOCUMENTO
+    // ============================================================
     html += `
         <div style="margin-bottom:20px;">
             <button class="btn btn-secondary btn-sm" onclick="toggleConteudoDocumento(${doc.id})">
@@ -1168,52 +1236,9 @@ function renderDocumentoDetalhe(doc) {
         </div>
     `;
 
-    html += `
-        <div class="actions-container" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06);">
-    `;
-
-    if (podeEditar) {
-        html += `<button class="btn btn-primary" onclick="abrirEdicaoDocumento(${doc.id})">✏️ Edit</button>`;
-    }
-
-    if (podeSubmeter) {
-        html += `<button class="btn btn-success" onclick="submeterDocumento(${doc.id})">📤 Submit for Review</button>`;
-    }
-
-    if (podeRevisar) {
-        html += `<button class="btn btn-warning" onclick="iniciarRevisao(${doc.id})">🔍 Start Review</button>`;
-    }
-
-    if (podeAprovar) {
-        html += `<button class="btn btn-success" onclick="aprovarDocumento(${doc.id})">✅ Approve</button>`;
-    }
-
-    if (podePedirAlteracoes) {
-        html += `
-            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-                <input type="text" id="comentarioAlteracoes" placeholder="Reason for changes..." style="flex:1;min-width:200px;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;" />
-                <button class="btn btn-danger" onclick="pedirAlteracoes(${doc.id})">🔄 Request Changes</button>
-            </div>
-        `;
-    }
-
-    if (podeReabrir) {
-        html += `<button class="btn btn-warning" onclick="reabrirDocumento(${doc.id})">🔁 Reopen</button>`;
-    }
-
-    if (podeArquivar) {
-        html += `<button class="btn btn-secondary" onclick="arquivarDocumento(${doc.id})">📁 Archive</button>`;
-    }
-
-    html += `
-        <button class="btn btn-secondary" onclick="exportarExcel(${doc.id}, '${doc.titulo}')">📊 Export Excel</button>
-        <button class="btn btn-secondary" onclick="fecharDocumento()">✖ Close</button>
-    `;
-
-    html += `
-        </div>
-    `;
-
+    // ============================================================
+    // EDITOR (se estiver em modo de edição)
+    // ============================================================
     if (state.editData) {
         const processos = getProcessosFromData(state.editData);
         html += `<div class="editor-container">${renderEditorDocumento(doc.id, processos)}</div>`;
@@ -1221,6 +1246,9 @@ function renderDocumentoDetalhe(doc) {
         html += `<div class="editor-container"></div>`;
     }
 
+    // ============================================================
+    // HISTÓRICO DE VERSÕES
+    // ============================================================
     html += `
         <div style="margin-top:16px;">
             <button class="btn btn-secondary btn-sm" onclick="carregarHistorico(${doc.id})">📜 Version History</button>
@@ -1228,12 +1256,58 @@ function renderDocumentoDetalhe(doc) {
         </div>
     `;
 
+    // ============================================================
+    // BOTÕES DE AÇÃO - BAIXO (abaixo do histórico)
+    // ============================================================
+    html += gerarBotoesAcao(doc.id, 'Actions', 'baixo');
+
+    // ============================================================
+    // CAIXA DE COMENTÁRIOS - RODAPÉ
+    // ============================================================
+    html += gerarCaixaComentarios(doc.id);
+
     html += `
         </div>
     `;
 
     container.innerHTML = html;
 
+    // ============================================================
+    // CARREGAR CONTAGEM DE COMENTÁRIOS
+    // ============================================================
+    fetch(`${API_URL}/documentos/${doc.id}/comentarios`, {
+        headers: getAuthHeaders()
+    })
+    .then(response => response.json())
+    .then(comentarios => {
+        const badges = document.querySelectorAll(`.badge-comentarios[data-doc-id="${doc.id}"]`);
+        badges.forEach(badge => {
+            badge.textContent = comentarios.length;
+        });
+        
+        if (doc.estado === 'Em Revisão' || doc.estado === 'Submetido') {
+            setTimeout(() => {
+                const bodies = document.querySelectorAll(`.comentarios-body[data-doc-id="${doc.id}"]`);
+                bodies.forEach(body => {
+                    body.classList.add('open');
+                });
+                const icons = document.querySelectorAll(`.comentarios-toggle-icon[data-doc-id="${doc.id}"]`);
+                icons.forEach(icon => {
+                    icon.classList.add('open');
+                });
+                if (!comentariosCarregados[doc.id]) {
+                    carregarComentarios(doc.id);
+                }
+            }, 200);
+        }
+    })
+    .catch(error => {
+        console.error('Error loading comment count:', error);
+    });
+
+    // ============================================================
+    // SINCRONIZAR INPUTS
+    // ============================================================
     setTimeout(() => {
         syncEditorInputs();
         setupCheckboxListener();
@@ -1248,6 +1322,39 @@ function renderDocumentoDetalhe(doc) {
             }
         }, 100);
     }
+}
+
+// ============================================================
+// FUNÇÃO AUXILIAR PARA GERAR A CAIXA DE COMENTÁRIOS
+// ============================================================
+function gerarCaixaComentarios(docId) {
+    return `
+        <div class="comentarios-container">
+            <div class="comentarios-header" onclick="toggleComentarios(${docId})">
+                <h4>
+                    💬 Comments
+                    <span class="badge-comentarios" data-doc-id="${docId}">0</span>
+                </h4>
+                <span class="comentarios-toggle-icon" data-doc-id="${docId}">▼</span>
+            </div>
+            <div class="comentarios-body" data-doc-id="${docId}">
+                <div class="comentarios-list" data-doc-id="${docId}">
+                    <div class="comentario-vazio">⏳ Loading comments...</div>
+                </div>
+                <div class="comentario-input-area">
+                    <textarea 
+                        class="comentario-textarea"
+                        data-doc-id="${docId}"
+                        placeholder="Write a message... (Enter to send, Shift+Enter for new line)"
+                        rows="1"
+                    ></textarea>
+                    <button class="btn-enviar" onclick="enviarComentario(${docId})">
+                        📤 Send
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 // =====================================================
@@ -2979,6 +3086,217 @@ function irParaDocumento(link) {
         window.location.href = 'documentos.html';
     }
 }
+
+// =====================================================
+// COMMENTS / CHAT
+// =====================================================
+
+let comentariosVisiveis = {};
+let comentariosCarregados = {};
+
+function toggleComentarios(docId) {
+    const bodies = document.querySelectorAll(`.comentarios-body[data-doc-id="${docId}"]`);
+    const icons = document.querySelectorAll(`.comentarios-toggle-icon[data-doc-id="${docId}"]`);
+    
+    if (!bodies.length) return;
+    
+    const isOpen = bodies[0].classList.contains('open');
+    
+    bodies.forEach(body => {
+        if (isOpen) {
+            body.classList.remove('open');
+        } else {
+            body.classList.add('open');
+        }
+    });
+    
+    icons.forEach(icon => {
+        if (isOpen) {
+            icon.classList.remove('open');
+        } else {
+            icon.classList.add('open');
+        }
+    });
+    
+    if (!isOpen && !comentariosCarregados[docId]) {
+        carregarComentarios(docId);
+    }
+}
+
+async function carregarComentarios(docId) {
+    try {
+        const response = await fetch(`${API_URL}/documentos/${docId}/comentarios`, {
+            headers: getAuthHeaders()
+        });
+        
+        if (!response.ok) {
+            throw new Error('Error loading comments');
+        }
+        
+        const comentarios = await response.json();
+        comentariosCarregados[docId] = true;
+        renderComentarios(docId, comentarios);
+    } catch (error) {
+        console.error('Error loading comments:', error);
+        const containers = document.querySelectorAll(`.comentarios-list[data-doc-id="${docId}"]`);
+        containers.forEach(container => {
+            container.innerHTML = `
+                <div style="color:#ff6b6b;font-size:13px;text-align:center;padding:10px;">
+                    ❌ Error loading comments: ${error.message}
+                </div>
+            `;
+        });
+    }
+}
+
+function renderComentarios(docId, comentarios) {
+    const containers = document.querySelectorAll(`.comentarios-list[data-doc-id="${docId}"]`);
+    if (!containers.length) return;
+    
+    if (!comentarios || comentarios.length === 0) {
+        containers.forEach(container => {
+            container.innerHTML = `
+                <div class="comentario-vazio">
+                    💬 No comments yet. Be the first to comment!
+                </div>
+            `;
+        });
+        return;
+    }
+    
+    const currentUser = state.username;
+    const perfilMap = {
+        'empresa': 'company',
+        'parceiro': 'partner',
+        'admin': 'admin'
+    };
+    
+    let html = '';
+    
+    comentarios.forEach(c => {
+        const isOwn = c.username === currentUser;
+        const perfilClass = perfilMap[state.perfil] || 'partner';
+        const initials = c.username.substring(0, 2).toUpperCase();
+        
+        html += `
+            <div class="comentario-item ${isOwn ? 'comentario-proprio' : ''}">
+                <div class="avatar">${initials}</div>
+                <div class="comentario-content">
+                    <div class="comentario-header">
+                        <span class="comentario-username">
+                            ${c.username}
+                            <span class="perfil-tag ${perfilClass}">${perfilClass}</span>
+                        </span>
+                        <span class="comentario-data">${c.created_at}</span>
+                    </div>
+                    <div class="comentario-mensagem">${escapeHtml(c.mensagem)}</div>
+                </div>
+            </div>
+        `;
+    });
+    
+    containers.forEach(container => {
+        container.innerHTML = html;
+    });
+    
+    const bodies = document.querySelectorAll(`.comentarios-body[data-doc-id="${docId}"]`);
+    bodies.forEach(body => {
+        body.scrollTop = body.scrollHeight;
+    });
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+async function enviarComentario(docId) {
+    const textareas = document.querySelectorAll(`.comentario-textarea[data-doc-id="${docId}"]`);
+    const btns = document.querySelectorAll(`.comentarios-container .btn-enviar[onclick*="${docId}"]`);
+    
+    if (!textareas.length || !btns.length) return;
+    
+    const textarea = textareas[0];
+    const mensagem = textarea.value.trim();
+    
+    if (!mensagem) {
+        showToast('Please write a message.', 'warning');
+        return;
+    }
+    
+    btns.forEach(btn => {
+        btn.disabled = true;
+        btn.textContent = '⏳ Sending...';
+    });
+    
+    try {
+        const response = await fetch(`${API_URL}/documentos/${docId}/comentarios`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ mensagem: mensagem })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Error sending comment');
+        }
+        
+        textareas.forEach(t => {
+            t.value = '';
+            t.style.height = '44px';
+        });
+        
+        comentariosCarregados[docId] = false;
+        await carregarComentarios(docId);
+        
+        const bodies = document.querySelectorAll(`.comentarios-body[data-doc-id="${docId}"]`);
+        bodies.forEach(body => {
+            body.classList.add('open');
+        });
+        const icons = document.querySelectorAll(`.comentarios-toggle-icon[data-doc-id="${docId}"]`);
+        icons.forEach(icon => {
+            icon.classList.add('open');
+        });
+        
+        showToast('✅ Comment sent!', 'success');
+    } catch (error) {
+        console.error('Error sending comment:', error);
+        showToast('❌ Error sending comment: ' + error.message, 'error');
+    } finally {
+        btns.forEach(btn => {
+            btn.disabled = false;
+            btn.textContent = '📤 Send';
+        });
+    }
+}
+
+function autoResizeTextarea(textarea) {
+    textarea.style.height = '44px';
+    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+}
+
+// Initialize auto-resize listeners
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('input', function(e) {
+        if (e.target.classList && e.target.classList.contains('comentario-textarea')) {
+            autoResizeTextarea(e.target);
+        }
+    });
+    
+    document.addEventListener('keydown', function(e) {
+        if (e.target.classList && e.target.classList.contains('comentario-textarea')) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const docId = e.target.getAttribute('data-doc-id');
+                if (docId) {
+                    enviarComentario(parseInt(docId));
+                }
+            }
+        }
+    });
+});
 
 // =====================================================
 // INICIALIZAÇÃO - USAR AUTH DO WINDOW

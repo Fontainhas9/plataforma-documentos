@@ -19,7 +19,7 @@ class EstadoDocumento(str, enum.Enum):
     APROVADO = "Aprovado"
     ARQUIVADO = "Arquivado"
 
-# ✅ TABELA DE ASSOCIAÇÃO (Documento <-> Parceiros)
+# TABELA DE ASSOCIAÇÃO (Documento <-> Parceiros)
 documento_parceiros = Table(
     'documento_parceiros',
     Base.metadata,
@@ -37,7 +37,6 @@ class Utilizador(Base):
     nome_completo = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    # ✅ Documentos onde este utilizador é parceiro
     documentos_parceiro = relationship("Documento", secondary=documento_parceiros, back_populates="parceiros")
 
 class Documento(Base):
@@ -45,7 +44,7 @@ class Documento(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     titulo = Column(String, nullable=False)
-    parceiro_id = Column(String, nullable=True)  # ✅ MANTIDO PARA COMPATIBILIDADE
+    parceiro_id = Column(String, nullable=True)
     empresa_id = Column(String, nullable=False)
     estado = Column(Enum(EstadoDocumento), default=EstadoDocumento.RASCUNHO)
     versao_atual = Column(Integer, default=1)
@@ -55,6 +54,7 @@ class Documento(Base):
 
     parceiros = relationship("Utilizador", secondary=documento_parceiros, back_populates="documentos_parceiro")
     versoes = relationship("VersaoDocumento", back_populates="documento", order_by="VersaoDocumento.numero_versao")
+    comentarios = relationship("ComentarioDocumento", back_populates="documento", order_by="ComentarioDocumento.created_at")
     
 class VersaoDocumento(Base):
     __tablename__ = "versoes_documento"
@@ -70,12 +70,11 @@ class VersaoDocumento(Base):
 
     documento = relationship("Documento", back_populates="versoes")
 
-# ---------- Modelo de Notificações ----------
 class Notificacao(Base):
     __tablename__ = "notificacoes"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String, nullable=False)  # destinatário
+    username = Column(String, nullable=False)
     titulo = Column(String, nullable=False)
     mensagem = Column(Text, nullable=False)
     lida = Column(Boolean, default=False)
@@ -92,5 +91,25 @@ class Notificacao(Base):
             "lida": self.lida,
             "link": self.link,
             "icone": self.icone or "📄",
+            "created_at": self.created_at.strftime("%d/%m/%Y %H:%M") if self.created_at else ""
+        }
+
+class ComentarioDocumento(Base):
+    __tablename__ = "comentarios_documento"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    documento_id = Column(Integer, ForeignKey("documentos.id"), nullable=False)
+    username = Column(String, nullable=False)
+    mensagem = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    documento = relationship("Documento", back_populates="comentarios")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "documento_id": self.documento_id,
+            "username": self.username,
+            "mensagem": self.mensagem,
             "created_at": self.created_at.strftime("%d/%m/%Y %H:%M") if self.created_at else ""
         }

@@ -14,11 +14,11 @@ import json
 import traceback
 
 from database import SessionLocal, engine
-from models import Base, Documento, VersaoDocumento, EstadoDocumento, Utilizador, PerfilUtilizador, Notificacao
+from models import Base, Documento, VersaoDocumento, EstadoDocumento, Utilizador, PerfilUtilizador, Notificacao, ComentarioDocumento
 from schemas import (
     DocumentoCreate, DocumentoUpdate, DocumentoOut,
     VersaoOut, MudancaEstado, UtilizadorCreate, Token,
-    PasswordUpdate
+    PasswordUpdate, ComentarioCreate, ComentarioOut
 )
 from auth import (
     hash_password,
@@ -28,31 +28,26 @@ from auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
 from templates import PROCESSOS_PADRAO, get_processos_from_data, criar_estrutura_com_processos
-
-# Import dashboard functions
 from dashboard import (
     get_dashboard_kpis,
     get_top_parceiros,
     get_documentos_recentes
 )
-
-# Import notification functions
 from notificacoes import (
     criar_notificacao_para_empresa,
     criar_notificacao_para_parceiro,
     criar_notificacao_para_utilizador,
     get_notificacoes_utilizador,
-    get_notificacoes_nao_lidas_count
+    get_notificacoes_nao_lidas_count,
+    criar_notificacao
 )
 
-# Create tables (if they don't exist)
+# Create tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# ============================================================
-# ✅ CORS - PERMITIR TODAS AS ORIGENS PARA TESTE
-# ============================================================
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -62,7 +57,7 @@ app.add_middleware(
         "http://127.0.0.1:8000",
         "http://localhost:8501",
         "http://127.0.0.1:8501",
-        "*"  # PERMITIR TODAS AS ORIGENS EM DESENVOLVIMENTO
+        "*"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -132,16 +127,12 @@ def quem_sou_eu(current_user: Utilizador = Depends(get_current_user)):
         "nome_completo": current_user.nome_completo
     }
 
-# -------------------- Partners available for companies --------------------
+# -------------------- Partners --------------------
 @app.get("/parceiros/disponiveis")
 def listar_parceiros_disponiveis(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
-    """
-    Lists all available partners for companies.
-    Only companies and admins can access.
-    """
     if current_user.perfil not in [PerfilUtilizador.EMPRESA, PerfilUtilizador.ADMIN]:
         raise HTTPException(status_code=403, detail="Only companies and administrators can list partners")
     
@@ -213,10 +204,9 @@ def listar_documentos(
     
     return result
 
-# -------------------- Search and Filters --------------------
 @app.get("/documentos/pesquisar", response_model=List[DocumentoOut])
 def pesquisar_documentos(
-    q: Optional[str] = Query(None, description="Text to search (title, partner, ID)"),
+    q: Optional[str] = Query(None, description="Text to search"),
     estados: Optional[str] = Query(None, description="Filter by status (comma separated)"),
     data_inicio: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
     data_fim: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
@@ -225,12 +215,8 @@ def pesquisar_documentos(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
-    """
-    Advanced document search endpoint.
-    """
     query = db.query(Documento)
 
-    # -------------------- Text search filter --------------------
     if q:
         q = f"%{q}%"
         try:
@@ -252,7 +238,6 @@ def pesquisar_documentos(
                 )
             )
 
-    # -------------------- Status filter --------------------
     if estados:
         estados_lista = [e.strip() for e in estados.split(",") if e.strip()]
         if estados_lista:
@@ -268,7 +253,6 @@ def pesquisar_documentos(
             if estados_enum:
                 query = query.filter(Documento.estado.in_(estados_enum))
 
-    # -------------------- Date filter --------------------
     if data_inicio:
         try:
             data_inicio_dt = datetime.strptime(data_inicio, "%Y-%m-%d")
@@ -284,7 +268,6 @@ def pesquisar_documentos(
         except ValueError:
             pass
 
-    # -------------------- Profile filter --------------------
     if current_user.perfil == PerfilUtilizador.PARCEIRO:
         query = query.outerjoin(Documento.parceiros).filter(
             or_(
@@ -295,7 +278,6 @@ def pesquisar_documentos(
     elif current_user.perfil == PerfilUtilizador.EMPRESA:
         query = query.filter(Documento.empresa_id == current_user.username)
 
-    # -------------------- Ordering --------------------
     order_map = {
         "id": Documento.id,
         "titulo": Documento.titulo,
@@ -367,12 +349,13 @@ def criar_documento(
             dados=doc.dados,
             estado=EstadoDocumento.RASCUNHO,
             versao_atual=1,
-            parceiro_id=doc.parceiros_ids[0]
+            parceiro_id=doc.parceiros_ids[0]  # Manter para compatibilidade
         )
         db.add(documento)
         db.commit()
         db.refresh(documento)
 
+        # Adicionar parceiros à relação muitos-para-muitos
         for parceiro in parceiros:
             documento.parceiros.append(parceiro)
         
@@ -390,10 +373,11 @@ def criar_documento(
                 icone="📄"
             )
 
-        if doc.parceiros:
+        # Construir resposta com parceiros_ids
+        if documento.parceiros:
             parceiros_ids = [p.username for p in documento.parceiros]
-        elif doc.parceiro_id:
-            parceiros_ids = [doc.parceiro_id]
+        elif documento.parceiro_id:
+            parceiros_ids = [documento.parceiro_id]
         else:
             parceiros_ids = []
 
@@ -416,8 +400,9 @@ def criar_documento(
     except Exception as e:
         print(f"❌ Error creating document: {e}")
         print(traceback.format_exc())
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Error creating document: {str(e)}")
-
+    
 @app.get("/documentos/{doc_id}", response_model=DocumentoOut)
 def obter_documento(
     doc_id: int,
@@ -473,8 +458,6 @@ def editar_documento(
     current_user: Utilizador = Depends(get_current_user)
 ):
     try:
-        print(f"🔍 Editar documento {doc_id} por {current_user.username}")
-        
         doc = db.query(Documento).filter(Documento.id == doc_id).first()
         if not doc:
             raise HTTPException(status_code=404, detail="Document not found")
@@ -500,8 +483,6 @@ def editar_documento(
         doc.dados = update.dados
         db.commit()
         db.refresh(doc)
-        
-        print(f"✅ Documento {doc_id} atualizado com sucesso por {current_user.username}")
         
         if doc.parceiros:
             parceiros_ids = [p.username for p in doc.parceiros]
@@ -537,8 +518,6 @@ def submeter_documento(
     current_user: Utilizador = Depends(get_current_user)
 ):
     try:
-        print(f"🔍 Submeter documento {doc_id} por {current_user.username}")
-        
         doc = db.query(Documento).filter(Documento.id == doc_id).first()
         if not doc:
             raise HTTPException(status_code=404, detail="Document not found")
@@ -568,9 +547,6 @@ def submeter_documento(
         
         db.commit()
         db.refresh(doc)
-        
-        print(f"✅ Documento {doc_id} submetido com sucesso por {current_user.username}")
-        print(f"📊 Versão: {doc.versao_atual}")
         
         criar_notificacao_para_empresa(
             db=db,
@@ -638,7 +614,7 @@ def iniciar_revisao(
         mensagem=f"The document '{doc.titulo}' is under review by the company.",
         icone="🔍"
     )
-    
+
     return doc
 
 @app.post("/documentos/{doc_id}/pedir-alteracoes", response_model=DocumentoOut)
@@ -833,6 +809,105 @@ def listar_versoes(
     versoes = db.query(VersaoDocumento).filter(VersaoDocumento.documento_id == doc_id).order_by(VersaoDocumento.numero_versao).all()
     return versoes
 
+# -------------------- Comments --------------------
+@app.post("/documentos/{doc_id}/comentarios", response_model=ComentarioOut)
+def adicionar_comentario(
+    doc_id: int,
+    comentario: ComentarioCreate,
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    doc = db.query(Documento).filter(Documento.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    if current_user.perfil == PerfilUtilizador.PARCEIRO:
+        is_associated = False
+        if doc.parceiros:
+            for p in doc.parceiros:
+                if p.username == current_user.username:
+                    is_associated = True
+                    break
+        if not is_associated and doc.parceiro_id == current_user.username:
+            is_associated = True
+        if not is_associated:
+            raise HTTPException(status_code=403, detail="Access denied")
+    elif current_user.perfil == PerfilUtilizador.EMPRESA:
+        if doc.empresa_id != current_user.username:
+            raise HTTPException(status_code=403, detail="Access denied")
+    
+    novo_comentario = ComentarioDocumento(
+        documento_id=doc_id,
+        username=current_user.username,
+        mensagem=comentario.mensagem
+    )
+    db.add(novo_comentario)
+    db.commit()
+    db.refresh(novo_comentario)
+    
+    usuarios_notificar = []
+    
+    if current_user.username != doc.empresa_id:
+        usuarios_notificar.append(doc.empresa_id)
+    
+    if doc.parceiros:
+        for p in doc.parceiros:
+            if p.username != current_user.username and p.username not in usuarios_notificar:
+                usuarios_notificar.append(p.username)
+    elif doc.parceiro_id and doc.parceiro_id != current_user.username:
+        if doc.parceiro_id not in usuarios_notificar:
+            usuarios_notificar.append(doc.parceiro_id)
+    
+    if current_user.perfil != PerfilUtilizador.ADMIN:
+        admins = db.query(Utilizador).filter(Utilizador.perfil == PerfilUtilizador.ADMIN).all()
+        for admin in admins:
+            if admin.username != current_user.username and admin.username not in usuarios_notificar:
+                usuarios_notificar.append(admin.username)
+    
+    for username in usuarios_notificar:
+        criar_notificacao(
+            db=db,
+            username=username,
+            titulo=f"💬 New comment on document",
+            mensagem=f"{current_user.username} commented on '{doc.titulo}': {comentario.mensagem[:100]}{'...' if len(comentario.mensagem) > 100 else ''}",
+            link=f"/documentos?doc_id={doc_id}",
+            icone="💬"
+        )
+    
+    return novo_comentario.to_dict()
+
+@app.get("/documentos/{doc_id}/comentarios", response_model=List[ComentarioOut])
+def listar_comentarios(
+    doc_id: int,
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    doc = db.query(Documento).filter(Documento.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    if current_user.perfil == PerfilUtilizador.PARCEIRO:
+        is_associated = False
+        if doc.parceiros:
+            for p in doc.parceiros:
+                if p.username == current_user.username:
+                    is_associated = True
+                    break
+        if not is_associated and doc.parceiro_id == current_user.username:
+            is_associated = True
+        if not is_associated:
+            raise HTTPException(status_code=403, detail="Access denied")
+    elif current_user.perfil == PerfilUtilizador.EMPRESA:
+        if doc.empresa_id != current_user.username:
+            raise HTTPException(status_code=403, detail="Access denied")
+    
+    comentarios = db.query(ComentarioDocumento).filter(
+        ComentarioDocumento.documento_id == doc_id
+    ).order_by(ComentarioDocumento.created_at.asc()).all()
+    
+    return [c.to_dict() for c in comentarios]
+
+
 # -------------------- Admin: user management --------------------
 @app.get("/admin/usuarios", response_model=List[dict])
 def listar_utilizadores(
@@ -884,6 +959,37 @@ def alterar_password(
     user.password_hash = hash_password(dados.nova_password)
     db.commit()
     return {"ok": True}
+
+# -------------------- Admin: delete document --------------------
+@app.delete("/admin/documentos/{doc_id}")
+def eliminar_documento(
+    doc_id: int,
+    db: Session = Depends(get_db),
+    current_user: Utilizador = Depends(get_current_user)
+):
+    if current_user.perfil != PerfilUtilizador.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    doc = db.query(Documento).filter(Documento.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    versoes = db.query(VersaoDocumento).filter(VersaoDocumento.documento_id == doc_id).all()
+    for v in versoes:
+        db.delete(v)
+    
+    notificacoes = db.query(Notificacao).filter(Notificacao.link.like(f"%doc_id={doc_id}%")).all()
+    for n in notificacoes:
+        db.delete(n)
+    
+    comentarios = db.query(ComentarioDocumento).filter(ComentarioDocumento.documento_id == doc_id).all()
+    for c in comentarios:
+        db.delete(c)
+    
+    db.delete(doc)
+    db.commit()
+    
+    return {"ok": True, "message": f"Document {doc_id} deleted successfully"}
 
 # -------------------- Dashboard --------------------
 @app.get("/dashboard/kpis")
@@ -967,37 +1073,7 @@ def marcar_todas_notificacoes_lidas(
     except Exception as e:
         print(f"❌ Error marking all notifications as read: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-    
-# -------------------- Admin: delete document --------------------
-@app.delete("/admin/documentos/{doc_id}")
-def eliminar_documento(
-    doc_id: int,
-    db: Session = Depends(get_db),
-    current_user: Utilizador = Depends(get_current_user)
-):
-    """
-    Elimina um documento (apenas admin).
-    """
-    if current_user.perfil != PerfilUtilizador.ADMIN:
-        raise HTTPException(status_code=403, detail="Admin only")
-    
-    doc = db.query(Documento).filter(Documento.id == doc_id).first()
-    if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
-    
-    versoes = db.query(VersaoDocumento).filter(VersaoDocumento.documento_id == doc_id).all()
-    for v in versoes:
-        db.delete(v)
-    
-    notificacoes = db.query(Notificacao).filter(Notificacao.link.like(f"%doc_id={doc_id}%")).all()
-    for n in notificacoes:
-        db.delete(n)
-    
-    db.delete(doc)
-    db.commit()
-    
-    return {"ok": True, "message": f"Document {doc_id} deleted successfully"}
-    
+
 # -------------------- Export Excel --------------------
 @app.get("/documentos/{doc_id}/exportar-excel")
 def exportar_versoes_excel(
@@ -1030,7 +1106,7 @@ def exportar_versoes_excel(
         
         processos = get_processos_from_data(dados)
 
-        # ---------- LCA Sheet ----------
+        # LCA Sheet
         ws_lca = wb.active
         ws_lca.title = "LCA"
         row = 1
@@ -1100,7 +1176,7 @@ def exportar_versoes_excel(
             col_letter = get_column_letter(cell.column)
             ws_lca.column_dimensions[col_letter].width = min(max_length + 2, 40)
 
-        # ---------- LCC Sheet ----------
+        # LCC Sheet
         ws_lcc = wb.create_sheet("LCC")
         row = 1
 
@@ -1197,7 +1273,7 @@ def exportar_versoes_excel(
             col_letter = get_column_letter(cell.column)
             ws_lcc.column_dimensions[col_letter].width = min(max_length + 2, 40)
 
-        # ---------- History ----------
+        # History
         ws_hist = wb.create_sheet("History")
         versoes = db.query(VersaoDocumento).filter(VersaoDocumento.documento_id == doc_id).order_by(VersaoDocumento.numero_versao).all()
         cab_hist = ["Version", "Status", "Created by", "Date", "Comment"]

@@ -24,7 +24,7 @@ class TokenData(BaseModel):
 # ---------- Documentos ----------
 class DocumentoBase(BaseModel):
     titulo: str
-    parceiros_ids: List[str]  # ✅ Lista de parceiros
+    parceiros_ids: List[str]
     empresa_id: str
     dados: Dict[str, Any] = {}
 
@@ -40,8 +40,8 @@ class MudancaEstado(BaseModel):
 class DocumentoOut(BaseModel):
     id: int
     titulo: str
-    parceiro_id: Optional[str] = None  # Mantido para compatibilidade
-    parceiros_ids: List[str] = []      # ✅ Lista de parceiros
+    parceiro_id: Optional[str] = None
+    parceiros_ids: List[str] = []
     empresa_id: str
     estado: EstadoDocumento
     versao_atual: int
@@ -59,6 +59,20 @@ class VersaoOut(BaseModel):
     comentario: Optional[str]
     criado_por: Optional[str]
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# ---------- Comentários ----------
+class ComentarioCreate(BaseModel):
+    mensagem: str
+
+class ComentarioOut(BaseModel):
+    id: int
+    documento_id: int
+    username: str
+    mensagem: str
+    created_at: str
 
     class Config:
         from_attributes = True
