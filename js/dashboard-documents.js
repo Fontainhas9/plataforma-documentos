@@ -43,7 +43,7 @@ const PROCESSOS_PADRAO = [
 const DATASOURCE_OPTIONS = ['Measured', 'Calculated', 'Estimated', 'Literature'];
 
 // =====================================================
-// ESTADO GLOBAL - USAR sessionStorage
+// ESTADO GLOBAL
 // =====================================================
 
 let state = {
@@ -284,7 +284,7 @@ function showConfirm(message, onConfirm, onCancel = null) {
 let adminMenuAtivo = 'documents';
 
 // =====================================================
-// LOGOUT - LIMPAR sessionStorage (APENAS ESTE SEPARADOR)
+// LOGOUT
 // =====================================================
 
 function logout() {
@@ -1213,21 +1213,25 @@ function renderDocumentoDetalhe(doc) {
     `;
 
     // ============================================================
-    // BOTÕES DE AÇÃO - TOPO (acima da caixa de comentários)
+    // BOTÕES DE AÇÃO - TOPO
     // ============================================================
     html += gerarBotoesAcao(doc.id, 'Actions', 'topo');
 
     // ============================================================
-    // CAIXA DE COMENTÁRIOS - TOPO
-    // ============================================================
-    html += gerarCaixaComentarios(doc.id);
-
-    // ============================================================
-    // CONTEÚDO DO DOCUMENTO
+    // CAIXA DE COMENTÁRIOS - TOPO (COM ESPAÇAMENTO)
     // ============================================================
     html += `
-        <div style="margin-bottom:20px;">
-            <button class="btn btn-secondary btn-sm" onclick="toggleConteudoDocumento(${doc.id})">
+        <div style="margin-top: 24px; clear: both;">
+            ${gerarCaixaComentarios(doc.id)}
+        </div>
+    `;
+
+    // ============================================================
+    // CONTEÚDO DO DOCUMENTO (COM BOTÕES LCA/LCC) - COM ESPAÇO
+    // ============================================================
+    html += `
+        <div style="margin-top: 30px; clear: both; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.06);">
+            <button class="btn btn-secondary btn-sm" onclick="toggleConteudoDocumento(${doc.id})" style="margin-bottom:12px;">
                 📊 Show/Hide Document Content
             </button>
             <div id="conteudoDocumento" style="display:${shouldBeOpen ? 'block' : 'none'};margin-top:12px;">
@@ -1241,30 +1245,34 @@ function renderDocumentoDetalhe(doc) {
     // ============================================================
     if (state.editData) {
         const processos = getProcessosFromData(state.editData);
-        html += `<div class="editor-container">${renderEditorDocumento(doc.id, processos)}</div>`;
+        html += `<div class="editor-container" style="margin-top:24px;clear:both;">${renderEditorDocumento(doc.id, processos)}</div>`;
     } else {
-        html += `<div class="editor-container"></div>`;
+        html += `<div class="editor-container" style="margin-top:24px;clear:both;"></div>`;
     }
 
     // ============================================================
     // HISTÓRICO DE VERSÕES
     // ============================================================
     html += `
-        <div style="margin-top:16px;">
+        <div style="margin-top:24px;clear:both;">
             <button class="btn btn-secondary btn-sm" onclick="carregarHistorico(${doc.id})">📜 Version History</button>
             <div id="historicoVersoes" style="margin-top:12px;"></div>
         </div>
     `;
 
     // ============================================================
-    // BOTÕES DE AÇÃO - BAIXO (abaixo do histórico)
+    // BOTÕES DE AÇÃO - BAIXO
     // ============================================================
     html += gerarBotoesAcao(doc.id, 'Actions', 'baixo');
 
     // ============================================================
     // CAIXA DE COMENTÁRIOS - RODAPÉ
     // ============================================================
-    html += gerarCaixaComentarios(doc.id);
+    html += `
+        <div style="margin-top: 24px; clear: both;">
+            ${gerarCaixaComentarios(doc.id)}
+        </div>
+    `;
 
     html += `
         </div>
@@ -1285,7 +1293,10 @@ function renderDocumentoDetalhe(doc) {
             badge.textContent = comentarios.length;
         });
         
-        if (doc.estado === 'Em Revisão' || doc.estado === 'Submetido') {
+        const currentUser = state.username;
+        const hasUnread = comentarios.some(c => c.username !== currentUser);
+        
+        if (hasUnread && comentarios.length > 0) {
             setTimeout(() => {
                 const bodies = document.querySelectorAll(`.comentarios-body[data-doc-id="${doc.id}"]`);
                 bodies.forEach(body => {
@@ -1298,7 +1309,15 @@ function renderDocumentoDetalhe(doc) {
                 if (!comentariosCarregados[doc.id]) {
                     carregarComentarios(doc.id);
                 }
-            }, 200);
+            }, 300);
+        } else if (comentarios.length > 0) {
+            if (!comentariosCarregados[doc.id]) {
+                carregarComentarios(doc.id);
+            }
+        } else {
+            if (!comentariosCarregados[doc.id]) {
+                carregarComentarios(doc.id);
+            }
         }
     })
     .catch(error => {
@@ -1329,11 +1348,12 @@ function renderDocumentoDetalhe(doc) {
 // ============================================================
 function gerarCaixaComentarios(docId) {
     return `
-        <div class="comentarios-container">
+        <div class="comentarios-container" data-doc-id="${docId}">
             <div class="comentarios-header" onclick="toggleComentarios(${docId})">
                 <h4>
                     💬 Comments
                     <span class="badge-comentarios" data-doc-id="${docId}">0</span>
+                    <span class="badge-nao-lidos" data-doc-id="${docId}" style="display:none;"></span>
                 </h4>
                 <span class="comentarios-toggle-icon" data-doc-id="${docId}">▼</span>
             </div>
@@ -1341,29 +1361,52 @@ function gerarCaixaComentarios(docId) {
                 <div class="comentarios-list" data-doc-id="${docId}">
                     <div class="comentario-vazio">⏳ Loading comments...</div>
                 </div>
-                <div class="comentario-input-area">
-                    <textarea 
-                        class="comentario-textarea"
-                        data-doc-id="${docId}"
-                        placeholder="Write a message... (Enter to send, Shift+Enter for new line)"
-                        rows="1"
-                    ></textarea>
-                    <button class="btn-enviar" onclick="enviarComentario(${docId})">
-                        📤 Send
-                    </button>
+                <div class="comentario-input-area-wrapper" data-doc-id="${docId}">
+                    <div class="comentario-input-area" data-doc-id="${docId}">
+                        <textarea 
+                            class="comentario-textarea"
+                            data-doc-id="${docId}"
+                            placeholder="Write a message... (Enter to send, Shift+Enter for new line)"
+                            rows="1"
+                        ></textarea>
+                        <button class="btn-enviar" onclick="enviarComentario(${docId})">
+                            📤 Send
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     `;
 }
 
-// =====================================================
+// ============================================================
 // CONTEÚDO DO DOCUMENTO (LCA/LCC)
-// =====================================================
+// ============================================================
 
 function renderConteudoDocumento(dados, processos, allOpen = false) {
     let html = '';
 
+    // ============================================================
+    // BOTÕES PARA ALTERNAR ENTRE LCA E LCC
+    // ============================================================
+    html += `
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" onclick="alternarSecaoDocumento('lca')" id="btnSecaoLCA" style="background:linear-gradient(135deg, #2e7d32, #388e3c);">
+                🌱 LCA - Life Cycle Assessment
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="alternarSecaoDocumento('lcc')" id="btnSecaoLCC" style="background:rgba(255,255,255,0.08);">
+                💰 LCC - Life Cycle Cost
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="alternarSecaoDocumento('ambas')" id="btnSecaoAmbas" style="background:rgba(255,255,255,0.05);">
+                📊 Show Both
+            </button>
+        </div>
+        <div id="conteudoLCA" style="display:block;">
+    `;
+
+    // ============================================================
+    // LCA SECTION
+    // ============================================================
     html += `<h4 style="color:#fff;margin:16px 0 8px;">🌱 LCA - Life Cycle Assessment</h4>`;
 
     ['inputs', 'processes', 'outputs'].forEach(section => {
@@ -1399,6 +1442,14 @@ function renderConteudoDocumento(dados, processos, allOpen = false) {
         });
     });
 
+    html += `
+        </div>
+        <div id="conteudoLCC" style="display:none;">
+    `;
+
+    // ============================================================
+    // LCC SECTION
+    // ============================================================
     html += `<h4 style="color:#fff;margin:16px 0 8px;">💰 LCC - Life Cycle Cost</h4>`;
 
     ['materials', 'equipment', 'labour', 'outputs'].forEach(section => {
@@ -1439,34 +1490,88 @@ function renderConteudoDocumento(dados, processos, allOpen = false) {
         });
     });
 
+    html += `
+        </div>
+    `;
+
     return html;
+}
+
+// ============================================================
+// ALTERNAR ENTRE SECÇÕES LCA / LCC
+// ============================================================
+
+let secaoAtiva = 'lca';
+
+function alternarSecaoDocumento(secao) {
+    const lcaContainer = document.getElementById('conteudoLCA');
+    const lccContainer = document.getElementById('conteudoLCC');
+    const btnLCA = document.getElementById('btnSecaoLCA');
+    const btnLCC = document.getElementById('btnSecaoLCC');
+    const btnAmbas = document.getElementById('btnSecaoAmbas');
+
+    if (!lcaContainer || !lccContainer) return;
+
+    secaoAtiva = secao;
+
+    btnLCA.style.background = 'rgba(255,255,255,0.08)';
+    btnLCC.style.background = 'rgba(255,255,255,0.08)';
+    btnAmbas.style.background = 'rgba(255,255,255,0.05)';
+
+    if (secao === 'lca') {
+        lcaContainer.style.display = 'block';
+        lccContainer.style.display = 'none';
+        btnLCA.style.background = 'linear-gradient(135deg, #2e7d32, #388e3c)';
+    } else if (secao === 'lcc') {
+        lcaContainer.style.display = 'none';
+        lccContainer.style.display = 'block';
+        btnLCC.style.background = 'linear-gradient(135deg, #0d47a1, #1565c0)';
+    } else {
+        lcaContainer.style.display = 'block';
+        lccContainer.style.display = 'block';
+        btnAmbas.style.background = 'rgba(255,255,255,0.12)';
+        btnLCA.style.background = 'linear-gradient(135deg, #2e7d32, #388e3c)';
+        btnLCC.style.background = 'linear-gradient(135deg, #0d47a1, #1565c0)';
+    }
+
+    const conteudoContainer = document.getElementById('conteudoDocumento');
+    if (conteudoContainer) {
+        setTimeout(() => {
+            conteudoContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+    }
 }
 
 function toggleConteudoDocumento(docId) {
     const container = document.getElementById('conteudoDocumento');
-    if (container) {
-        const isVisible = container.style.display === 'none' || container.style.display === '';
+    if (!container) return;
+
+    const isVisible = container.style.display === 'none' || container.style.display === '';
+    
+    if (isVisible) {
+        container.style.display = 'block';
         
-        if (isVisible) {
-            container.style.display = 'block';
+        fetch(`${API_URL}/documentos/${docId}`, {
+            headers: getAuthHeaders()
+        })
+        .then(response => response.json())
+        .then(doc => {
+            const processos = getProcessosFromData(doc.dados);
+            container.innerHTML = renderConteudoDocumento(doc.dados, processos, true);
             
-            fetch(`${API_URL}/documentos/${docId}`, {
-                headers: getAuthHeaders()
-            })
-            .then(response => response.json())
-            .then(doc => {
-                const processos = getProcessosFromData(doc.dados);
-                container.innerHTML = renderConteudoDocumento(doc.dados, processos, true);
-                const details = container.querySelectorAll('details');
-                details.forEach(d => d.setAttribute('open', ''));
-            })
-            .catch(error => {
-                console.error('Error loading document content:', error);
-                showToast('Error loading document content', 'error');
-            });
-        } else {
-            container.style.display = 'none';
-        }
+            const details = container.querySelectorAll('details');
+            details.forEach(d => d.setAttribute('open', ''));
+            
+            setTimeout(() => {
+                alternarSecaoDocumento('ambas');
+            }, 100);
+        })
+        .catch(error => {
+            console.error('Error loading document content:', error);
+            showToast('Error loading document content', 'error');
+        });
+    } else {
+        container.style.display = 'none';
     }
 }
 
@@ -1729,7 +1834,7 @@ function renderEditorSecao(secao, campo, docId, processos) {
 }
 
 // =====================================================
-// EDITOR DOCUMENTO - COMPLETO
+// EDITOR DOCUMENTO - COMPLETO (COM BOTÕES LCA/LCC)
 // =====================================================
 
 function renderEditorDocumento(docId, processos) {
@@ -1741,18 +1846,34 @@ function renderEditorDocumento(docId, processos) {
     let html = `
         <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:20px;margin-top:16px;border:1px solid rgba(254,200,0,0.2);">
             <h4 style="color:#fec800;margin:0 0 16px;">✏️ Editing Document</h4>
+            
+            <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+                <button class="btn btn-primary btn-sm" onclick="alternarEditorSecao('lca')" id="btnEditorLCA" style="background:linear-gradient(135deg, #2e7d32, #388e3c);">
+                    🌱 LCA - Life Cycle Assessment
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="alternarEditorSecao('lcc')" id="btnEditorLCC" style="background:rgba(255,255,255,0.08);">
+                    💰 LCC - Life Cycle Cost
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="alternarEditorSecao('ambas')" id="btnEditorAmbas" style="background:rgba(255,255,255,0.05);">
+                    📊 Show Both
+                </button>
+            </div>
+            
+            <div id="editorLCA" style="display:block;">
+                <h5 style="color:#fff;">🌱 LCA</h5>
+                ${renderEditorSecao('lca', 'inputs', docId, processos)}
+                ${renderEditorSecao('lca', 'processes', docId, processos)}
+                ${renderEditorSecao('lca', 'outputs', docId, processos)}
+            </div>
+            
+            <div id="editorLCC" style="display:none;">
+                <h5 style="color:#fff;margin-top:20px;">💰 LCC</h5>
+                ${renderEditorSecao('lcc', 'materials', docId, processos)}
+                ${renderEditorSecao('lcc', 'equipment', docId, processos)}
+                ${renderEditorSecao('lcc', 'labour', docId, processos)}
+                ${renderEditorSecao('lcc', 'outputs', docId, processos)}
+            </div>
     `;
-
-    html += `<h5 style="color:#fff;">🌱 LCA</h5>`;
-    html += renderEditorSecao('lca', 'inputs', docId, processos);
-    html += renderEditorSecao('lca', 'processes', docId, processos);
-    html += renderEditorSecao('lca', 'outputs', docId, processos);
-
-    html += `<h5 style="color:#fff;margin-top:20px;">💰 LCC</h5>`;
-    html += renderEditorSecao('lcc', 'materials', docId, processos);
-    html += renderEditorSecao('lcc', 'equipment', docId, processos);
-    html += renderEditorSecao('lcc', 'labour', docId, processos);
-    html += renderEditorSecao('lcc', 'outputs', docId, processos);
 
     html += `
         <div style="margin-top:20px;padding:16px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(254,200,0,0.15);">
@@ -1777,6 +1898,51 @@ function renderEditorDocumento(docId, processos) {
 
     html += `</div>`;
     return html;
+}
+
+// ============================================================
+// ALTERNAR ENTRE SECÇÕES LCA / LCC NO EDITOR
+// ============================================================
+
+let editorSecaoAtiva = 'lca';
+
+function alternarEditorSecao(secao) {
+    const lcaContainer = document.getElementById('editorLCA');
+    const lccContainer = document.getElementById('editorLCC');
+    const btnLCA = document.getElementById('btnEditorLCA');
+    const btnLCC = document.getElementById('btnEditorLCC');
+    const btnAmbas = document.getElementById('btnEditorAmbas');
+
+    if (!lcaContainer || !lccContainer) return;
+
+    editorSecaoAtiva = secao;
+
+    btnLCA.style.background = 'rgba(255,255,255,0.08)';
+    btnLCC.style.background = 'rgba(255,255,255,0.08)';
+    btnAmbas.style.background = 'rgba(255,255,255,0.05)';
+
+    if (secao === 'lca') {
+        lcaContainer.style.display = 'block';
+        lccContainer.style.display = 'none';
+        btnLCA.style.background = 'linear-gradient(135deg, #2e7d32, #388e3c)';
+    } else if (secao === 'lcc') {
+        lcaContainer.style.display = 'none';
+        lccContainer.style.display = 'block';
+        btnLCC.style.background = 'linear-gradient(135deg, #0d47a1, #1565c0)';
+    } else {
+        lcaContainer.style.display = 'block';
+        lccContainer.style.display = 'block';
+        btnAmbas.style.background = 'rgba(255,255,255,0.12)';
+        btnLCA.style.background = 'linear-gradient(135deg, #2e7d32, #388e3c)';
+        btnLCC.style.background = 'linear-gradient(135deg, #0d47a1, #1565c0)';
+    }
+
+    const editorContainer = document.querySelector('.editor-container');
+    if (editorContainer) {
+        setTimeout(() => {
+            editorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+    }
 }
 
 // =====================================================
@@ -1920,13 +2086,10 @@ function removerItemEditor(secao, campo, proc, idx) {
     if (!state.editData) return;
     if (!state.editData[secao]?.[campo]?.[proc]) return;
 
-    // ✅ REMOVER DO state.editData
     state.editData[secao][campo][proc].splice(idx, 1);
 
-    // ✅ REMOVER DO DOM DIRETAMENTE (SEM RECARREGAR O DOCUMENTO)
     const container = document.getElementById(`${secao}_${campo}_${proc}_container`);
     if (container) {
-        // Procurar o item com o índice correspondente
         const items = container.querySelectorAll('[data-item-idx]');
         let itemToRemove = null;
         
@@ -1939,16 +2102,13 @@ function removerItemEditor(secao, campo, proc, idx) {
         }
         
         if (itemToRemove) {
-            // ✅ REMOVER O ELEMENTO DO DOM
             itemToRemove.remove();
             
-            // ✅ ATUALIZAR OS ÍNDICES DOS ITEMS RESTANTES
             const remainingItems = container.querySelectorAll('[data-item-idx]');
             remainingItems.forEach((item, newIdx) => {
                 item.setAttribute('data-item-idx', newIdx);
             });
             
-            // ✅ ATUALIZAR O CONTADOR DE ITEMS
             const countSpan = container.parentElement.querySelector('span[style*="color:rgba(255,255,255,0.35)"]');
             if (countSpan) {
                 const match = countSpan.textContent.match(/\d+/);
@@ -1959,7 +2119,6 @@ function removerItemEditor(secao, campo, proc, idx) {
                 }
             }
 
-            // ✅ ATUALIZAR OS data-idx DOS INPUTS E SELECTS
             const allInputs = container.querySelectorAll('input[data-idx], select[data-idx]');
             allInputs.forEach(input => {
                 const oldIdx = parseInt(input.getAttribute('data-idx'));
@@ -1968,7 +2127,6 @@ function removerItemEditor(secao, campo, proc, idx) {
                 }
             });
             
-            // ✅ ATUALIZAR OS onclick DOS BOTÕES DE REMOVER
             const removeButtons = container.parentElement.querySelectorAll('.btn-danger');
             removeButtons.forEach((btn) => {
                 const onclickAttr = btn.getAttribute('onclick');
@@ -1986,14 +2144,12 @@ function removerItemEditor(secao, campo, proc, idx) {
             
             showToast('✅ Item removed!', 'success');
         } else {
-            // Fallback: recarregar o documento (mas mantendo os dados)
             const docId = state.docSelecionado;
             if (docId) {
                 carregarDocumentoDetalhe(docId);
             }
         }
     } else {
-        // Fallback: recarregar o documento (mas mantendo os dados)
         const docId = state.docSelecionado;
         if (docId) {
             carregarDocumentoDetalhe(docId);
@@ -2072,7 +2228,6 @@ function submeterEdicao(docId) {
     console.log('📤 A submeter dados do parceiro:', JSON.stringify(dados, null, 2));
 
     showConfirm('Submit this document for review?', function() {
-        // ✅ PRIMEIRO SALVAR AS ALTERAÇÕES
         fetch(`${API_URL}/documentos/${docId}/editar`, {
             method: 'PUT',
             headers: getAuthHeaders(),
@@ -2087,7 +2242,6 @@ function submeterEdicao(docId) {
         })
         .then((savedDoc) => {
             console.log('✅ Documento salvo antes de submeter:', savedDoc);
-            // ✅ DEPOIS SUBMETER (o backend já permite de Rascunho ou Alterações)
             return fetch(`${API_URL}/documentos/${docId}/submeter`, {
                 method: 'POST',
                 headers: getAuthHeaders()
@@ -2197,7 +2351,9 @@ async function aprovarDocumento(docId) {
 }
 
 async function pedirAlteracoes(docId) {
-    const comentario = document.getElementById('comentarioAlteracoes')?.value?.trim();
+    const comentario = document.getElementById('comentarioAlteracoes_topo')?.value?.trim() || 
+                       document.getElementById('comentarioAlteracoes_baixo')?.value?.trim();
+    
     if (!comentario) {
         showToast('Please enter a reason for the changes.', 'warning');
         return;
@@ -2961,7 +3117,288 @@ function limparFiltros() {
 }
 
 // =====================================================
-// NOTIFICAÇÕES (mantido igual)
+// COMENTÁRIOS / CHAT
+// =====================================================
+
+let comentariosVisiveis = {};
+let comentariosCarregados = {};
+
+function toggleComentarios(docId) {
+    const bodies = document.querySelectorAll(`.comentarios-body[data-doc-id="${docId}"]`);
+    const icons = document.querySelectorAll(`.comentarios-toggle-icon[data-doc-id="${docId}"]`);
+    
+    if (!bodies.length) return;
+    
+    const isOpen = bodies[0].classList.contains('open');
+    
+    bodies.forEach(body => {
+        if (isOpen) {
+            body.classList.remove('open');
+        } else {
+            body.classList.add('open');
+        }
+    });
+    
+    icons.forEach(icon => {
+        if (isOpen) {
+            icon.classList.remove('open');
+        } else {
+            icon.classList.add('open');
+        }
+    });
+    
+    sessionStorage.setItem(`comentarios_abertos_${docId}`, isOpen ? 'false' : 'true');
+    
+    if (!isOpen && !comentariosCarregados[docId]) {
+        carregarComentarios(docId);
+    }
+}
+
+async function carregarComentarios(docId) {
+    try {
+        const response = await fetch(`${API_URL}/documentos/${docId}/comentarios`, {
+            headers: getAuthHeaders()
+        });
+        
+        if (!response.ok) {
+            throw new Error('Error loading comments');
+        }
+        
+        const comentarios = await response.json();
+        comentariosCarregados[docId] = true;
+        renderComentarios(docId, comentarios);
+        
+    } catch (error) {
+        console.error('Error loading comments:', error);
+        const containers = document.querySelectorAll(`.comentarios-list[data-doc-id="${docId}"]`);
+        containers.forEach(container => {
+            container.innerHTML = `
+                <div style="color:#ff6b6b;font-size:13px;text-align:center;padding:10px;">
+                    ❌ Error loading comments: ${error.message}
+                </div>
+            `;
+        });
+    }
+}
+
+function renderComentarios(docId, comentarios) {
+    const containers = document.querySelectorAll(`.comentarios-list[data-doc-id="${docId}"]`);
+    if (!containers.length) return;
+    
+    const currentUser = state.username;
+    const perfilMap = {
+        'empresa': 'company',
+        'parceiro': 'partner',
+        'admin': 'admin'
+    };
+    
+    const hasUnread = comentarios.some(c => c.username !== currentUser);
+    
+    // Atualizar badge de não lidos
+    const unreadBadges = document.querySelectorAll(`.badge-nao-lidos[data-doc-id="${docId}"]`);
+    unreadBadges.forEach(badge => {
+        if (hasUnread && comentarios.length > 0) {
+            const unreadCount = comentarios.filter(c => c.username !== currentUser).length;
+            badge.textContent = `🔴 ${unreadCount} new`;
+            badge.style.display = 'inline';
+        } else {
+            badge.style.display = 'none';
+        }
+    });
+    
+    // Atualizar contagem total
+    const badges = document.querySelectorAll(`.badge-comentarios[data-doc-id="${docId}"]`);
+    badges.forEach(badge => {
+        badge.textContent = comentarios.length;
+    });
+    
+    // Se não houver comentários
+    if (!comentarios || comentarios.length === 0) {
+        containers.forEach(container => {
+            container.innerHTML = `
+                <div class="comentario-vazio">
+                    <button class="btn-add-comment" onclick="toggleComentarios(${docId})">
+                        💬 Add a comment
+                    </button>
+                </div>
+            `;
+        });
+        
+        // Esconder a área de input
+        const wrappers = document.querySelectorAll(`.comentario-input-area-wrapper[data-doc-id="${docId}"]`);
+        wrappers.forEach(wrapper => {
+            wrapper.style.display = 'none';
+        });
+        
+        return;
+    }
+    
+    // Mostrar a área de input
+    const wrappers = document.querySelectorAll(`.comentario-input-area-wrapper[data-doc-id="${docId}"]`);
+    wrappers.forEach(wrapper => {
+        wrapper.style.display = 'block';
+    });
+    
+    let html = '';
+    
+    comentarios.forEach(c => {
+        const isOwn = c.username === currentUser;
+        const perfilClass = perfilMap[state.perfil] || 'partner';
+        const initials = c.username.substring(0, 2).toUpperCase();
+        const isUnread = c.username !== currentUser;
+        
+        html += `
+            <div class="comentario-item ${isOwn ? 'comentario-proprio' : ''} ${isUnread ? 'comentario-nao-lido' : ''}">
+                <div class="avatar">${initials}</div>
+                <div class="comentario-content">
+                    <div class="comentario-header">
+                        <span class="comentario-username">
+                            ${c.username}
+                            <span class="perfil-tag ${perfilClass}">${perfilClass}</span>
+                            ${isUnread ? '<span class="badge-novo">NEW</span>' : ''}
+                        </span>
+                        <span class="comentario-data">${c.created_at}</span>
+                    </div>
+                    <div class="comentario-mensagem">${escapeHtml(c.mensagem)}</div>
+                </div>
+            </div>
+        `;
+    });
+    
+    containers.forEach(container => {
+        container.innerHTML = html;
+    });
+    
+    // Controlar abertura automática
+    const bodies = document.querySelectorAll(`.comentarios-body[data-doc-id="${docId}"]`);
+    const icons = document.querySelectorAll(`.comentarios-toggle-icon[data-doc-id="${docId}"]`);
+    
+    // Se houver comentários não lidos, abrir automaticamente
+    if (hasUnread && comentarios.length > 0) {
+        bodies.forEach(body => {
+            body.classList.add('open');
+        });
+        icons.forEach(icon => {
+            icon.classList.add('open');
+        });
+    } else {
+        // Verificar se o utilizador abriu manualmente
+        const isManuallyOpen = sessionStorage.getItem(`comentarios_abertos_${docId}`) === 'true';
+        if (!isManuallyOpen) {
+            bodies.forEach(body => {
+                body.classList.remove('open');
+            });
+            icons.forEach(icon => {
+                icon.classList.remove('open');
+            });
+        }
+    }
+    
+    // Scroll para o fim se estiver aberto
+    bodies.forEach(body => {
+        if (body.classList.contains('open')) {
+            body.scrollTop = body.scrollHeight;
+        }
+    });
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+async function enviarComentario(docId) {
+    const textareas = document.querySelectorAll(`.comentario-textarea[data-doc-id="${docId}"]`);
+    const btns = document.querySelectorAll(`.comentarios-container .btn-enviar[onclick*="${docId}"]`);
+    
+    if (!textareas.length || !btns.length) return;
+    
+    const textarea = textareas[0];
+    const mensagem = textarea.value.trim();
+    
+    if (!mensagem) {
+        showToast('Please write a message.', 'warning');
+        return;
+    }
+    
+    btns.forEach(btn => {
+        btn.disabled = true;
+        btn.textContent = '⏳ Sending...';
+    });
+    
+    try {
+        const response = await fetch(`${API_URL}/documentos/${docId}/comentarios`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ mensagem: mensagem })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Error sending comment');
+        }
+        
+        textareas.forEach(t => {
+            t.value = '';
+            t.style.height = '44px';
+        });
+        
+        comentariosCarregados[docId] = false;
+        await carregarComentarios(docId);
+        
+        // Abrir automaticamente
+        const bodies = document.querySelectorAll(`.comentarios-body[data-doc-id="${docId}"]`);
+        bodies.forEach(body => {
+            body.classList.add('open');
+        });
+        const icons = document.querySelectorAll(`.comentarios-toggle-icon[data-doc-id="${docId}"]`);
+        icons.forEach(icon => {
+            icon.classList.add('open');
+        });
+        sessionStorage.setItem(`comentarios_abertos_${docId}`, 'true');
+        
+        showToast('✅ Comment sent!', 'success');
+    } catch (error) {
+        console.error('Error sending comment:', error);
+        showToast('❌ Error sending comment: ' + error.message, 'error');
+    } finally {
+        btns.forEach(btn => {
+            btn.disabled = false;
+            btn.textContent = '📤 Send';
+        });
+    }
+}
+
+function autoResizeTextarea(textarea) {
+    textarea.style.height = '44px';
+    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+}
+
+// Inicializar listeners para auto-resize
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('input', function(e) {
+        if (e.target.classList && e.target.classList.contains('comentario-textarea')) {
+            autoResizeTextarea(e.target);
+        }
+    });
+    
+    document.addEventListener('keydown', function(e) {
+        if (e.target.classList && e.target.classList.contains('comentario-textarea')) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const docId = e.target.getAttribute('data-doc-id');
+                if (docId) {
+                    enviarComentario(parseInt(docId));
+                }
+            }
+        }
+    });
+});
+
+// =====================================================
+// NOTIFICAÇÕES
 // =====================================================
 
 async function carregarNotificacoes() {
@@ -3088,218 +3525,7 @@ function irParaDocumento(link) {
 }
 
 // =====================================================
-// COMMENTS / CHAT
-// =====================================================
-
-let comentariosVisiveis = {};
-let comentariosCarregados = {};
-
-function toggleComentarios(docId) {
-    const bodies = document.querySelectorAll(`.comentarios-body[data-doc-id="${docId}"]`);
-    const icons = document.querySelectorAll(`.comentarios-toggle-icon[data-doc-id="${docId}"]`);
-    
-    if (!bodies.length) return;
-    
-    const isOpen = bodies[0].classList.contains('open');
-    
-    bodies.forEach(body => {
-        if (isOpen) {
-            body.classList.remove('open');
-        } else {
-            body.classList.add('open');
-        }
-    });
-    
-    icons.forEach(icon => {
-        if (isOpen) {
-            icon.classList.remove('open');
-        } else {
-            icon.classList.add('open');
-        }
-    });
-    
-    if (!isOpen && !comentariosCarregados[docId]) {
-        carregarComentarios(docId);
-    }
-}
-
-async function carregarComentarios(docId) {
-    try {
-        const response = await fetch(`${API_URL}/documentos/${docId}/comentarios`, {
-            headers: getAuthHeaders()
-        });
-        
-        if (!response.ok) {
-            throw new Error('Error loading comments');
-        }
-        
-        const comentarios = await response.json();
-        comentariosCarregados[docId] = true;
-        renderComentarios(docId, comentarios);
-    } catch (error) {
-        console.error('Error loading comments:', error);
-        const containers = document.querySelectorAll(`.comentarios-list[data-doc-id="${docId}"]`);
-        containers.forEach(container => {
-            container.innerHTML = `
-                <div style="color:#ff6b6b;font-size:13px;text-align:center;padding:10px;">
-                    ❌ Error loading comments: ${error.message}
-                </div>
-            `;
-        });
-    }
-}
-
-function renderComentarios(docId, comentarios) {
-    const containers = document.querySelectorAll(`.comentarios-list[data-doc-id="${docId}"]`);
-    if (!containers.length) return;
-    
-    if (!comentarios || comentarios.length === 0) {
-        containers.forEach(container => {
-            container.innerHTML = `
-                <div class="comentario-vazio">
-                    💬 No comments yet. Be the first to comment!
-                </div>
-            `;
-        });
-        return;
-    }
-    
-    const currentUser = state.username;
-    const perfilMap = {
-        'empresa': 'company',
-        'parceiro': 'partner',
-        'admin': 'admin'
-    };
-    
-    let html = '';
-    
-    comentarios.forEach(c => {
-        const isOwn = c.username === currentUser;
-        const perfilClass = perfilMap[state.perfil] || 'partner';
-        const initials = c.username.substring(0, 2).toUpperCase();
-        
-        html += `
-            <div class="comentario-item ${isOwn ? 'comentario-proprio' : ''}">
-                <div class="avatar">${initials}</div>
-                <div class="comentario-content">
-                    <div class="comentario-header">
-                        <span class="comentario-username">
-                            ${c.username}
-                            <span class="perfil-tag ${perfilClass}">${perfilClass}</span>
-                        </span>
-                        <span class="comentario-data">${c.created_at}</span>
-                    </div>
-                    <div class="comentario-mensagem">${escapeHtml(c.mensagem)}</div>
-                </div>
-            </div>
-        `;
-    });
-    
-    containers.forEach(container => {
-        container.innerHTML = html;
-    });
-    
-    const bodies = document.querySelectorAll(`.comentarios-body[data-doc-id="${docId}"]`);
-    bodies.forEach(body => {
-        body.scrollTop = body.scrollHeight;
-    });
-}
-
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-async function enviarComentario(docId) {
-    const textareas = document.querySelectorAll(`.comentario-textarea[data-doc-id="${docId}"]`);
-    const btns = document.querySelectorAll(`.comentarios-container .btn-enviar[onclick*="${docId}"]`);
-    
-    if (!textareas.length || !btns.length) return;
-    
-    const textarea = textareas[0];
-    const mensagem = textarea.value.trim();
-    
-    if (!mensagem) {
-        showToast('Please write a message.', 'warning');
-        return;
-    }
-    
-    btns.forEach(btn => {
-        btn.disabled = true;
-        btn.textContent = '⏳ Sending...';
-    });
-    
-    try {
-        const response = await fetch(`${API_URL}/documentos/${docId}/comentarios`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ mensagem: mensagem })
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || 'Error sending comment');
-        }
-        
-        textareas.forEach(t => {
-            t.value = '';
-            t.style.height = '44px';
-        });
-        
-        comentariosCarregados[docId] = false;
-        await carregarComentarios(docId);
-        
-        const bodies = document.querySelectorAll(`.comentarios-body[data-doc-id="${docId}"]`);
-        bodies.forEach(body => {
-            body.classList.add('open');
-        });
-        const icons = document.querySelectorAll(`.comentarios-toggle-icon[data-doc-id="${docId}"]`);
-        icons.forEach(icon => {
-            icon.classList.add('open');
-        });
-        
-        showToast('✅ Comment sent!', 'success');
-    } catch (error) {
-        console.error('Error sending comment:', error);
-        showToast('❌ Error sending comment: ' + error.message, 'error');
-    } finally {
-        btns.forEach(btn => {
-            btn.disabled = false;
-            btn.textContent = '📤 Send';
-        });
-    }
-}
-
-function autoResizeTextarea(textarea) {
-    textarea.style.height = '44px';
-    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
-}
-
-// Initialize auto-resize listeners
-document.addEventListener('DOMContentLoaded', function() {
-    document.addEventListener('input', function(e) {
-        if (e.target.classList && e.target.classList.contains('comentario-textarea')) {
-            autoResizeTextarea(e.target);
-        }
-    });
-    
-    document.addEventListener('keydown', function(e) {
-        if (e.target.classList && e.target.classList.contains('comentario-textarea')) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                const docId = e.target.getAttribute('data-doc-id');
-                if (docId) {
-                    enviarComentario(parseInt(docId));
-                }
-            }
-        }
-    });
-});
-
-// =====================================================
-// INICIALIZAÇÃO - USAR AUTH DO WINDOW
+// INICIALIZAÇÃO
 // =====================================================
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -3370,6 +3596,8 @@ window.adicionarItemEditor = adicionarItemEditor;
 window.removerItemEditor = removerItemEditor;
 window.carregarHistorico = carregarHistorico;
 window.toggleConteudoDocumento = toggleConteudoDocumento;
+window.alternarSecaoDocumento = alternarSecaoDocumento;
+window.alternarEditorSecao = alternarEditorSecao;
 window.carregarDashboard = carregarDashboard;
 window.carregarNotificacoes = carregarNotificacoes;
 window.marcarLida = marcarLida;
@@ -3391,3 +3619,7 @@ window.showToast = showToast;
 window.adicionarParceiroSelecionado = adicionarParceiroSelecionado;
 window.removerParceiroSelecionado = removerParceiroSelecionado;
 window.atualizarParceirosSelecionados = atualizarParceirosSelecionados;
+window.toggleComentarios = toggleComentarios;
+window.carregarComentarios = carregarComentarios;
+window.enviarComentario = enviarComentario;
+window.gerarCaixaComentarios = gerarCaixaComentarios;
