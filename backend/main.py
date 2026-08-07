@@ -206,7 +206,7 @@ def listar_documentos(
 
 @app.get("/documentos/pesquisar", response_model=List[DocumentoOut])
 def pesquisar_documentos(
-    q: Optional[str] = Query(None, description="Text to search"),
+    q: Optional[str] = Query(None, description="Text to search (title, partner, ID)"),
     estados: Optional[str] = Query(None, description="Filter by status (comma separated)"),
     data_inicio: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
     data_fim: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
@@ -215,8 +215,12 @@ def pesquisar_documentos(
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
+    """
+    Advanced document search endpoint.
+    """
     query = db.query(Documento)
 
+    # -------------------- Text search filter --------------------
     if q:
         q = f"%{q}%"
         try:
@@ -238,10 +242,20 @@ def pesquisar_documentos(
                 )
             )
 
+    # -------------------- Status filter (CORRIGIDO) --------------------
     if estados:
         estados_lista = [e.strip() for e in estados.split(",") if e.strip()]
         if estados_lista:
+            # ✅ Mapeamento para aceitar tanto português como inglês
             estado_map = {
+                # Português → Enum
+                "Rascunho": EstadoDocumento.RASCUNHO,
+                "Submetido": EstadoDocumento.SUBMETIDO,
+                "Em Revisão": EstadoDocumento.EM_REVISAO,
+                "Alterações": EstadoDocumento.ALTERACOES,
+                "Aprovado": EstadoDocumento.APROVADO,
+                "Arquivado": EstadoDocumento.ARQUIVADO,
+                # Inglês → Enum
                 "Draft": EstadoDocumento.RASCUNHO,
                 "Submitted": EstadoDocumento.SUBMETIDO,
                 "In Review": EstadoDocumento.EM_REVISAO,
@@ -249,10 +263,16 @@ def pesquisar_documentos(
                 "Approved": EstadoDocumento.APROVADO,
                 "Archived": EstadoDocumento.ARQUIVADO
             }
-            estados_enum = [estado_map[e] for e in estados_lista if e in estado_map]
+            
+            estados_enum = []
+            for e in estados_lista:
+                if e in estado_map:
+                    estados_enum.append(estado_map[e])
+            
             if estados_enum:
                 query = query.filter(Documento.estado.in_(estados_enum))
 
+    # -------------------- Date filter --------------------
     if data_inicio:
         try:
             data_inicio_dt = datetime.strptime(data_inicio, "%Y-%m-%d")
@@ -268,6 +288,7 @@ def pesquisar_documentos(
         except ValueError:
             pass
 
+    # -------------------- Profile filter --------------------
     if current_user.perfil == PerfilUtilizador.PARCEIRO:
         query = query.outerjoin(Documento.parceiros).filter(
             or_(
@@ -278,6 +299,7 @@ def pesquisar_documentos(
     elif current_user.perfil == PerfilUtilizador.EMPRESA:
         query = query.filter(Documento.empresa_id == current_user.username)
 
+    # -------------------- Ordering --------------------
     order_map = {
         "id": Documento.id,
         "titulo": Documento.titulo,
@@ -313,6 +335,7 @@ def pesquisar_documentos(
             "estado": doc.estado,
             "versao_atual": doc.versao_atual,
             "dados": doc.dados,
+            "imagem_url": doc.imagem_url,
             "created_at": doc.created_at,
             "updated_at": doc.updated_at,
             "parceiro_id": doc.parceiro_id or (parceiros_ids[0] if parceiros_ids else None),

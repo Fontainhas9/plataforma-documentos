@@ -629,12 +629,53 @@ function formatDate(dateStr) {
     }
 }
 
+// =====================================================
+// ESTADOS - MAPEAMENTO CORRETO
+// =====================================================
+
 function getEstadoDisplay(estado) {
-    return ESTADOS_MAP[estado] || estado;
+    const estadoMap = {
+        'Rascunho': 'Draft',
+        'Submetido': 'Submitted',
+        'Em Revisão': 'In Review',
+        'Alterações': 'Changes Requested',
+        'Aprovado': 'Approved',
+        'Arquivado': 'Archived',
+        // Mapeamento reverso (se receber em inglês)
+        'Draft': 'Rascunho',
+        'Submitted': 'Submetido',
+        'In Review': 'Em Revisão',
+        'Changes Requested': 'Alterações',
+        'Approved': 'Aprovado',
+        'Archived': 'Arquivado'
+    };
+    
+    // Se o estado existir no mapa, retornar o display
+    if (estado && estado in estadoMap) {
+        return estadoMap[estado];
+    }
+    
+    // Fallback
+    return estado || 'Unknown';
 }
 
 function getEstadoClass(estado) {
-    return ESTADOS_CORES[estado] || 'status-draft';
+    const estadoClassMap = {
+        'Rascunho': 'status-draft',
+        'Draft': 'status-draft',
+        'Submetido': 'status-submitted',
+        'Submitted': 'status-submitted',
+        'Em Revisão': 'status-review',
+        'In Review': 'status-review',
+        'Alterações': 'status-changes',
+        'Changes Requested': 'status-changes',
+        'Aprovado': 'status-approved',
+        'Approved': 'status-approved',
+        'Arquivado': 'status-archived',
+        'Archived': 'status-archived'
+    };
+    
+    return estadoClassMap[estado] || 'status-draft';
 }
 
 function safeCopy(obj) {
@@ -867,6 +908,62 @@ function toggleFiltros() {
     }
 }
 
+function aplicarFiltros() {
+    const busca = document.getElementById('filtroBusca')?.value || '';
+    const estadoSelect = document.getElementById('filtroEstados');
+    const estadoSelecionado = estadoSelect ? estadoSelect.value : '';
+    const dataInicio = document.getElementById('filtroDataInicio')?.value || '';
+    const dataFim = document.getElementById('filtroDataFim')?.value || '';
+
+    // Mapear o valor do dropdown para o valor correto do estado (em inglês para a API)
+    const estadoMap = {
+        'Rascunho': 'Draft',
+        'Submetido': 'Submitted',
+        'Em Revisão': 'In Review',
+        'Alterações': 'Changes Requested',
+        'Aprovado': 'Approved',
+        'Arquivado': 'Archived'
+    };
+
+    let estados = [];
+    if (estadoSelecionado) {
+        const estadoIngles = estadoMap[estadoSelecionado] || estadoSelecionado;
+        estados = [estadoIngles];
+    }
+
+    state.filtros = {
+        q: busca,
+        estados: estados,
+        dataInicio: dataInicio || null,
+        dataFim: dataFim || null
+    };
+
+    console.log('🔍 Filtros aplicados:', state.filtros);
+    carregarDocumentos();
+}
+
+function limparFiltros() {
+    state.filtros = {
+        q: '',
+        estados: [],
+        dataInicio: null,
+        dataFim: null
+    };
+    
+    const buscaInput = document.getElementById('filtroBusca');
+    const estadoSelect = document.getElementById('filtroEstados');
+    const dataInicioInput = document.getElementById('filtroDataInicio');
+    const dataFimInput = document.getElementById('filtroDataFim');
+    
+    if (buscaInput) buscaInput.value = '';
+    if (estadoSelect) estadoSelect.value = '';
+    if (dataInicioInput) dataInicioInput.value = '';
+    if (dataFimInput) dataFimInput.value = '';
+    
+    console.log('🧹 Filtros limpos');
+    carregarDocumentos();
+}
+
 // =====================================================
 // DOCUMENTOS - LISTAGEM
 // =====================================================
@@ -875,31 +972,44 @@ async function carregarDocumentos() {
     try {
         const params = new URLSearchParams();
         if (state.filtros.q) params.append('q', state.filtros.q);
-        if (state.filtros.estados.length) params.append('estados', state.filtros.estados.join(','));
+        
+        // ✅ Enviar os estados em português (o backend vai converter)
+        if (state.filtros.estados && state.filtros.estados.length > 0) {
+            params.append('estados', state.filtros.estados.join(','));
+        }
+        
         if (state.filtros.dataInicio) params.append('data_inicio', state.filtros.dataInicio);
         if (state.filtros.dataFim) params.append('data_fim', state.filtros.dataFim);
 
+        params.append('order_by', 'id');
+        params.append('order_dir', 'desc');
+
         const url = `${API_URL}/documentos/pesquisar?${params.toString()}`;
+        console.log('📤 URL da requisição:', url);
+        
         const response = await fetch(url, { headers: getAuthHeaders() });
 
         if (response.ok) {
             state.documentos = await response.json();
+            console.log('📥 Documentos recebidos:', state.documentos.length);
+            console.log('📥 Primeiro documento:', state.documentos[0]?.estado);
             renderDocumentosList();
         } else {
             console.error('Error loading documents:', response.status);
-            // ✅ Mesmo com erro, tentar renderizar com os dados que temos
             renderDocumentosList();
         }
     } catch (error) {
         console.error('Error loading documents:', error);
-        // ✅ Em caso de erro, renderizar com os dados existentes
         renderDocumentosList();
     }
 }
 
 function renderDocumentosList() {
     const container = document.getElementById('appContent');
-    if (!container) return;
+    if (!container) {
+        console.error('❌ container #appContent não encontrado!');
+        return;
+    }
 
     const isParceiro = state.perfil === 'parceiro';
     const isEmpresa = state.perfil === 'empresa';
@@ -907,6 +1017,9 @@ function renderDocumentosList() {
 
     let html = '';
 
+    // ============================================================
+    // MENU ADMIN (se for admin)
+    // ============================================================
     if (isAdmin) {
         html += `
             <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
@@ -922,6 +1035,7 @@ function renderDocumentosList() {
         `;
     }
 
+    // Se for admin e estiver na view de users, mostrar a lista de utilizadores
     if (isAdmin && adminMenuAtivo === 'users') {
         html += `<div id="adminUsersContainer"></div>`;
         container.innerHTML = html;
@@ -929,8 +1043,9 @@ function renderDocumentosList() {
         return;
     }
 
-    const filtrosExpandidos = false;
-
+    // ============================================================
+    // BARRA DE AÇÕES (criar documento, refresh, filtros)
+    // ============================================================
     html += `
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
@@ -944,24 +1059,27 @@ function renderDocumentosList() {
         </div>
     `;
 
+    // ============================================================
+    // FILTROS (colapsáveis)
+    // ============================================================
     html += `
         <div id="filtrosContainer" style="max-height:0;padding:0;margin-bottom:0;overflow:hidden;transition:max-height 0.3s ease, padding 0.3s ease, margin 0.3s ease;background:rgba(255,255,255,0.08);border-radius:10px;border:1px solid transparent;">
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;align-items:end;padding:0;">
                 <div class="form-group" style="margin:0;">
                     <label style="color:rgba(255,255,255,0.7);font-size:12px;font-weight:600;margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:0.5px;">Search</label>
                     <input type="text" id="filtroBusca" placeholder="Title, partner or ID..." 
-                           value="${state.filtros.q}" style="width:100%;">
+                           value="${state.filtros.q || ''}" style="width:100%;">
                 </div>
                 <div class="form-group" style="margin:0;">
                     <label style="color:rgba(255,255,255,0.7);font-size:12px;font-weight:600;margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:0.5px;">Status</label>
                     <select id="filtroEstados" style="width:100%;">
                         <option value="">All Statuses</option>
-                        <option value="Rascunho" ${state.filtros.estados.includes('Rascunho') ? 'selected' : ''}>Draft</option>
-                        <option value="Submetido" ${state.filtros.estados.includes('Submetido') ? 'selected' : ''}>Submitted</option>
-                        <option value="Em Revisão" ${state.filtros.estados.includes('Em Revisão') ? 'selected' : ''}>In Review</option>
-                        <option value="Alterações" ${state.filtros.estados.includes('Alterações') ? 'selected' : ''}>Changes Requested</option>
-                        <option value="Aprovado" ${state.filtros.estados.includes('Aprovado') ? 'selected' : ''}>Approved</option>
-                        <option value="Arquivado" ${state.filtros.estados.includes('Arquivado') ? 'selected' : ''}>Archived</option>
+                        <option value="Rascunho" ${state.filtros.estados && state.filtros.estados.includes('Rascunho') ? 'selected' : ''}>Draft</option>
+                        <option value="Submetido" ${state.filtros.estados && state.filtros.estados.includes('Submetido') ? 'selected' : ''}>Submitted</option>
+                        <option value="Em Revisão" ${state.filtros.estados && state.filtros.estados.includes('Em Revisão') ? 'selected' : ''}>In Review</option>
+                        <option value="Alterações" ${state.filtros.estados && state.filtros.estados.includes('Alterações') ? 'selected' : ''}>Changes Requested</option>
+                        <option value="Aprovado" ${state.filtros.estados && state.filtros.estados.includes('Aprovado') ? 'selected' : ''}>Approved</option>
+                        <option value="Arquivado" ${state.filtros.estados && state.filtros.estados.includes('Arquivado') ? 'selected' : ''}>Archived</option>
                     </select>
                 </div>
                 <div class="form-group" style="margin:0;">
@@ -980,6 +1098,9 @@ function renderDocumentosList() {
         </div>
     `;
 
+    // ============================================================
+    // LISTA DE DOCUMENTOS
+    // ============================================================
     if (!state.documentos || state.documentos.length === 0) {
         html += `
             <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:40px;text-align:center;color:rgba(255,255,255,0.6);">
@@ -1003,7 +1124,7 @@ function renderDocumentosList() {
                         </tr>
                     </thead>
                     <tbody>
-                `;
+        `;
 
         state.documentos.forEach(doc => {
             const estadoDisplay = getEstadoDisplay(doc.estado);
@@ -1033,22 +1154,55 @@ function renderDocumentosList() {
         `;
     }
 
-    // ✅ Se houver um documento selecionado, adicionar o detalhe
+    // ============================================================
+    // DETALHE DO DOCUMENTO (se houver um selecionado)
+    // ============================================================
     if (state.docSelecionado) {
         html += `<div id="documentoDetalhe" style="margin-top:30px;"></div>`;
     }
 
+    // ============================================================
+    // RENDERIZAR
+    // ============================================================
     container.innerHTML = html;
 
-    // ✅ Se houver um documento selecionado, carregar o detalhe
+    // ============================================================
+    // CARREGAR DETALHE DO DOCUMENTO (se houver um selecionado)
+    // ============================================================
     if (state.docSelecionado) {
         carregarDocumentoDetalhe(state.docSelecionado);
     }
 
-    // ✅ Event listener para pesquisa com Enter
+    // ============================================================
+    // EVENT LISTENER - Pesquisa com Enter
+    // ============================================================
     document.getElementById('filtroBusca')?.addEventListener('keyup', function(e) {
-        if (e.key === 'Enter') aplicarFiltros();
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            aplicarFiltros();
+        }
     });
+
+    // ============================================================
+    // RESTAURAR ESTADO DOS FILTROS (se estavam expandidos)
+    // ============================================================
+    const filtrosExpandidos = sessionStorage.getItem('filtrosExpandidos') === 'true';
+    if (filtrosExpandidos) {
+        const containerFiltros = document.getElementById('filtrosContainer');
+        const button = document.querySelector('.btn-filter-toggle');
+        if (containerFiltros) {
+            containerFiltros.style.maxHeight = '500px';
+            containerFiltros.style.padding = '16px';
+            containerFiltros.style.marginBottom = '20px';
+            containerFiltros.style.borderColor = 'rgba(254, 200, 0, 0.2)';
+        }
+        if (button) {
+            button.classList.add('active');
+            button.innerHTML = '🔽 Filters';
+        }
+    }
+
+    console.log('📋 Documentos renderizados:', state.documentos.length);
 }
 
 // =====================================================
@@ -3326,7 +3480,12 @@ function aplicarFiltros() {
     const dataInicio = document.getElementById('filtroDataInicio')?.value || '';
     const dataFim = document.getElementById('filtroDataFim')?.value || '';
 
-    const estados = estadoSelecionado ? [estadoSelecionado] : [];
+    // ✅ Enviar o valor exato que está no dropdown (em português)
+    // O backend agora aceita tanto português como inglês
+    let estados = [];
+    if (estadoSelecionado) {
+        estados = [estadoSelecionado];
+    }
 
     state.filtros = {
         q: busca,
@@ -3335,6 +3494,7 @@ function aplicarFiltros() {
         dataFim: dataFim || null
     };
 
+    console.log('🔍 Filtros aplicados (frontend):', state.filtros);
     carregarDocumentos();
 }
 
@@ -3356,6 +3516,7 @@ function limparFiltros() {
     if (dataInicioInput) dataInicioInput.value = '';
     if (dataFimInput) dataFimInput.value = '';
     
+    console.log('🧹 Filtros limpos');
     carregarDocumentos();
 }
 
