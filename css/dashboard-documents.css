@@ -875,6 +875,50 @@ body {
 }
 
 /* =====================================================
+   BOTÕES SHOW/HIDE E VERSION HISTORY - MESMO NÍVEL
+===================================================== */
+
+.btn-toggle-content {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.btn-toggle-content:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.btn-toggle-content:active {
+    transform: translateY(0px);
+    box-shadow: none;
+}
+
+/* Container dos botões - mesmo nível */
+.toggle-buttons-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+    align-items: center;
+}
+
+/* =====================================================
    COMMENTS / CHAT - CORRIGIDO
 ===================================================== */
 
@@ -1335,7 +1379,148 @@ div[style*="margin-top: 30px;"] {
 }
 
 /* =====================================================
-   RESPONSIVE - COMENTÁRIOS
+   TÍTULOS DOS CAMPOS DO DOCUMENTO - MAIORES E NEGRITO
+===================================================== */
+
+.document-info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.document-info-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.document-info-card .info-label {
+    display: block;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.document-info-card .info-value {
+    display: block;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+/* =====================================================
+   IMAGEM DO DOCUMENTO
+===================================================== */
+
+/* Container da imagem */
+.document-image-container {
+    margin-bottom: 20px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.document-image-container img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 6px;
+    cursor: pointer;
+    object-fit: contain;
+    background: rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.document-image-container img:hover {
+    transform: scale(1.02);
+}
+
+.document-image-label {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+/* Botão de zoom */
+.btn-zoom {
+    padding: 4px 12px;
+    font-size: 12px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Inter', sans-serif;
+}
+
+.btn-zoom:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+
+/* Modal de zoom */
+#modalImagem {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.3s ease;
+    padding: 20px;
+}
+
+#modalImagem img {
+    max-width: 90vw;
+    max-height: 85vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    cursor: default;
+    background: rgba(0,0,0,0.3);
+}
+
+#modalImagem .close-btn {
+    position: fixed;
+    top: 20px;
+    right: 30px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s ease;
+    z-index: 1000000;
+}
+
+#modalImagem .close-btn:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+/* =====================================================
+   RESPONSIVE - COMENTÁRIOS E CARDS
 ===================================================== */
 
 @media (max-width: 640px) {
@@ -1390,6 +1575,33 @@ div[style*="margin-top: 30px;"] {
     
     .btn-add-comment {
         padding: 6px 16px;
+        font-size: 13px;
+    }
+    
+    .btn-toggle-content {
+        padding: 5px 12px;
+        font-size: 12px;
+        white-space: normal;
+    }
+    
+    .toggle-buttons-container {
+        gap: 8px;
+    }
+    
+    .document-info-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .document-info-card {
+        padding: 10px;
+    }
+    
+    .document-info-card .info-label {
+        font-size: 12px;
+    }
+    
+    .document-info-card .info-value {
         font-size: 13px;
     }
 }

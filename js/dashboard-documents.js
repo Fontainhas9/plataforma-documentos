@@ -55,6 +55,7 @@ let state = {
     documentos: [],
     docSelecionado: null,
     editData: null,
+    imagemUrl: null,  // ✅ NOVO - para guardar a imagem durante a edição
     filtros: {
         q: '',
         estados: [],
@@ -886,10 +887,12 @@ async function carregarDocumentos() {
             renderDocumentosList();
         } else {
             console.error('Error loading documents:', response.status);
+            // ✅ Mesmo com erro, tentar renderizar com os dados que temos
             renderDocumentosList();
         }
     } catch (error) {
         console.error('Error loading documents:', error);
+        // ✅ Em caso de erro, renderizar com os dados existentes
         renderDocumentosList();
     }
 }
@@ -1030,16 +1033,19 @@ function renderDocumentosList() {
         `;
     }
 
+    // ✅ Se houver um documento selecionado, adicionar o detalhe
     if (state.docSelecionado) {
         html += `<div id="documentoDetalhe" style="margin-top:30px;"></div>`;
     }
 
     container.innerHTML = html;
 
+    // ✅ Se houver um documento selecionado, carregar o detalhe
     if (state.docSelecionado) {
         carregarDocumentoDetalhe(state.docSelecionado);
     }
 
+    // ✅ Event listener para pesquisa com Enter
     document.getElementById('filtroBusca')?.addEventListener('keyup', function(e) {
         if (e.key === 'Enter') aplicarFiltros();
     });
@@ -1119,15 +1125,25 @@ function renderDocumentoDetalhe(doc) {
     const functionalUnit = doc.dados?.functional_unit || 'Not defined';
     const systemBoundary = doc.dados?.system_boundary || 'Not defined';
     const parceirosList = doc.parceiros_ids ? doc.parceiros_ids.join(', ') : (doc.parceiro_id || 'No partners');
+    const imagemUrl = doc.imagem_url || null;
 
     const shouldBeOpen = doc.estado === 'Em Revisão' || doc.estado === 'Submetido';
+    const isEditing = state.editData !== null;
 
     // ============================================================
-    // FUNÇÃO PARA GERAR BOTÕES DE AÇÃO (reutilizável)
+    // FUNÇÃO PARA GERAR BOTÕES DE AÇÃO
     // ============================================================
-    function gerarBotoesAcao(docId, titulo, posicao) {
+    function gerarBotoesAcao(docId, posicao) {
+        if (isEditing) {
+            return '';
+        }
+
+        const isTopo = posicao === 'topo';
+        const isBaixo = posicao === 'baixo';
+        const displayStyle = (isTopo) ? 'flex' : (shouldBeOpen ? 'flex' : 'none');
+
         let html = `
-            <div class="actions-container" style="display:flex;flex-wrap:wrap;gap:10px;margin:${posicao === 'topo' ? '0 0 20px 0' : '20px 0 0 0'};padding:${posicao === 'topo' ? '0 0 16px 0' : '16px 0 0 0'};border-bottom:${posicao === 'topo' ? '1px solid rgba(255,255,255,0.06)' : 'none'};border-top:${posicao === 'baixo' ? '1px solid rgba(255,255,255,0.06)' : 'none'};">
+            <div class="actions-container" id="actionsContainer_${posicao}" style="display:${displayStyle};flex-wrap:wrap;gap:10px;margin:${isTopo ? '0 0 20px 0' : '20px 0 0 0'};padding:${isTopo ? '0 0 16px 0' : '16px 0 0 0'};border-bottom:${isTopo ? '1px solid rgba(255,255,255,0.06)' : 'none'};border-top:${isBaixo ? '1px solid rgba(255,255,255,0.06)' : 'none'};">
         `;
 
         if (podeEditar) {
@@ -1188,24 +1204,27 @@ function renderDocumentoDetalhe(doc) {
                 <span class="status-tag ${estadoClass}" style="font-size:16px;padding:6px 16px;">${estadoDisplay}</span>
             </div>
 
-            <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;margin-bottom:20px;">
-                <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:12px;">
-                    <span style="color:rgba(255,255,255,0.4);font-size:12px;">Functional Unit</span>
-                    <p style="color:rgba(255,255,255,0.8);margin:0;font-size:14px;font-weight:500;">${functionalUnit}</p>
+            <!-- ========================================================== -->
+            <!-- CARDS DE INFORMAÇÃO DO DOCUMENTO -->
+            <!-- ========================================================== -->
+            <div class="document-info-grid">
+                <div class="document-info-card">
+                    <span class="info-label">Functional Unit</span>
+                    <span class="info-value">${functionalUnit}</span>
                 </div>
-                <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:12px;">
-                    <span style="color:rgba(255,255,255,0.4);font-size:12px;">System Boundary</span>
-                    <p style="color:rgba(255,255,255,0.8);margin:0;font-size:14px;font-weight:500;">${systemBoundary}</p>
+                <div class="document-info-card">
+                    <span class="info-label">System Boundary</span>
+                    <span class="info-value">${systemBoundary}</span>
                 </div>
-                <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:12px;">
+                <div class="document-info-card">
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
                         <div>
-                            <span style="color:rgba(255,255,255,0.4);font-size:12px;">Created</span>
-                            <p style="color:rgba(255,255,255,0.8);margin:0;font-size:13px;">${formatDate(doc.created_at)}</p>
+                            <span class="info-label">Created</span>
+                            <span class="info-value">${formatDate(doc.created_at)}</span>
                         </div>
                         <div>
-                            <span style="color:rgba(255,255,255,0.4);font-size:12px;">Last Update</span>
-                            <p style="color:rgba(255,255,255,0.8);margin:0;font-size:13px;">${formatDate(doc.updated_at)}</p>
+                            <span class="info-label">Last Update</span>
+                            <span class="info-value">${formatDate(doc.updated_at)}</span>
                         </div>
                     </div>
                 </div>
@@ -1213,30 +1232,57 @@ function renderDocumentoDetalhe(doc) {
     `;
 
     // ============================================================
-    // BOTÕES DE AÇÃO - TOPO
+    // IMAGEM DO DOCUMENTO
     // ============================================================
-    html += gerarBotoesAcao(doc.id, 'Actions', 'topo');
+    if (imagemUrl && imagemUrl.startsWith('data:image')) {
+        html += `
+            <div class="document-image-container" style="margin-bottom:20px;padding:12px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.06);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <span style="color:rgba(255,255,255,0.4);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">🖼️ Document Image</span>
+                    <button class="btn-zoom" onclick="abrirModalImagem('${imagemUrl}')" style="padding:4px 12px;font-size:12px;border-radius:4px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);cursor:pointer;transition:all 0.2s ease;font-family:'Inter',sans-serif;">
+                        🔍 Zoom
+                    </button>
+                </div>
+                <img src="${imagemUrl}" alt="Document image" style="max-width:100%;max-height:200px;border-radius:6px;cursor:pointer;object-fit:contain;background:rgba(0,0,0,0.2);transition:transform 0.2s ease;" onclick="abrirModalImagem('${imagemUrl}')" />
+            </div>
+        `;
+    }
 
     // ============================================================
-    // CAIXA DE COMENTÁRIOS - TOPO (COM ESPAÇAMENTO)
+    // BOTÕES DE AÇÃO - TOPO (SEMPRE VISÍVEIS)
+    // ============================================================
+    html += gerarBotoesAcao(doc.id, 'topo');
+
+    // ============================================================
+    // BOTÕES SHOW/HIDE + VERSION HISTORY (MESMO NÍVEL)
     // ============================================================
     html += `
-        <div style="margin-top: 24px; clear: both;">
-            ${gerarCaixaComentarios(doc.id)}
+        <div class="toggle-buttons-container">
+            <button class="btn-toggle-content" onclick="toggleConteudoDocumento(${doc.id})" id="btnToggleConteudo">
+                ${shouldBeOpen ? '📊 Hide Document Content' : '📊 Show Document Content'}
+            </button>
+            <button class="btn-toggle-content" onclick="carregarHistorico(${doc.id})">
+                📜 Version History
+            </button>
+        </div>
+        <div id="historicoVersoes" style="margin-top:0;margin-bottom:16px;"></div>
+    `;
+
+    // ============================================================
+    // CONTEÚDO DO DOCUMENTO (LCA/LCC)
+    // ============================================================
+    html += `
+        <div id="conteudoDocumento" style="display:${shouldBeOpen ? 'block' : 'none'};margin-top:12px;">
+            ${renderConteudoDocumento(doc.dados, processos, shouldBeOpen)}
         </div>
     `;
 
     // ============================================================
-    // CONTEÚDO DO DOCUMENTO (COM BOTÕES LCA/LCC) - COM ESPAÇO
+    // CAIXA DE COMENTÁRIOS - TOPO
     // ============================================================
     html += `
-        <div style="margin-top: 30px; clear: both; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.06);">
-            <button class="btn btn-secondary btn-sm" onclick="toggleConteudoDocumento(${doc.id})" style="margin-bottom:12px;">
-                📊 Show/Hide Document Content
-            </button>
-            <div id="conteudoDocumento" style="display:${shouldBeOpen ? 'block' : 'none'};margin-top:12px;">
-                ${renderConteudoDocumento(doc.dados, processos, shouldBeOpen)}
-            </div>
+        <div style="margin-top: 24px; clear: both;">
+            ${gerarCaixaComentarios(doc.id)}
         </div>
     `;
 
@@ -1251,28 +1297,20 @@ function renderDocumentoDetalhe(doc) {
     }
 
     // ============================================================
-    // HISTÓRICO DE VERSÕES
+    // BOTÕES DE AÇÃO - BAIXO (SÓ APARECEM SE O CONTEÚDO ESTIVER ABERTO)
     // ============================================================
-    html += `
-        <div style="margin-top:24px;clear:both;">
-            <button class="btn btn-secondary btn-sm" onclick="carregarHistorico(${doc.id})">📜 Version History</button>
-            <div id="historicoVersoes" style="margin-top:12px;"></div>
-        </div>
-    `;
+    html += gerarBotoesAcao(doc.id, 'baixo');
 
     // ============================================================
-    // BOTÕES DE AÇÃO - BAIXO
+    // CAIXA DE COMENTÁRIOS - RODAPÉ (SÓ APARECE SE O CONTEÚDO ESTIVER ABERTO)
     // ============================================================
-    html += gerarBotoesAcao(doc.id, 'Actions', 'baixo');
-
-    // ============================================================
-    // CAIXA DE COMENTÁRIOS - RODAPÉ
-    // ============================================================
-    html += `
-        <div style="margin-top: 24px; clear: both;">
-            ${gerarCaixaComentarios(doc.id)}
-        </div>
-    `;
+    if (shouldBeOpen) {
+        html += `
+            <div style="margin-top: 24px; clear: both;">
+                ${gerarCaixaComentarios(doc.id)}
+            </div>
+        `;
+    }
 
     html += `
         </div>
@@ -1347,6 +1385,8 @@ function renderDocumentoDetalhe(doc) {
 // FUNÇÃO AUXILIAR PARA GERAR A CAIXA DE COMENTÁRIOS
 // ============================================================
 function gerarCaixaComentarios(docId) {
+    console.log('📦 Gerando caixa de comentários para o documento:', docId);
+    
     return `
         <div class="comentarios-container" data-doc-id="${docId}">
             <div class="comentarios-header" onclick="toggleComentarios(${docId})">
@@ -1544,13 +1584,26 @@ function alternarSecaoDocumento(secao) {
 
 function toggleConteudoDocumento(docId) {
     const container = document.getElementById('conteudoDocumento');
+    const btn = document.getElementById('btnToggleConteudo');
+    const actionsBaixo = document.getElementById('actionsContainer_baixo');
+    const comentariosRodape = document.querySelectorAll('.comentarios-container');
+    
     if (!container) return;
 
-    const isVisible = container.style.display === 'none' || container.style.display === '';
+    const isVisible = container.style.display !== 'none' && container.style.display !== '';
     
     if (isVisible) {
+        // FECHAR
+        container.style.display = 'none';
+        if (btn) btn.innerHTML = '📊 Show Document Content';  // ✅ Alterado
+        if (actionsBaixo) actionsBaixo.style.display = 'none';
+    } else {
+        // ABRIR
         container.style.display = 'block';
+        if (btn) btn.innerHTML = '📊 Hide Document Content';  // ✅ Alterado
+        if (actionsBaixo) actionsBaixo.style.display = 'flex';
         
+        // Carregar conteúdo se necessário
         fetch(`${API_URL}/documentos/${docId}`, {
             headers: getAuthHeaders()
         })
@@ -1561,17 +1614,11 @@ function toggleConteudoDocumento(docId) {
             
             const details = container.querySelectorAll('details');
             details.forEach(d => d.setAttribute('open', ''));
-            
-            setTimeout(() => {
-                alternarSecaoDocumento('ambas');
-            }, 100);
         })
         .catch(error => {
             console.error('Error loading document content:', error);
             showToast('Error loading document content', 'error');
         });
-    } else {
-        container.style.display = 'none';
     }
 }
 
@@ -1593,7 +1640,7 @@ function abrirEdicaoDocumento(docId) {
         return;
     }
 
-    console.log('📤 A abrir editor para documento:', docId);
+    console.log('📤 Opening editor for document:', docId);
 
     fetch(`${API_URL}/documentos/${docId}`, {
         headers: getAuthHeaders()
@@ -1603,10 +1650,12 @@ function abrirEdicaoDocumento(docId) {
         return response.json();
     })
     .then(doc => {
-        console.log('📥 Documento carregado:', doc);
+        console.log('📥 Document loaded:', doc);
         const processos = getProcessosFromData(doc.dados);
         state.editData = ensureEstruturaCompleta(doc.dados, processos);
-        console.log('📊 state.editData inicializado');
+        state.imagemUrl = doc.imagem_url || null;  // ✅ Guardar imagem
+        console.log('📊 state.editData initialized');
+        console.log('🖼️ Image URL:', state.imagemUrl);
         carregarDocumentoDetalhe(docId);
     })
     .catch(error => {
@@ -1900,6 +1949,179 @@ function renderEditorDocumento(docId, processos) {
     return html;
 }
 
+// =====================================================
+// MODAL DE ZOOM DA IMAGEM
+// =====================================================
+
+function abrirModalImagem(imagemUrl) {
+    // Remover modal existente
+    const oldModal = document.getElementById('modalImagem');
+    if (oldModal) {
+        oldModal.remove();
+        document.body.style.overflow = '';
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'modalImagem';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.85);
+        z-index: 999999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(4px);
+        animation: fadeIn 0.3s ease;
+        padding: 20px;
+        box-sizing: border-box;
+    `;
+
+    // Container da imagem
+    const imgContainer = document.createElement('div');
+    imgContainer.style.cssText = `
+        max-width: 90vw;
+        max-height: 90vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    `;
+
+    // Imagem
+    const img = document.createElement('img');
+    img.src = imagemUrl;
+    img.style.cssText = `
+        max-width: 90vw;
+        max-height: 85vh;
+        object-fit: contain;
+        border-radius: 8px;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+        cursor: default;
+        background: rgba(0,0,0,0.3);
+        user-select: none;
+        -webkit-user-select: none;
+    `;
+
+    // Botão Close (canto superior direito)
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕ Close';
+    closeBtn.style.cssText = `
+        position: fixed;
+        top: 24px;
+        right: 30px;
+        background: rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.2);
+        color: #fff;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: 'Inter', sans-serif;
+        transition: all 0.2s ease;
+        z-index: 1000000;
+        letter-spacing: 0.3px;
+    `;
+    
+    closeBtn.onmouseover = function() {
+        this.style.background = 'rgba(255,255,255,0.25)';
+        this.style.borderColor = 'rgba(255,255,255,0.4)';
+        this.style.transform = 'scale(1.05)';
+    };
+    closeBtn.onmouseout = function() {
+        this.style.background = 'rgba(255,255,255,0.12)';
+        this.style.borderColor = 'rgba(255,255,255,0.2)';
+        this.style.transform = 'scale(1)';
+    };
+
+    // Botão Close alternativo (canto superior esquerdo) - apenas ícone X
+    const closeBtnAlt = document.createElement('button');
+    closeBtnAlt.textContent = '✕';
+    closeBtnAlt.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 24px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.15);
+        color: #fff;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        font-size: 20px;
+        cursor: pointer;
+        font-family: 'Inter', sans-serif;
+        transition: all 0.2s ease;
+        z-index: 1000000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    `;
+    
+    closeBtnAlt.onmouseover = function() {
+        this.style.background = 'rgba(255,255,255,0.2)';
+        this.style.borderColor = 'rgba(255,255,255,0.3)';
+        this.style.transform = 'scale(1.1)';
+    };
+    closeBtnAlt.onmouseout = function() {
+        this.style.background = 'rgba(255,255,255,0.08)';
+        this.style.borderColor = 'rgba(255,255,255,0.15)';
+        this.style.transform = 'scale(1)';
+    };
+
+    // Função para fechar o modal
+    function fecharModal() {
+        const modal = document.getElementById('modalImagem');
+        if (modal) {
+            modal.style.animation = 'fadeOut 0.2s ease';
+            setTimeout(() => {
+                modal.remove();
+                document.body.style.overflow = '';
+                document.removeEventListener('keydown', keyHandler);
+            }, 200);
+        }
+    }
+
+    // Handler para tecla ESC
+    function keyHandler(e) {
+        if (e.key === 'Escape') {
+            fecharModal();
+        }
+    }
+
+    // Event listeners para fechar
+    closeBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        fecharModal();
+    });
+
+    closeBtnAlt.addEventListener('click', function(e) {
+        e.stopPropagation();
+        fecharModal();
+    });
+
+    // Fechar ao clicar fora da imagem (no fundo escuro)
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            fecharModal();
+        }
+    });
+
+    // Fechar com tecla ESC
+    document.addEventListener('keydown', keyHandler);
+
+    // Montar o modal
+    imgContainer.appendChild(img);
+    modal.appendChild(imgContainer);
+    modal.appendChild(closeBtn);
+    modal.appendChild(closeBtnAlt);
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+}
+
 // ============================================================
 // ALTERNAR ENTRE SECÇÕES LCA / LCC NO EDITOR
 // ============================================================
@@ -2173,7 +2395,7 @@ function salvarEdicao(docId) {
         return;
     }
 
-    console.log('📤 A salvar dados do parceiro:', JSON.stringify(dados, null, 2));
+    console.log('📤 Saving partner data:', JSON.stringify(dados, null, 2));
 
     fetch(`${API_URL}/documentos/${docId}/editar`, {
         method: 'PUT',
@@ -2181,16 +2403,17 @@ function salvarEdicao(docId) {
         body: JSON.stringify({ dados: dados })
     })
     .then(response => {
-        console.log('📥 Resposta salvar - Status:', response.status);
+        console.log('📥 Save response - Status:', response.status);
         if (!response.ok) {
             return response.json().then(err => { throw new Error(err.detail || 'Error saving'); });
         }
         return response.json();
     })
     .then((doc) => {
-        console.log('✅ Documento salvo com sucesso!');
+        console.log('✅ Document saved successfully!');
         showToast('✅ Document saved successfully!', 'success');
         state.editData = null;
+        state.imagemUrl = null;  // ✅ Limpar imagem
         carregarDocumentoDetalhe(docId);
         carregarDocumentos();
     })
@@ -2225,7 +2448,7 @@ function submeterEdicao(docId) {
         return;
     }
 
-    console.log('📤 A submeter dados do parceiro:', JSON.stringify(dados, null, 2));
+    console.log('📤 Submitting partner data:', JSON.stringify(dados, null, 2));
 
     showConfirm('Submit this document for review?', function() {
         fetch(`${API_URL}/documentos/${docId}/editar`, {
@@ -2234,30 +2457,31 @@ function submeterEdicao(docId) {
             body: JSON.stringify({ dados: dados })
         })
         .then(response => {
-            console.log('📥 Resposta salvar - Status:', response.status);
+            console.log('📥 Save response - Status:', response.status);
             if (!response.ok) {
                 return response.json().then(err => { throw new Error(err.detail || 'Error saving'); });
             }
             return response.json();
         })
         .then((savedDoc) => {
-            console.log('✅ Documento salvo antes de submeter:', savedDoc);
+            console.log('✅ Document saved before submitting:', savedDoc);
             return fetch(`${API_URL}/documentos/${docId}/submeter`, {
                 method: 'POST',
                 headers: getAuthHeaders()
             });
         })
         .then(response => {
-            console.log('📥 Resposta submeter - Status:', response.status);
+            console.log('📥 Submit response - Status:', response.status);
             if (!response.ok) {
                 return response.json().then(err => { throw new Error(err.detail || 'Error submitting'); });
             }
             return response.json();
         })
         .then((submittedDoc) => {
-            console.log('✅ Documento submetido com sucesso!');
+            console.log('✅ Document submitted successfully!');
             showToast('✅ Document submitted successfully!', 'success');
             state.editData = null;
+            state.imagemUrl = null;  // ✅ Limpar imagem
             state.docSelecionado = null;
             carregarDocumentos();
         })
@@ -2270,6 +2494,7 @@ function submeterEdicao(docId) {
 
 function cancelarEdicao() {
     state.editData = null;
+    state.imagemUrl = null;  // ✅ Limpar imagem
     carregarDocumentoDetalhe(state.docSelecionado);
 }
 
@@ -2819,6 +3044,22 @@ function renderFormCriar(parceiros) {
                 </div>
             </div>
 
+            <!-- ✅ NOVO: Upload de Imagem -->
+            <div class="form-group" style="margin-top:16px;">
+                <label style="color:rgba(255,255,255,0.8);display:block;margin-bottom:4px;font-size:13px;">Document Image (optional)</label>
+                <p style="color:rgba(255,255,255,0.4);font-size:12px;margin-bottom:8px;">Upload an image to be displayed with the document (JPG, PNG, GIF, max 5MB)</p>
+                <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+                    <input type="file" id="imagemUpload" accept="image/*" style="color:rgba(255,255,255,0.8);padding:8px;background:rgba(255,255,255,0.05);border-radius:6px;border:1px solid rgba(255,255,255,0.1);flex:1;min-width:200px;" />
+                    <button class="btn btn-secondary btn-sm" onclick="uploadImagem()" style="white-space:nowrap;">📤 Upload</button>
+                </div>
+                <div id="previewImagemContainer" style="margin-top:10px;display:none;">
+                    <img id="previewImagem" src="" alt="Preview" style="max-width:200px;max-height:150px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);" />
+                    <br>
+                    <span style="color:rgba(255,255,255,0.4);font-size:12px;">Image uploaded successfully! Click "Upload" to change.</span>
+                </div>
+                <input type="hidden" id="imagemUrl" value="" />
+            </div>
+
             <div class="form-group" style="margin-top:16px;">
                 <label style="color:rgba(255,255,255,0.8);display:block;margin-bottom:4px;font-size:13px;">Processes</label>
                 <p style="color:rgba(255,255,255,0.4);font-size:12px;margin-bottom:8px;">Select the processes that will be available in this document</p>
@@ -2917,6 +3158,7 @@ async function criarDocumento() {
     const functionalUnit = document.getElementById('novoFunctionalUnit')?.value.trim();
     const systemBoundary = document.getElementById('novoSystemBoundary')?.value.trim();
     const parceirosIds = window.parceirosSelecionados || [];
+    const imagemUrl = document.getElementById('imagemUrl')?.value || null;  // ✅ NOVO
 
     if (!titulo) {
         showToast('Please enter a document title.', 'warning');
@@ -2953,7 +3195,8 @@ async function criarDocumento() {
         titulo: titulo,
         parceiros_ids: parceirosIds,
         empresa_id: state.username,
-        dados: dados
+        dados: dados,
+        imagem_url: imagemUrl  // ✅ NOVO
     };
 
     console.log('📤 Enviando documento:', JSON.stringify(payload, null, 2));
@@ -3155,21 +3398,35 @@ function toggleComentarios(docId) {
 }
 
 async function carregarComentarios(docId) {
+    console.log('📥 Carregando comentários para o documento:', docId);
+    
     try {
         const response = await fetch(`${API_URL}/documentos/${docId}/comentarios`, {
             headers: getAuthHeaders()
         });
         
+        console.log('📥 Status da resposta:', response.status);
+        
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Erro ao carregar comentários:', errorText);
             throw new Error('Error loading comments');
         }
         
         const comentarios = await response.json();
+        console.log('📥 Comentários carregados:', comentarios);
+        
         comentariosCarregados[docId] = true;
         renderComentarios(docId, comentarios);
         
+        // ✅ Atualizar badges
+        const badges = document.querySelectorAll(`.badge-comentarios[data-doc-id="${docId}"]`);
+        badges.forEach(badge => {
+            badge.textContent = comentarios.length;
+        });
+        
     } catch (error) {
-        console.error('Error loading comments:', error);
+        console.error('❌ Error loading comments:', error);
         const containers = document.querySelectorAll(`.comentarios-list[data-doc-id="${docId}"]`);
         containers.forEach(container => {
             container.innerHTML = `
@@ -3182,8 +3439,16 @@ async function carregarComentarios(docId) {
 }
 
 function renderComentarios(docId, comentarios) {
+    console.log('📝 Renderizando comentários para o documento:', docId);
+    console.log('📝 Comentários recebidos:', comentarios);
+    
     const containers = document.querySelectorAll(`.comentarios-list[data-doc-id="${docId}"]`);
-    if (!containers.length) return;
+    console.log('📝 Containers encontrados:', containers.length);
+    
+    if (!containers.length) {
+        console.warn('⚠️ Nenhum container de comentários encontrado para o documento:', docId);
+        return;
+    }
     
     const currentUser = state.username;
     const perfilMap = {
@@ -3194,7 +3459,7 @@ function renderComentarios(docId, comentarios) {
     
     const hasUnread = comentarios.some(c => c.username !== currentUser);
     
-    // Atualizar badge de não lidos
+    // ✅ Atualizar badge de não lidos
     const unreadBadges = document.querySelectorAll(`.badge-nao-lidos[data-doc-id="${docId}"]`);
     unreadBadges.forEach(badge => {
         if (hasUnread && comentarios.length > 0) {
@@ -3206,13 +3471,13 @@ function renderComentarios(docId, comentarios) {
         }
     });
     
-    // Atualizar contagem total
+    // ✅ Atualizar contagem total
     const badges = document.querySelectorAll(`.badge-comentarios[data-doc-id="${docId}"]`);
     badges.forEach(badge => {
         badge.textContent = comentarios.length;
     });
     
-    // Se não houver comentários
+    // ✅ Se não houver comentários
     if (!comentarios || comentarios.length === 0) {
         containers.forEach(container => {
             container.innerHTML = `
@@ -3224,7 +3489,7 @@ function renderComentarios(docId, comentarios) {
             `;
         });
         
-        // Esconder a área de input
+        // ✅ Esconder a área de input
         const wrappers = document.querySelectorAll(`.comentario-input-area-wrapper[data-doc-id="${docId}"]`);
         wrappers.forEach(wrapper => {
             wrapper.style.display = 'none';
@@ -3233,7 +3498,7 @@ function renderComentarios(docId, comentarios) {
         return;
     }
     
-    // Mostrar a área de input
+    // ✅ Mostrar a área de input
     const wrappers = document.querySelectorAll(`.comentario-input-area-wrapper[data-doc-id="${docId}"]`);
     wrappers.forEach(wrapper => {
         wrapper.style.display = 'block';
@@ -3269,11 +3534,11 @@ function renderComentarios(docId, comentarios) {
         container.innerHTML = html;
     });
     
-    // Controlar abertura automática
+    // ✅ Controlar abertura automática
     const bodies = document.querySelectorAll(`.comentarios-body[data-doc-id="${docId}"]`);
     const icons = document.querySelectorAll(`.comentarios-toggle-icon[data-doc-id="${docId}"]`);
     
-    // Se houver comentários não lidos, abrir automaticamente
+    // ✅ Se houver comentários não lidos, abrir automaticamente
     if (hasUnread && comentarios.length > 0) {
         bodies.forEach(body => {
             body.classList.add('open');
@@ -3282,7 +3547,7 @@ function renderComentarios(docId, comentarios) {
             icon.classList.add('open');
         });
     } else {
-        // Verificar se o utilizador abriu manualmente
+        // ✅ Verificar se o utilizador abriu manualmente
         const isManuallyOpen = sessionStorage.getItem(`comentarios_abertos_${docId}`) === 'true';
         if (!isManuallyOpen) {
             bodies.forEach(body => {
@@ -3294,7 +3559,7 @@ function renderComentarios(docId, comentarios) {
         }
     }
     
-    // Scroll para o fim se estiver aberto
+    // ✅ Scroll para o fim se estiver aberto
     bodies.forEach(body => {
         if (body.classList.contains('open')) {
             body.scrollTop = body.scrollHeight;
@@ -3569,6 +3834,62 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setInterval(carregarNotificacoesNaoLidas, 30000);
 });
+
+// =====================================================
+// UPLOAD DE IMAGEM - CONVERSÃO PARA BASE64
+// =====================================================
+
+let imagemBase64 = null;
+
+function uploadImagem() {
+    const fileInput = document.getElementById('imagemUpload');
+    const previewContainer = document.getElementById('previewImagemContainer');
+    const previewImg = document.getElementById('previewImagem');
+    const hiddenInput = document.getElementById('imagemUrl');
+    
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+        showToast('Please select an image first.', 'warning');
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    
+    // Validar tamanho (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('Image must be less than 5MB.', 'error');
+        return;
+    }
+    
+    // Validar tipo
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    if (!validTypes.includes(file.type)) {
+        showToast('Please select a valid image (JPG, PNG, GIF, WEBP, SVG).', 'error');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        imagemBase64 = e.target.result;
+        
+        // Mostrar preview
+        previewImg.src = imagemBase64;
+        previewContainer.style.display = 'block';
+        hiddenInput.value = imagemBase64;
+        
+        showToast('✅ Image uploaded successfully!', 'success');
+    };
+    reader.onerror = function() {
+        showToast('Error reading image file.', 'error');
+    };
+    reader.readAsDataURL(file);
+}
+
+function limparImagem() {
+    imagemBase64 = null;
+    document.getElementById('previewImagemContainer').style.display = 'none';
+    document.getElementById('imagemUrl').value = '';
+    document.getElementById('imagemUpload').value = '';
+}
 
 // =====================================================
 // EXPORTAÇÕES GLOBAIS

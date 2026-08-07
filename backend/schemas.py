@@ -27,12 +27,14 @@ class DocumentoBase(BaseModel):
     parceiros_ids: List[str]
     empresa_id: str
     dados: Dict[str, Any] = {}
+    imagem_url: Optional[str] = None
 
 class DocumentoCreate(DocumentoBase):
     pass
 
 class DocumentoUpdate(BaseModel):
     dados: Dict[str, Any]
+    imagem_url: Optional[str] = None
 
 class MudancaEstado(BaseModel):
     comentario: Optional[str] = ""
@@ -46,6 +48,7 @@ class DocumentoOut(BaseModel):
     estado: EstadoDocumento
     versao_atual: int
     dados: Dict[str, Any]
+    imagem_url: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime]
 

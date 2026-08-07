@@ -322,6 +322,7 @@ def pesquisar_documentos(
     
     return result
 
+# -------------------- Documents --------------------
 @app.post("/documentos/", response_model=DocumentoOut)
 def criar_documento(
     doc: DocumentoCreate,
@@ -347,15 +348,15 @@ def criar_documento(
             titulo=doc.titulo,
             empresa_id=current_user.username,
             dados=doc.dados,
+            imagem_url=doc.imagem_url,
             estado=EstadoDocumento.RASCUNHO,
             versao_atual=1,
-            parceiro_id=doc.parceiros_ids[0]  # Manter para compatibilidade
+            parceiro_id=doc.parceiros_ids[0]
         )
         db.add(documento)
         db.commit()
         db.refresh(documento)
 
-        # Adicionar parceiros à relação muitos-para-muitos
         for parceiro in parceiros:
             documento.parceiros.append(parceiro)
         
@@ -373,7 +374,6 @@ def criar_documento(
                 icone="📄"
             )
 
-        # Construir resposta com parceiros_ids
         if documento.parceiros:
             parceiros_ids = [p.username for p in documento.parceiros]
         elif documento.parceiro_id:
@@ -388,6 +388,7 @@ def criar_documento(
             "estado": documento.estado,
             "versao_atual": documento.versao_atual,
             "dados": documento.dados,
+            "imagem_url": documento.imagem_url,
             "created_at": documento.created_at,
             "updated_at": documento.updated_at,
             "parceiro_id": documento.parceiro_id or (parceiros_ids[0] if parceiros_ids else None),
@@ -402,7 +403,7 @@ def criar_documento(
         print(traceback.format_exc())
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error creating document: {str(e)}")
-    
+
 @app.get("/documentos/{doc_id}", response_model=DocumentoOut)
 def obter_documento(
     doc_id: int,
@@ -442,6 +443,7 @@ def obter_documento(
         "estado": doc.estado,
         "versao_atual": doc.versao_atual,
         "dados": doc.dados,
+        "imagem_url": doc.imagem_url,
         "created_at": doc.created_at,
         "updated_at": doc.updated_at,
         "parceiro_id": doc.parceiro_id or (parceiros_ids[0] if parceiros_ids else None),
@@ -481,6 +483,7 @@ def editar_documento(
             raise HTTPException(400, detail=f"Document is in status '{doc.estado}'. Only Draft or Changes Requested documents can be edited.")
         
         doc.dados = update.dados
+        # A imagem NÃO é alterada pelo parceiro
         db.commit()
         db.refresh(doc)
         
@@ -498,6 +501,7 @@ def editar_documento(
             "estado": doc.estado,
             "versao_atual": doc.versao_atual,
             "dados": doc.dados,
+            "imagem_url": doc.imagem_url,
             "created_at": doc.created_at,
             "updated_at": doc.updated_at,
             "parceiro_id": doc.parceiro_id or (parceiros_ids[0] if parceiros_ids else None),
