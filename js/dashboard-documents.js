@@ -3,6 +3,17 @@
 // =====================================================
 
 // =====================================================
+// HELPERS - ESCAPE HTML
+// =====================================================
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// =====================================================
 // CONFIGURAÇÃO
 // =====================================================
 
@@ -55,7 +66,7 @@ let state = {
     documentos: [],
     docSelecionado: null,
     editData: null,
-    imagemUrl: null,  // ✅ NOVO - para guardar a imagem durante a edição
+    imagemUrl: null,
     filtros: {
         q: '',
         estados: [],
@@ -586,6 +597,19 @@ async function eliminarDocumento(docId) {
 // =====================================================
 
 function getAuthHeaders() {
+    // ✅ Verificar se o token existe
+    if (!state.token) {
+        console.warn('⚠️ Token não encontrado!');
+        // Tentar recuperar do sessionStorage
+        state.token = sessionStorage.getItem('doc_token');
+        if (!state.token) {
+            console.error('❌ Token não encontrado no sessionStorage');
+            // Redirecionar para login
+            window.location.href = 'login.html';
+            return {};
+        }
+    }
+    
     return {
         'Authorization': `Bearer ${state.token}`,
         'Content-Type': 'application/json'
@@ -629,9 +653,13 @@ function formatDate(dateStr) {
     }
 }
 
-// =====================================================
-// ESTADOS - MAPEAMENTO CORRETO
-// =====================================================
+// ✅ ADICIONAR AQUI A FUNÇÃO escapeHtml
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
 function getEstadoDisplay(estado) {
     const estadoMap = {
@@ -641,7 +669,6 @@ function getEstadoDisplay(estado) {
         'Alterações': 'Changes Requested',
         'Aprovado': 'Approved',
         'Arquivado': 'Archived',
-        // Mapeamento reverso (se receber em inglês)
         'Draft': 'Rascunho',
         'Submitted': 'Submetido',
         'In Review': 'Em Revisão',
@@ -650,12 +677,9 @@ function getEstadoDisplay(estado) {
         'Archived': 'Arquivado'
     };
     
-    // Se o estado existir no mapa, retornar o display
     if (estado && estado in estadoMap) {
         return estadoMap[estado];
     }
-    
-    // Fallback
     return estado || 'Unknown';
 }
 
@@ -915,20 +939,9 @@ function aplicarFiltros() {
     const dataInicio = document.getElementById('filtroDataInicio')?.value || '';
     const dataFim = document.getElementById('filtroDataFim')?.value || '';
 
-    // Mapear o valor do dropdown para o valor correto do estado (em inglês para a API)
-    const estadoMap = {
-        'Rascunho': 'Draft',
-        'Submetido': 'Submitted',
-        'Em Revisão': 'In Review',
-        'Alterações': 'Changes Requested',
-        'Aprovado': 'Approved',
-        'Arquivado': 'Archived'
-    };
-
     let estados = [];
     if (estadoSelecionado) {
-        const estadoIngles = estadoMap[estadoSelecionado] || estadoSelecionado;
-        estados = [estadoIngles];
+        estados = [estadoSelecionado];
     }
 
     state.filtros = {
@@ -972,12 +985,9 @@ async function carregarDocumentos() {
     try {
         const params = new URLSearchParams();
         if (state.filtros.q) params.append('q', state.filtros.q);
-        
-        // ✅ Enviar os estados em português (o backend vai converter)
         if (state.filtros.estados && state.filtros.estados.length > 0) {
             params.append('estados', state.filtros.estados.join(','));
         }
-        
         if (state.filtros.dataInicio) params.append('data_inicio', state.filtros.dataInicio);
         if (state.filtros.dataFim) params.append('data_fim', state.filtros.dataFim);
 
@@ -992,7 +1002,6 @@ async function carregarDocumentos() {
         if (response.ok) {
             state.documentos = await response.json();
             console.log('📥 Documentos recebidos:', state.documentos.length);
-            console.log('📥 Primeiro documento:', state.documentos[0]?.estado);
             renderDocumentosList();
         } else {
             console.error('Error loading documents:', response.status);
@@ -1017,9 +1026,7 @@ function renderDocumentosList() {
 
     let html = '';
 
-    // ============================================================
-    // MENU ADMIN (se for admin)
-    // ============================================================
+    // MENU ADMIN
     if (isAdmin) {
         html += `
             <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
@@ -1035,7 +1042,6 @@ function renderDocumentosList() {
         `;
     }
 
-    // Se for admin e estiver na view de users, mostrar a lista de utilizadores
     if (isAdmin && adminMenuAtivo === 'users') {
         html += `<div id="adminUsersContainer"></div>`;
         container.innerHTML = html;
@@ -1043,9 +1049,7 @@ function renderDocumentosList() {
         return;
     }
 
-    // ============================================================
-    // BARRA DE AÇÕES (criar documento, refresh, filtros)
-    // ============================================================
+    // BARRA DE AÇÕES
     html += `
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
@@ -1059,9 +1063,7 @@ function renderDocumentosList() {
         </div>
     `;
 
-    // ============================================================
-    // FILTROS (colapsáveis)
-    // ============================================================
+    // FILTROS
     html += `
         <div id="filtrosContainer" style="max-height:0;padding:0;margin-bottom:0;overflow:hidden;transition:max-height 0.3s ease, padding 0.3s ease, margin 0.3s ease;background:rgba(255,255,255,0.08);border-radius:10px;border:1px solid transparent;">
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;align-items:end;padding:0;">
@@ -1098,9 +1100,7 @@ function renderDocumentosList() {
         </div>
     `;
 
-    // ============================================================
     // LISTA DE DOCUMENTOS
-    // ============================================================
     if (!state.documentos || state.documentos.length === 0) {
         html += `
             <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:40px;text-align:center;color:rgba(255,255,255,0.6);">
@@ -1154,28 +1154,16 @@ function renderDocumentosList() {
         `;
     }
 
-    // ============================================================
-    // DETALHE DO DOCUMENTO (se houver um selecionado)
-    // ============================================================
     if (state.docSelecionado) {
         html += `<div id="documentoDetalhe" style="margin-top:30px;"></div>`;
     }
 
-    // ============================================================
-    // RENDERIZAR
-    // ============================================================
     container.innerHTML = html;
 
-    // ============================================================
-    // CARREGAR DETALHE DO DOCUMENTO (se houver um selecionado)
-    // ============================================================
     if (state.docSelecionado) {
         carregarDocumentoDetalhe(state.docSelecionado);
     }
 
-    // ============================================================
-    // EVENT LISTENER - Pesquisa com Enter
-    // ============================================================
     document.getElementById('filtroBusca')?.addEventListener('keyup', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -1183,9 +1171,6 @@ function renderDocumentosList() {
         }
     });
 
-    // ============================================================
-    // RESTAURAR ESTADO DOS FILTROS (se estavam expandidos)
-    // ============================================================
     const filtrosExpandidos = sessionStorage.getItem('filtrosExpandidos') === 'true';
     if (filtrosExpandidos) {
         const containerFiltros = document.getElementById('filtrosContainer');
@@ -1281,12 +1266,11 @@ function renderDocumentoDetalhe(doc) {
     const parceirosList = doc.parceiros_ids ? doc.parceiros_ids.join(', ') : (doc.parceiro_id || 'No partners');
     const imagemUrl = doc.imagem_url || null;
 
-    const shouldBeOpen = doc.estado === 'Em Revisão' || doc.estado === 'Submetido';
+    // ✅ Verificar se está em modo de edição
     const isEditing = state.editData !== null;
+    const shouldBeOpen = doc.estado === 'Em Revisão' || doc.estado === 'Submetido';
 
-    // ============================================================
     // FUNÇÃO PARA GERAR BOTÕES DE AÇÃO
-    // ============================================================
     function gerarBotoesAcao(docId, posicao) {
         if (isEditing) {
             return '';
@@ -1358,9 +1342,7 @@ function renderDocumentoDetalhe(doc) {
                 <span class="status-tag ${estadoClass}" style="font-size:16px;padding:6px 16px;">${estadoDisplay}</span>
             </div>
 
-            <!-- ========================================================== -->
-            <!-- CARDS DE INFORMAÇÃO DO DOCUMENTO -->
-            <!-- ========================================================== -->
+            <!-- SEMPRE VISÍVEL: Functional Unit, System Boundary, Created, Last Update -->
             <div class="document-info-grid">
                 <div class="document-info-card">
                     <span class="info-label">Functional Unit</span>
@@ -1385,9 +1367,7 @@ function renderDocumentoDetalhe(doc) {
             </div>
     `;
 
-    // ============================================================
-    // IMAGEM DO DOCUMENTO
-    // ============================================================
+    // SEMPRE VISÍVEL: IMAGEM DO DOCUMENTO + COMENTÁRIOS DA IMAGEM
     if (imagemUrl && imagemUrl.startsWith('data:image')) {
         html += `
             <div class="document-image-container" style="margin-bottom:20px;padding:12px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.06);">
@@ -1399,72 +1379,49 @@ function renderDocumentoDetalhe(doc) {
                 </div>
                 <img src="${imagemUrl}" alt="Document image" style="max-width:100%;max-height:200px;border-radius:6px;cursor:pointer;object-fit:contain;background:rgba(0,0,0,0.2);transition:transform 0.2s ease;" onclick="abrirModalImagem('${imagemUrl}')" />
             </div>
+            <div style="margin-top: -12px; margin-bottom: 20px;">
+                ${gerarCaixaComentariosTipo(doc.id, 'imagem', 'Image', '🖼️', 'imagem')}
+            </div>
         `;
     }
 
     // ============================================================
-    // BOTÕES DE AÇÃO - TOPO (SEMPRE VISÍVEIS)
+    // BOTÕES DE AÇÃO - TOPO
     // ============================================================
     html += gerarBotoesAcao(doc.id, 'topo');
 
     // ============================================================
-    // BOTÕES SHOW/HIDE + VERSION HISTORY (MESMO NÍVEL)
+    // CONTEÚDO: OU VISUALIZAÇÃO OU EDITOR (NUNCA OS DOIS)
     // ============================================================
-    html += `
-        <div class="toggle-buttons-container">
-            <button class="btn-toggle-content" onclick="toggleConteudoDocumento(${doc.id})" id="btnToggleConteudo">
-                ${shouldBeOpen ? '📊 Hide Document Content' : '📊 Show Document Content'}
-            </button>
-            <button class="btn-toggle-content" onclick="carregarHistorico(${doc.id})">
-                📜 Version History
-            </button>
-        </div>
-        <div id="historicoVersoes" style="margin-top:0;margin-bottom:16px;"></div>
-    `;
-
-    // ============================================================
-    // CONTEÚDO DO DOCUMENTO (LCA/LCC)
-    // ============================================================
-    html += `
-        <div id="conteudoDocumento" style="display:${shouldBeOpen ? 'block' : 'none'};margin-top:12px;">
-            ${renderConteudoDocumento(doc.dados, processos, shouldBeOpen)}
-        </div>
-    `;
-
-    // ============================================================
-    // CAIXA DE COMENTÁRIOS - TOPO
-    // ============================================================
-    html += `
-        <div style="margin-top: 24px; clear: both;">
-            ${gerarCaixaComentarios(doc.id)}
-        </div>
-    `;
-
-    // ============================================================
-    // EDITOR (se estiver em modo de edição)
-    // ============================================================
-    if (state.editData) {
-        const processos = getProcessosFromData(state.editData);
-        html += `<div class="editor-container" style="margin-top:24px;clear:both;">${renderEditorDocumento(doc.id, processos)}</div>`;
-    } else {
-        html += `<div class="editor-container" style="margin-top:24px;clear:both;"></div>`;
-    }
-
-    // ============================================================
-    // BOTÕES DE AÇÃO - BAIXO (SÓ APARECEM SE O CONTEÚDO ESTIVER ABERTO)
-    // ============================================================
-    html += gerarBotoesAcao(doc.id, 'baixo');
-
-    // ============================================================
-    // CAIXA DE COMENTÁRIOS - RODAPÉ (SÓ APARECE SE O CONTEÚDO ESTIVER ABERTO)
-    // ============================================================
-    if (shouldBeOpen) {
+    if (isEditing) {
+        // ✅ MODO EDIÇÃO: Apenas o editor (com comentários LCA/LCC dentro)
         html += `
-            <div style="margin-top: 24px; clear: both;">
-                ${gerarCaixaComentarios(doc.id)}
+            <div style="margin-top: 16px; clear: both;">
+                ${renderEditorCompleto(doc.id, processos)}
+            </div>
+        `;
+    } else {
+        // ✅ MODO VISUALIZAÇÃO: Apenas o conteúdo (com comentários LCA/LCC dentro)
+        html += `
+            <div class="toggle-buttons-container">
+                <button class="btn-toggle-content" onclick="toggleConteudoDocumento(${doc.id})" id="btnToggleConteudo">
+                    ${shouldBeOpen ? '📊 Hide Document Content' : '📊 Show Document Content'}
+                </button>
+                <button class="btn-toggle-content" onclick="carregarHistorico(${doc.id})">
+                    📜 Version History
+                </button>
+            </div>
+            <div id="historicoVersoes" style="margin-top:0;margin-bottom:16px;"></div>
+            <div id="conteudoDocumento" style="display:${shouldBeOpen ? 'block' : 'none'};margin-top:12px;">
+                ${renderConteudoDocumento(doc.dados, processos, shouldBeOpen, doc.id)}
             </div>
         `;
     }
+
+    // ============================================================
+    // BOTÕES DE AÇÃO - BAIXO
+    // ============================================================
+    html += gerarBotoesAcao(doc.id, 'baixo');
 
     html += `
         </div>
@@ -1475,45 +1432,27 @@ function renderDocumentoDetalhe(doc) {
     // ============================================================
     // CARREGAR CONTAGEM DE COMENTÁRIOS
     // ============================================================
-    fetch(`${API_URL}/documentos/${doc.id}/comentarios`, {
-        headers: getAuthHeaders()
-    })
-    .then(response => response.json())
-    .then(comentarios => {
-        const badges = document.querySelectorAll(`.badge-comentarios[data-doc-id="${doc.id}"]`);
-        badges.forEach(badge => {
-            badge.textContent = comentarios.length;
-        });
-        
-        const currentUser = state.username;
-        const hasUnread = comentarios.some(c => c.username !== currentUser);
-        
-        if (hasUnread && comentarios.length > 0) {
-            setTimeout(() => {
-                const bodies = document.querySelectorAll(`.comentarios-body[data-doc-id="${doc.id}"]`);
-                bodies.forEach(body => {
-                    body.classList.add('open');
-                });
-                const icons = document.querySelectorAll(`.comentarios-toggle-icon[data-doc-id="${doc.id}"]`);
-                icons.forEach(icon => {
-                    icon.classList.add('open');
-                });
-                if (!comentariosCarregados[doc.id]) {
-                    carregarComentarios(doc.id);
+    const tipos = ['lca', 'lcc', 'imagem'];
+    tipos.forEach(tipo => {
+        const badge = document.getElementById(`badgeTipo_${doc.id}_${tipo}`);
+        if (badge) {
+            fetch(`${API_URL}/documentos/${doc.id}/comentarios?tipo=${tipo}`, {
+                headers: getAuthHeaders()
+            })
+            .then(response => response.json())
+            .then(comentarios => {
+                badge.textContent = comentarios.length;
+                if (comentarios.length > 0) {
+                    const key = `${doc.id}_${tipo}`;
+                    if (!comentariosCarregadosTipo[key]) {
+                        carregarComentariosTipo(doc.id, tipo);
+                    }
                 }
-            }, 300);
-        } else if (comentarios.length > 0) {
-            if (!comentariosCarregados[doc.id]) {
-                carregarComentarios(doc.id);
-            }
-        } else {
-            if (!comentariosCarregados[doc.id]) {
-                carregarComentarios(doc.id);
-            }
+            })
+            .catch(error => {
+                console.error(`Error loading ${tipo} comment count:`, error);
+            });
         }
-    })
-    .catch(error => {
-        console.error('Error loading comment count:', error);
     });
 
     // ============================================================
@@ -1524,7 +1463,7 @@ function renderDocumentoDetalhe(doc) {
         setupCheckboxListener();
     }, 100);
 
-    if (shouldBeOpen) {
+    if (shouldBeOpen && !isEditing) {
         setTimeout(() => {
             const conteudo = document.getElementById('conteudoDocumento');
             if (conteudo) {
@@ -1535,49 +1474,15 @@ function renderDocumentoDetalhe(doc) {
     }
 }
 
-// ============================================================
-// FUNÇÃO AUXILIAR PARA GERAR A CAIXA DE COMENTÁRIOS
-// ============================================================
-function gerarCaixaComentarios(docId) {
-    console.log('📦 Gerando caixa de comentários para o documento:', docId);
-    
-    return `
-        <div class="comentarios-container" data-doc-id="${docId}">
-            <div class="comentarios-header" onclick="toggleComentarios(${docId})">
-                <h4>
-                    💬 Comments
-                    <span class="badge-comentarios" data-doc-id="${docId}">0</span>
-                    <span class="badge-nao-lidos" data-doc-id="${docId}" style="display:none;"></span>
-                </h4>
-                <span class="comentarios-toggle-icon" data-doc-id="${docId}">▼</span>
-            </div>
-            <div class="comentarios-body" data-doc-id="${docId}">
-                <div class="comentarios-list" data-doc-id="${docId}">
-                    <div class="comentario-vazio">⏳ Loading comments...</div>
-                </div>
-                <div class="comentario-input-area-wrapper" data-doc-id="${docId}">
-                    <div class="comentario-input-area" data-doc-id="${docId}">
-                        <textarea 
-                            class="comentario-textarea"
-                            data-doc-id="${docId}"
-                            placeholder="Write a message... (Enter to send, Shift+Enter for new line)"
-                            rows="1"
-                        ></textarea>
-                        <button class="btn-enviar" onclick="enviarComentario(${docId})">
-                            📤 Send
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-// ============================================================
+// =====================================================
 // CONTEÚDO DO DOCUMENTO (LCA/LCC)
-// ============================================================
+// =====================================================
 
-function renderConteudoDocumento(dados, processos, allOpen = false) {
+function renderConteudoDocumento(dados, processos, allOpen = false, docId = null) {
+    if (!docId && state.docSelecionado) {
+        docId = state.docSelecionado;
+    }
+    
     let html = '';
 
     // ============================================================
@@ -1585,16 +1490,17 @@ function renderConteudoDocumento(dados, processos, allOpen = false) {
     // ============================================================
     html += `
         <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
-            <button class="btn btn-primary btn-sm" onclick="alternarSecaoDocumento('lca')" id="btnSecaoLCA" style="background:linear-gradient(135deg, #2e7d32, #388e3c);">
+            <button class="btn btn-primary btn-sm" onclick="alternarSecaoDocumento('lca', ${docId})" id="btnSecaoLCA" style="background:linear-gradient(135deg, #2e7d32, #388e3c);">
                 🌱 LCA - Life Cycle Assessment
             </button>
-            <button class="btn btn-secondary btn-sm" onclick="alternarSecaoDocumento('lcc')" id="btnSecaoLCC" style="background:rgba(255,255,255,0.08);">
+            <button class="btn btn-secondary btn-sm" onclick="alternarSecaoDocumento('lcc', ${docId})" id="btnSecaoLCC" style="background:rgba(255,255,255,0.08);">
                 💰 LCC - Life Cycle Cost
             </button>
-            <button class="btn btn-secondary btn-sm" onclick="alternarSecaoDocumento('ambas')" id="btnSecaoAmbas" style="background:rgba(255,255,255,0.05);">
+            <button class="btn btn-secondary btn-sm" onclick="alternarSecaoDocumento('ambas', ${docId})" id="btnSecaoAmbas" style="background:rgba(255,255,255,0.05);">
                 📊 Show Both
             </button>
         </div>
+        
         <div id="conteudoLCA" style="display:block;">
     `;
 
@@ -1636,8 +1542,18 @@ function renderConteudoDocumento(dados, processos, allOpen = false) {
         });
     });
 
+    // ✅ COMENTÁRIOS LCA - SEMPRE VISÍVEIS (dentro da secção LCA)
+    if (docId) {
+        html += `
+            <div style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 16px;" id="comentariosLCAWrapper_${docId}">
+                ${gerarCaixaComentariosTipo(docId, 'lca', 'LCA', '🌱', 'lca')}
+            </div>
+        `;
+    }
+
     html += `
         </div>
+        
         <div id="conteudoLCC" style="display:none;">
     `;
 
@@ -1684,6 +1600,15 @@ function renderConteudoDocumento(dados, processos, allOpen = false) {
         });
     });
 
+    // ✅ COMENTÁRIOS LCC - SEMPRE VISÍVEIS (dentro da secção LCC)
+    if (docId) {
+        html += `
+            <div style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 16px;" id="comentariosLCCWrapper_${docId}">
+                ${gerarCaixaComentariosTipo(docId, 'lcc', 'LCC', '💰', 'lcc')}
+            </div>
+        `;
+    }
+
     html += `
         </div>
     `;
@@ -1691,13 +1616,13 @@ function renderConteudoDocumento(dados, processos, allOpen = false) {
     return html;
 }
 
-// ============================================================
+// =====================================================
 // ALTERNAR ENTRE SECÇÕES LCA / LCC
-// ============================================================
+// =====================================================
 
 let secaoAtiva = 'lca';
 
-function alternarSecaoDocumento(secao) {
+function alternarSecaoDocumento(secao, docId) {
     const lcaContainer = document.getElementById('conteudoLCA');
     const lccContainer = document.getElementById('conteudoLCC');
     const btnLCA = document.getElementById('btnSecaoLCA');
@@ -1708,24 +1633,53 @@ function alternarSecaoDocumento(secao) {
 
     secaoAtiva = secao;
 
-    btnLCA.style.background = 'rgba(255,255,255,0.08)';
-    btnLCC.style.background = 'rgba(255,255,255,0.08)';
-    btnAmbas.style.background = 'rgba(255,255,255,0.05)';
+    // Resetar estilos dos botões
+    if (btnLCA) btnLCA.style.background = 'rgba(255,255,255,0.08)';
+    if (btnLCC) btnLCC.style.background = 'rgba(255,255,255,0.08)';
+    if (btnAmbas) btnAmbas.style.background = 'rgba(255,255,255,0.05)';
 
     if (secao === 'lca') {
         lcaContainer.style.display = 'block';
         lccContainer.style.display = 'none';
-        btnLCA.style.background = 'linear-gradient(135deg, #2e7d32, #388e3c)';
+        if (btnLCA) btnLCA.style.background = 'linear-gradient(135deg, #2e7d32, #388e3c)';
+        
+        // ✅ Carregar comentários LCA se necessário
+        if (docId) {
+            const key = `${docId}_lca`;
+            if (!comentariosCarregadosTipo[key]) {
+                carregarComentariosTipo(docId, 'lca');
+            }
+        }
     } else if (secao === 'lcc') {
         lcaContainer.style.display = 'none';
         lccContainer.style.display = 'block';
-        btnLCC.style.background = 'linear-gradient(135deg, #0d47a1, #1565c0)';
-    } else {
+        if (btnLCC) btnLCC.style.background = 'linear-gradient(135deg, #0d47a1, #1565c0)';
+        
+        // ✅ Carregar comentários LCC se necessário
+        if (docId) {
+            const key = `${docId}_lcc`;
+            if (!comentariosCarregadosTipo[key]) {
+                carregarComentariosTipo(docId, 'lcc');
+            }
+        }
+    } else { // 'ambas'
         lcaContainer.style.display = 'block';
         lccContainer.style.display = 'block';
-        btnAmbas.style.background = 'rgba(255,255,255,0.12)';
-        btnLCA.style.background = 'linear-gradient(135deg, #2e7d32, #388e3c)';
-        btnLCC.style.background = 'linear-gradient(135deg, #0d47a1, #1565c0)';
+        if (btnAmbas) btnAmbas.style.background = 'rgba(255,255,255,0.12)';
+        if (btnLCA) btnLCA.style.background = 'linear-gradient(135deg, #2e7d32, #388e3c)';
+        if (btnLCC) btnLCC.style.background = 'linear-gradient(135deg, #0d47a1, #1565c0)';
+        
+        // ✅ Carregar ambos os comentários se necessário
+        if (docId) {
+            const keyLCA = `${docId}_lca`;
+            if (!comentariosCarregadosTipo[keyLCA]) {
+                carregarComentariosTipo(docId, 'lca');
+            }
+            const keyLCC = `${docId}_lcc`;
+            if (!comentariosCarregadosTipo[keyLCC]) {
+                carregarComentariosTipo(docId, 'lcc');
+            }
+        }
     }
 
     const conteudoContainer = document.getElementById('conteudoDocumento');
@@ -1740,7 +1694,6 @@ function toggleConteudoDocumento(docId) {
     const container = document.getElementById('conteudoDocumento');
     const btn = document.getElementById('btnToggleConteudo');
     const actionsBaixo = document.getElementById('actionsContainer_baixo');
-    const comentariosRodape = document.querySelectorAll('.comentarios-container');
     
     if (!container) return;
 
@@ -1749,25 +1702,42 @@ function toggleConteudoDocumento(docId) {
     if (isVisible) {
         // FECHAR
         container.style.display = 'none';
-        if (btn) btn.innerHTML = '📊 Show Document Content';  // ✅ Alterado
+        if (btn) btn.innerHTML = '📊 Show Document Content';
         if (actionsBaixo) actionsBaixo.style.display = 'none';
     } else {
         // ABRIR
         container.style.display = 'block';
-        if (btn) btn.innerHTML = '📊 Hide Document Content';  // ✅ Alterado
+        if (btn) btn.innerHTML = '📊 Hide Document Content';
         if (actionsBaixo) actionsBaixo.style.display = 'flex';
         
-        // Carregar conteúdo se necessário
+        // ✅ Buscar o documento e renderizar o conteúdo com os comentários
         fetch(`${API_URL}/documentos/${docId}`, {
             headers: getAuthHeaders()
         })
         .then(response => response.json())
         .then(doc => {
             const processos = getProcessosFromData(doc.dados);
-            container.innerHTML = renderConteudoDocumento(doc.dados, processos, true);
+            // ✅ Passar o docId para renderConteudoDocumento
+            container.innerHTML = renderConteudoDocumento(doc.dados, processos, true, docId);
             
+            // Abrir todos os details
             const details = container.querySelectorAll('details');
             details.forEach(d => d.setAttribute('open', ''));
+            
+            // ✅ Carregar comentários LCA e LCC
+            setTimeout(() => {
+                // Carregar comentários LCA
+                const keyLCA = `${docId}_lca`;
+                if (!comentariosCarregadosTipo[keyLCA]) {
+                    carregarComentariosTipo(docId, 'lca');
+                }
+                
+                // Carregar comentários LCC
+                const keyLCC = `${docId}_lcc`;
+                if (!comentariosCarregadosTipo[keyLCC]) {
+                    carregarComentariosTipo(docId, 'lcc');
+                }
+            }, 300);
         })
         .catch(error => {
             console.error('Error loading document content:', error);
@@ -1796,6 +1766,10 @@ function abrirEdicaoDocumento(docId) {
 
     console.log('📤 Opening editor for document:', docId);
 
+    // ✅ Limpar qualquer estado anterior
+    state.editData = null;
+    state.imagemUrl = null;
+
     fetch(`${API_URL}/documentos/${docId}`, {
         headers: getAuthHeaders()
     })
@@ -1807,9 +1781,11 @@ function abrirEdicaoDocumento(docId) {
         console.log('📥 Document loaded:', doc);
         const processos = getProcessosFromData(doc.dados);
         state.editData = ensureEstruturaCompleta(doc.dados, processos);
-        state.imagemUrl = doc.imagem_url || null;  // ✅ Guardar imagem
+        state.imagemUrl = doc.imagem_url || null;
         console.log('📊 state.editData initialized');
         console.log('🖼️ Image URL:', state.imagemUrl);
+        
+        // ✅ Recarregar o detalhe - agora isEditing = true, a visualização desaparece
         carregarDocumentoDetalhe(docId);
     })
     .catch(error => {
@@ -2037,17 +2013,17 @@ function renderEditorSecao(secao, campo, docId, processos) {
 }
 
 // =====================================================
-// EDITOR DOCUMENTO - COMPLETO (COM BOTÕES LCA/LCC)
+// EDITOR DOCUMENTO - COMPLETO
 // =====================================================
 
-function renderEditorDocumento(docId, processos) {
+function renderEditorCompleto(docId, processos) {
     const dados = state.editData;
     if (!dados) {
         return `<div style="color:rgba(255,255,255,0.5);padding:20px;text-align:center;">No data to edit</div>`;
     }
 
     let html = `
-        <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:20px;margin-top:16px;border:1px solid rgba(254,200,0,0.2);">
+        <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:20px;border:1px solid rgba(254,200,0,0.2);">
             <h4 style="color:#fec800;margin:0 0 16px;">✏️ Editing Document</h4>
             
             <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
@@ -2067,6 +2043,11 @@ function renderEditorDocumento(docId, processos) {
                 ${renderEditorSecao('lca', 'inputs', docId, processos)}
                 ${renderEditorSecao('lca', 'processes', docId, processos)}
                 ${renderEditorSecao('lca', 'outputs', docId, processos)}
+                
+                <!-- ✅ COMENTÁRIOS LCA DENTRO DO EDITOR -->
+                <div style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 16px;">
+                    ${gerarCaixaComentariosTipo(docId, 'lca', 'LCA', '🌱', 'lca')}
+                </div>
             </div>
             
             <div id="editorLCC" style="display:none;">
@@ -2075,6 +2056,11 @@ function renderEditorDocumento(docId, processos) {
                 ${renderEditorSecao('lcc', 'equipment', docId, processos)}
                 ${renderEditorSecao('lcc', 'labour', docId, processos)}
                 ${renderEditorSecao('lcc', 'outputs', docId, processos)}
+                
+                <!-- ✅ COMENTÁRIOS LCC DENTRO DO EDITOR -->
+                <div style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 16px;">
+                    ${gerarCaixaComentariosTipo(docId, 'lcc', 'LCC', '💰', 'lcc')}
+                </div>
             </div>
     `;
 
@@ -2104,181 +2090,8 @@ function renderEditorDocumento(docId, processos) {
 }
 
 // =====================================================
-// MODAL DE ZOOM DA IMAGEM
-// =====================================================
-
-function abrirModalImagem(imagemUrl) {
-    // Remover modal existente
-    const oldModal = document.getElementById('modalImagem');
-    if (oldModal) {
-        oldModal.remove();
-        document.body.style.overflow = '';
-    }
-
-    const modal = document.createElement('div');
-    modal.id = 'modalImagem';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.85);
-        z-index: 999999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        backdrop-filter: blur(4px);
-        animation: fadeIn 0.3s ease;
-        padding: 20px;
-        box-sizing: border-box;
-    `;
-
-    // Container da imagem
-    const imgContainer = document.createElement('div');
-    imgContainer.style.cssText = `
-        max-width: 90vw;
-        max-height: 90vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-    `;
-
-    // Imagem
-    const img = document.createElement('img');
-    img.src = imagemUrl;
-    img.style.cssText = `
-        max-width: 90vw;
-        max-height: 85vh;
-        object-fit: contain;
-        border-radius: 8px;
-        box-shadow: 0 24px 60px rgba(0,0,0,0.6);
-        cursor: default;
-        background: rgba(0,0,0,0.3);
-        user-select: none;
-        -webkit-user-select: none;
-    `;
-
-    // Botão Close (canto superior direito)
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = '✕ Close';
-    closeBtn.style.cssText = `
-        position: fixed;
-        top: 24px;
-        right: 30px;
-        background: rgba(255,255,255,0.12);
-        border: 1px solid rgba(255,255,255,0.2);
-        color: #fff;
-        padding: 10px 24px;
-        border-radius: 8px;
-        font-size: 15px;
-        font-weight: 600;
-        cursor: pointer;
-        font-family: 'Inter', sans-serif;
-        transition: all 0.2s ease;
-        z-index: 1000000;
-        letter-spacing: 0.3px;
-    `;
-    
-    closeBtn.onmouseover = function() {
-        this.style.background = 'rgba(255,255,255,0.25)';
-        this.style.borderColor = 'rgba(255,255,255,0.4)';
-        this.style.transform = 'scale(1.05)';
-    };
-    closeBtn.onmouseout = function() {
-        this.style.background = 'rgba(255,255,255,0.12)';
-        this.style.borderColor = 'rgba(255,255,255,0.2)';
-        this.style.transform = 'scale(1)';
-    };
-
-    // Botão Close alternativo (canto superior esquerdo) - apenas ícone X
-    const closeBtnAlt = document.createElement('button');
-    closeBtnAlt.textContent = '✕';
-    closeBtnAlt.style.cssText = `
-        position: fixed;
-        top: 20px;
-        left: 24px;
-        background: rgba(255,255,255,0.08);
-        border: 1px solid rgba(255,255,255,0.15);
-        color: #fff;
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        font-size: 20px;
-        cursor: pointer;
-        font-family: 'Inter', sans-serif;
-        transition: all 0.2s ease;
-        z-index: 1000000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    `;
-    
-    closeBtnAlt.onmouseover = function() {
-        this.style.background = 'rgba(255,255,255,0.2)';
-        this.style.borderColor = 'rgba(255,255,255,0.3)';
-        this.style.transform = 'scale(1.1)';
-    };
-    closeBtnAlt.onmouseout = function() {
-        this.style.background = 'rgba(255,255,255,0.08)';
-        this.style.borderColor = 'rgba(255,255,255,0.15)';
-        this.style.transform = 'scale(1)';
-    };
-
-    // Função para fechar o modal
-    function fecharModal() {
-        const modal = document.getElementById('modalImagem');
-        if (modal) {
-            modal.style.animation = 'fadeOut 0.2s ease';
-            setTimeout(() => {
-                modal.remove();
-                document.body.style.overflow = '';
-                document.removeEventListener('keydown', keyHandler);
-            }, 200);
-        }
-    }
-
-    // Handler para tecla ESC
-    function keyHandler(e) {
-        if (e.key === 'Escape') {
-            fecharModal();
-        }
-    }
-
-    // Event listeners para fechar
-    closeBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        fecharModal();
-    });
-
-    closeBtnAlt.addEventListener('click', function(e) {
-        e.stopPropagation();
-        fecharModal();
-    });
-
-    // Fechar ao clicar fora da imagem (no fundo escuro)
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-            fecharModal();
-        }
-    });
-
-    // Fechar com tecla ESC
-    document.addEventListener('keydown', keyHandler);
-
-    // Montar o modal
-    imgContainer.appendChild(img);
-    modal.appendChild(imgContainer);
-    modal.appendChild(closeBtn);
-    modal.appendChild(closeBtnAlt);
-    document.body.appendChild(modal);
-    document.body.style.overflow = 'hidden';
-}
-
-// ============================================================
 // ALTERNAR ENTRE SECÇÕES LCA / LCC NO EDITOR
-// ============================================================
+// =====================================================
 
 let editorSecaoAtiva = 'lca';
 
@@ -2567,7 +2380,7 @@ function salvarEdicao(docId) {
         console.log('✅ Document saved successfully!');
         showToast('✅ Document saved successfully!', 'success');
         state.editData = null;
-        state.imagemUrl = null;  // ✅ Limpar imagem
+        state.imagemUrl = null;
         carregarDocumentoDetalhe(docId);
         carregarDocumentos();
     })
@@ -2635,7 +2448,7 @@ function submeterEdicao(docId) {
             console.log('✅ Document submitted successfully!');
             showToast('✅ Document submitted successfully!', 'success');
             state.editData = null;
-            state.imagemUrl = null;  // ✅ Limpar imagem
+            state.imagemUrl = null;
             state.docSelecionado = null;
             carregarDocumentos();
         })
@@ -2647,9 +2460,14 @@ function submeterEdicao(docId) {
 }
 
 function cancelarEdicao() {
+    // ✅ Limpar estado de edição
     state.editData = null;
-    state.imagemUrl = null;  // ✅ Limpar imagem
-    carregarDocumentoDetalhe(state.docSelecionado);
+    state.imagemUrl = null;
+    
+    // ✅ Recarregar o documento para mostrar a visualização
+    if (state.docSelecionado) {
+        carregarDocumentoDetalhe(state.docSelecionado);
+    }
 }
 
 // =====================================================
@@ -3198,7 +3016,7 @@ function renderFormCriar(parceiros) {
                 </div>
             </div>
 
-            <!-- ✅ NOVO: Upload de Imagem -->
+            <!-- Upload de Imagem -->
             <div class="form-group" style="margin-top:16px;">
                 <label style="color:rgba(255,255,255,0.8);display:block;margin-bottom:4px;font-size:13px;">Document Image (optional)</label>
                 <p style="color:rgba(255,255,255,0.4);font-size:12px;margin-bottom:8px;">Upload an image to be displayed with the document (JPG, PNG, GIF, max 5MB)</p>
@@ -3243,76 +3061,67 @@ function renderFormCriar(parceiros) {
     container.innerHTML = html;
 }
 
-function adicionarProcessoCustom() {
-    const input = document.getElementById('novoProcessoInput');
-    if (!input || !input.value.trim()) return;
+// =====================================================
+// UPLOAD DE IMAGEM
+// =====================================================
 
-    const nome = input.value.trim();
-    const container = document.getElementById('processosCustom');
-    if (!container) return;
+let imagemBase64 = null;
 
-    const existingCheck = document.querySelector(`.processo-check[value="${nome}"]`);
-    if (existingCheck) {
-        showToast('This process already exists in the list.', 'warning');
+function uploadImagem() {
+    const fileInput = document.getElementById('imagemUpload');
+    const previewContainer = document.getElementById('previewImagemContainer');
+    const previewImg = document.getElementById('previewImagem');
+    const hiddenInput = document.getElementById('imagemUrl');
+    
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+        showToast('Please select an image first.', 'warning');
         return;
     }
-
-    const existing = container.querySelector(`[data-processo="${nome}"]`);
-    if (existing) {
-        showToast('This process already exists.', 'warning');
+    
+    const file = fileInput.files[0];
+    
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('Image must be less than 5MB.', 'error');
         return;
     }
-
-    const chip = document.createElement('span');
-    chip.className = 'status-tag status-draft';
-    chip.setAttribute('data-processo', nome);
-    chip.innerHTML = `${nome} <span style="cursor:pointer;margin-left:4px;color:#ff6b6b;" onclick="removerProcessoCustom(this)">✕</span>`;
-    container.appendChild(chip);
-    input.value = '';
     
-    const checkboxContainer = document.querySelector('.processo-check-container');
-    if (checkboxContainer) {
-        const label = document.createElement('label');
-        label.style.cssText = 'color:rgba(255,255,255,0.7);font-size:14px;display:flex;align-items:center;gap:8px;cursor:pointer;';
-        label.innerHTML = `
-            <input type="checkbox" value="${nome}" checked class="processo-check" style="width:16px;height:16px;cursor:pointer;" />
-            ${nome}
-        `;
-        checkboxContainer.appendChild(label);
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    if (!validTypes.includes(file.type)) {
+        showToast('Please select a valid image (JPG, PNG, GIF, WEBP, SVG).', 'error');
+        return;
     }
     
-    showToast(`✅ Process '${nome}' added!`, 'success');
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        imagemBase64 = e.target.result;
+        previewImg.src = imagemBase64;
+        previewContainer.style.display = 'block';
+        hiddenInput.value = imagemBase64;
+        showToast('✅ Image uploaded successfully!', 'success');
+    };
+    reader.onerror = function() {
+        showToast('Error reading image file.', 'error');
+    };
+    reader.readAsDataURL(file);
 }
 
-function removerProcessoCustom(el) {
-    const container = document.getElementById('processosCustom');
-    if (container) {
-        container.removeChild(el.closest('[data-processo]') || el.parentElement);
-    }
+function limparImagem() {
+    imagemBase64 = null;
+    document.getElementById('previewImagemContainer').style.display = 'none';
+    document.getElementById('imagemUrl').value = '';
+    document.getElementById('imagemUpload').value = '';
 }
 
-function getProcessosSelecionados() {
-    const checks = document.querySelectorAll('.processo-check:checked');
-    const processos = Array.from(checks).map(c => c.value);
-
-    const custom = document.querySelectorAll('#processosCustom [data-processo]');
-    custom.forEach(el => {
-        const nome = el.getAttribute('data-processo');
-        if (nome && !processos.includes(nome)) {
-            processos.push(nome);
-        }
-    });
-
-    console.log('📋 Processos selecionados:', processos);
-    return processos;
-}
+// =====================================================
+// CRIAR DOCUMENTO
+// =====================================================
 
 async function criarDocumento() {
     const titulo = document.getElementById('novoTitulo')?.value.trim();
     const functionalUnit = document.getElementById('novoFunctionalUnit')?.value.trim();
     const systemBoundary = document.getElementById('novoSystemBoundary')?.value.trim();
     const parceirosIds = window.parceirosSelecionados || [];
-    const imagemUrl = document.getElementById('imagemUrl')?.value || null;  // ✅ NOVO
+    const imagemUrl = document.getElementById('imagemUrl')?.value || null;
 
     if (!titulo) {
         showToast('Please enter a document title.', 'warning');
@@ -3350,7 +3159,7 @@ async function criarDocumento() {
         parceiros_ids: parceirosIds,
         empresa_id: state.username,
         dados: dados,
-        imagem_url: imagemUrl  // ✅ NOVO
+        imagem_url: imagemUrl
     };
 
     console.log('📤 Enviando documento:', JSON.stringify(payload, null, 2));
@@ -3469,145 +3278,391 @@ function fecharFormCriar() {
     carregarDocumentos();
 }
 
-// =====================================================
-// DOCUMENTOS - FILTROS
-// =====================================================
+function adicionarProcessoCustom() {
+    const input = document.getElementById('novoProcessoInput');
+    if (!input || !input.value.trim()) return;
 
-function aplicarFiltros() {
-    const busca = document.getElementById('filtroBusca')?.value || '';
-    const estadoSelect = document.getElementById('filtroEstados');
-    const estadoSelecionado = estadoSelect ? estadoSelect.value : '';
-    const dataInicio = document.getElementById('filtroDataInicio')?.value || '';
-    const dataFim = document.getElementById('filtroDataFim')?.value || '';
+    const nome = input.value.trim();
+    const container = document.getElementById('processosCustom');
+    if (!container) return;
 
-    // ✅ Enviar o valor exato que está no dropdown (em português)
-    // O backend agora aceita tanto português como inglês
-    let estados = [];
-    if (estadoSelecionado) {
-        estados = [estadoSelecionado];
+    const existingCheck = document.querySelector(`.processo-check[value="${nome}"]`);
+    if (existingCheck) {
+        showToast('This process already exists in the list.', 'warning');
+        return;
     }
 
-    state.filtros = {
-        q: busca,
-        estados: estados,
-        dataInicio: dataInicio || null,
-        dataFim: dataFim || null
-    };
+    const existing = container.querySelector(`[data-processo="${nome}"]`);
+    if (existing) {
+        showToast('This process already exists.', 'warning');
+        return;
+    }
 
-    console.log('🔍 Filtros aplicados (frontend):', state.filtros);
-    carregarDocumentos();
+    const chip = document.createElement('span');
+    chip.className = 'status-tag status-draft';
+    chip.setAttribute('data-processo', nome);
+    chip.innerHTML = `${nome} <span style="cursor:pointer;margin-left:4px;color:#ff6b6b;" onclick="removerProcessoCustom(this)">✕</span>`;
+    container.appendChild(chip);
+    input.value = '';
+    
+    const checkboxContainer = document.querySelector('.processo-check-container');
+    if (checkboxContainer) {
+        const label = document.createElement('label');
+        label.style.cssText = 'color:rgba(255,255,255,0.7);font-size:14px;display:flex;align-items:center;gap:8px;cursor:pointer;';
+        label.innerHTML = `
+            <input type="checkbox" value="${nome}" checked class="processo-check" style="width:16px;height:16px;cursor:pointer;" />
+            ${nome}
+        `;
+        checkboxContainer.appendChild(label);
+    }
+    
+    showToast(`✅ Process '${nome}' added!`, 'success');
 }
 
-function limparFiltros() {
-    state.filtros = {
-        q: '',
-        estados: [],
-        dataInicio: null,
-        dataFim: null
-    };
-    
-    const buscaInput = document.getElementById('filtroBusca');
-    const estadoSelect = document.getElementById('filtroEstados');
-    const dataInicioInput = document.getElementById('filtroDataInicio');
-    const dataFimInput = document.getElementById('filtroDataFim');
-    
-    if (buscaInput) buscaInput.value = '';
-    if (estadoSelect) estadoSelect.value = '';
-    if (dataInicioInput) dataInicioInput.value = '';
-    if (dataFimInput) dataFimInput.value = '';
-    
-    console.log('🧹 Filtros limpos');
-    carregarDocumentos();
-}
-
-// =====================================================
-// COMENTÁRIOS / CHAT
-// =====================================================
-
-let comentariosVisiveis = {};
-let comentariosCarregados = {};
-
-function toggleComentarios(docId) {
-    const bodies = document.querySelectorAll(`.comentarios-body[data-doc-id="${docId}"]`);
-    const icons = document.querySelectorAll(`.comentarios-toggle-icon[data-doc-id="${docId}"]`);
-    
-    if (!bodies.length) return;
-    
-    const isOpen = bodies[0].classList.contains('open');
-    
-    bodies.forEach(body => {
-        if (isOpen) {
-            body.classList.remove('open');
-        } else {
-            body.classList.add('open');
-        }
-    });
-    
-    icons.forEach(icon => {
-        if (isOpen) {
-            icon.classList.remove('open');
-        } else {
-            icon.classList.add('open');
-        }
-    });
-    
-    sessionStorage.setItem(`comentarios_abertos_${docId}`, isOpen ? 'false' : 'true');
-    
-    if (!isOpen && !comentariosCarregados[docId]) {
-        carregarComentarios(docId);
+function removerProcessoCustom(el) {
+    const container = document.getElementById('processosCustom');
+    if (container) {
+        container.removeChild(el.closest('[data-processo]') || el.parentElement);
     }
 }
 
-async function carregarComentarios(docId) {
-    console.log('📥 Carregando comentários para o documento:', docId);
+function getProcessosSelecionados() {
+    const checks = document.querySelectorAll('.processo-check:checked');
+    const processos = Array.from(checks).map(c => c.value);
+
+    const custom = document.querySelectorAll('#processosCustom [data-processo]');
+    custom.forEach(el => {
+        const nome = el.getAttribute('data-processo');
+        if (nome && !processos.includes(nome)) {
+            processos.push(nome);
+        }
+    });
+
+    console.log('📋 Processos selecionados:', processos);
+    return processos;
+}
+
+// =====================================================
+// MODAL DE ZOOM DA IMAGEM
+// =====================================================
+
+function abrirModalImagem(imagemUrl) {
+    const oldModal = document.getElementById('modalImagem');
+    if (oldModal) {
+        oldModal.remove();
+        document.body.style.overflow = '';
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'modalImagem';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.85);
+        z-index: 999999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(4px);
+        animation: fadeIn 0.3s ease;
+        padding: 20px;
+        box-sizing: border-box;
+    `;
+
+    const imgContainer = document.createElement('div');
+    imgContainer.style.cssText = `
+        max-width: 90vw;
+        max-height: 90vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    `;
+
+    const img = document.createElement('img');
+    img.src = imagemUrl;
+    img.style.cssText = `
+        max-width: 90vw;
+        max-height: 85vh;
+        object-fit: contain;
+        border-radius: 8px;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+        cursor: default;
+        background: rgba(0,0,0,0.3);
+        user-select: none;
+        -webkit-user-select: none;
+    `;
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕ Close';
+    closeBtn.style.cssText = `
+        position: fixed;
+        top: 24px;
+        right: 30px;
+        background: rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.2);
+        color: #fff;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: 'Inter', sans-serif;
+        transition: all 0.2s ease;
+        z-index: 1000000;
+        letter-spacing: 0.3px;
+    `;
+    
+    closeBtn.onmouseover = function() {
+        this.style.background = 'rgba(255,255,255,0.25)';
+        this.style.borderColor = 'rgba(255,255,255,0.4)';
+        this.style.transform = 'scale(1.05)';
+    };
+    closeBtn.onmouseout = function() {
+        this.style.background = 'rgba(255,255,255,0.12)';
+        this.style.borderColor = 'rgba(255,255,255,0.2)';
+        this.style.transform = 'scale(1)';
+    };
+
+    const closeBtnAlt = document.createElement('button');
+    closeBtnAlt.textContent = '✕';
+    closeBtnAlt.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 24px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.15);
+        color: #fff;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        font-size: 20px;
+        cursor: pointer;
+        font-family: 'Inter', sans-serif;
+        transition: all 0.2s ease;
+        z-index: 1000000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    `;
+    
+    closeBtnAlt.onmouseover = function() {
+        this.style.background = 'rgba(255,255,255,0.2)';
+        this.style.borderColor = 'rgba(255,255,255,0.3)';
+        this.style.transform = 'scale(1.1)';
+    };
+    closeBtnAlt.onmouseout = function() {
+        this.style.background = 'rgba(255,255,255,0.08)';
+        this.style.borderColor = 'rgba(255,255,255,0.15)';
+        this.style.transform = 'scale(1)';
+    };
+
+    function fecharModal() {
+        const modalEl = document.getElementById('modalImagem');
+        if (modalEl) {
+            modalEl.style.animation = 'fadeOut 0.2s ease';
+            setTimeout(() => {
+                modalEl.remove();
+                document.body.style.overflow = '';
+                document.removeEventListener('keydown', keyHandler);
+            }, 200);
+        }
+    }
+
+    function keyHandler(e) {
+        if (e.key === 'Escape') {
+            fecharModal();
+        }
+    }
+
+    closeBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        fecharModal();
+    });
+
+    closeBtnAlt.addEventListener('click', function(e) {
+        e.stopPropagation();
+        fecharModal();
+    });
+
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            fecharModal();
+        }
+    });
+
+    document.addEventListener('keydown', keyHandler);
+
+    imgContainer.appendChild(img);
+    modal.appendChild(imgContainer);
+    modal.appendChild(closeBtn);
+    modal.appendChild(closeBtnAlt);
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+}
+
+function fecharModalImagem() {
+    const modal = document.getElementById('modalImagem');
+    if (modal) {
+        modal.style.animation = 'fadeOut 0.2s ease';
+        setTimeout(() => {
+            modal.remove();
+            document.body.style.overflow = '';
+            document.removeEventListener('keydown', keyHandler);
+        }, 200);
+    }
+}
+
+// =====================================================
+// COMENTÁRIOS POR TIPO (LCA, LCC, IMAGEM)
+// =====================================================
+
+let comentariosCarregadosTipo = {};
+
+// ✅ Remover a função gerarTodasCaixasComentarios - já não é necessária
+
+function gerarCaixaComentariosTipo(docId, tipo, label, icon, colorClass) {
+    // ✅ Verificar se a API_URL está definida
+    if (!API_URL) {
+        console.error('❌ API_URL não definida!');
+        return `<div style="color:#ff6b6b;padding:10px;">Error: API_URL not defined</div>`;
+    }
+    
+    // ✅ Títulos personalizados para cada tipo
+    const titulos = {
+        'imagem': 'Comment Box Image',
+        'lca': 'Comment Box LCA',
+        'lcc': 'Comment Box LCC'
+    };
+    
+    const titulo = titulos[tipo] || `Comment Box ${label}`;
+    
+    return `
+        <div class="comentarios-tipo-container" data-doc-id="${docId}" data-tipo="${tipo}">
+            <div class="comentarios-tipo-header" onclick="toggleComentariosTipo(${docId}, '${tipo}')">
+                <span class="tipo-label ${colorClass}">
+                    ${icon} ${titulo}
+                    <span class="badge-tipo" id="badgeTipo_${docId}_${tipo}">0</span>
+                </span>
+                <span class="toggle-icon" id="toggleIconTipo_${docId}_${tipo}">▼</span>
+            </div>
+            <div class="comentarios-tipo-body" id="comentariosTipoBody_${docId}_${tipo}">
+                <div class="comentarios-tipo-list" id="comentariosTipoList_${docId}_${tipo}">
+                    <div class="comentario-vazio-tipo">⏳ Loading comments...</div>
+                </div>
+                <div class="comentario-input-area-tipo">
+                    <textarea 
+                        class="comentario-textarea-tipo"
+                        data-doc-id="${docId}"
+                        data-tipo="${tipo}"
+                        placeholder="Write a message about ${label}..."
+                        rows="1"
+                    ></textarea>
+                    <button class="btn-enviar-tipo" onclick="enviarComentarioTipo(${docId}, '${tipo}')">
+                        📤 Send
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+
+function toggleComentariosTipo(docId, tipo) {
+    const body = document.getElementById(`comentariosTipoBody_${docId}_${tipo}`);
+    const icon = document.getElementById(`toggleIconTipo_${docId}_${tipo}`);
+    
+    if (!body) return;
+    
+    const isOpen = body.classList.contains('open');
+    
+    if (isOpen) {
+        body.classList.remove('open');
+        if (icon) icon.classList.remove('open');
+    } else {
+        body.classList.add('open');
+        if (icon) icon.classList.add('open');
+        
+        const key = `${docId}_${tipo}`;
+        if (!comentariosCarregadosTipo[key]) {
+            carregarComentariosTipo(docId, tipo);
+        }
+    }
+}
+
+async function carregarComentariosTipo(docId, tipo) {
+    const key = `${docId}_${tipo}`;
+    
+    console.log(`📥 Carregando comentários ${tipo} para documento ${docId}`);
     
     try {
-        const response = await fetch(`${API_URL}/documentos/${docId}/comentarios`, {
-            headers: getAuthHeaders()
+        const token = sessionStorage.getItem('doc_token');
+        if (!token) {
+            console.warn('⚠️ Token não encontrado');
+            return;
+        }
+        
+        const url = `${API_URL}/documentos/${docId}/comentarios?tipo=${tipo}`;
+        console.log(`📥 URL:`, url);
+        
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
         });
         
-        console.log('📥 Status da resposta:', response.status);
+        console.log(`📥 Resposta ${tipo} status:`, response.status);
         
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('❌ Erro ao carregar comentários:', errorText);
+            console.error(`❌ Erro ${tipo}:`, errorText);
             throw new Error('Error loading comments');
         }
         
         const comentarios = await response.json();
-        console.log('📥 Comentários carregados:', comentarios);
+        console.log(`📥 Comentários ${tipo} carregados:`, comentarios.length);
         
-        comentariosCarregados[docId] = true;
-        renderComentarios(docId, comentarios);
+        comentariosCarregadosTipo[key] = true;
         
-        // ✅ Atualizar badges
-        const badges = document.querySelectorAll(`.badge-comentarios[data-doc-id="${docId}"]`);
-        badges.forEach(badge => {
+        // ✅ Verificar se a função escapeHtml existe
+        if (typeof escapeHtml === 'undefined') {
+            console.warn('⚠️ escapeHtml não definida, a definir...');
+            window.escapeHtml = function(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            };
+        }
+        
+        renderComentariosTipo(docId, tipo, comentarios);
+        
+        const badge = document.getElementById(`badgeTipo_${docId}_${tipo}`);
+        if (badge) {
             badge.textContent = comentarios.length;
-        });
+        }
         
     } catch (error) {
-        console.error('❌ Error loading comments:', error);
-        const containers = document.querySelectorAll(`.comentarios-list[data-doc-id="${docId}"]`);
-        containers.forEach(container => {
+        console.error(`❌ Error loading ${tipo} comments:`, error);
+        const container = document.getElementById(`comentariosTipoList_${docId}_${tipo}`);
+        if (container) {
             container.innerHTML = `
-                <div style="color:#ff6b6b;font-size:13px;text-align:center;padding:10px;">
+                <div style="color:#ff6b6b;font-size:12px;text-align:center;padding:8px;">
                     ❌ Error loading comments: ${error.message}
                 </div>
             `;
-        });
+        }
     }
 }
 
-function renderComentarios(docId, comentarios) {
-    console.log('📝 Renderizando comentários para o documento:', docId);
-    console.log('📝 Comentários recebidos:', comentarios);
-    
-    const containers = document.querySelectorAll(`.comentarios-list[data-doc-id="${docId}"]`);
-    console.log('📝 Containers encontrados:', containers.length);
-    
-    if (!containers.length) {
-        console.warn('⚠️ Nenhum container de comentários encontrado para o documento:', docId);
+function renderComentariosTipo(docId, tipo, comentarios) {
+    const container = document.getElementById(`comentariosTipoList_${docId}_${tipo}`);
+    if (!container) {
+        console.warn(`⚠️ Container não encontrado para ${tipo} no documento ${docId}`);
         return;
     }
     
@@ -3618,52 +3673,14 @@ function renderComentarios(docId, comentarios) {
         'admin': 'admin'
     };
     
-    const hasUnread = comentarios.some(c => c.username !== currentUser);
-    
-    // ✅ Atualizar badge de não lidos
-    const unreadBadges = document.querySelectorAll(`.badge-nao-lidos[data-doc-id="${docId}"]`);
-    unreadBadges.forEach(badge => {
-        if (hasUnread && comentarios.length > 0) {
-            const unreadCount = comentarios.filter(c => c.username !== currentUser).length;
-            badge.textContent = `🔴 ${unreadCount} new`;
-            badge.style.display = 'inline';
-        } else {
-            badge.style.display = 'none';
-        }
-    });
-    
-    // ✅ Atualizar contagem total
-    const badges = document.querySelectorAll(`.badge-comentarios[data-doc-id="${docId}"]`);
-    badges.forEach(badge => {
-        badge.textContent = comentarios.length;
-    });
-    
-    // ✅ Se não houver comentários
     if (!comentarios || comentarios.length === 0) {
-        containers.forEach(container => {
-            container.innerHTML = `
-                <div class="comentario-vazio">
-                    <button class="btn-add-comment" onclick="toggleComentarios(${docId})">
-                        💬 Add a comment
-                    </button>
-                </div>
-            `;
-        });
-        
-        // ✅ Esconder a área de input
-        const wrappers = document.querySelectorAll(`.comentario-input-area-wrapper[data-doc-id="${docId}"]`);
-        wrappers.forEach(wrapper => {
-            wrapper.style.display = 'none';
-        });
-        
+        container.innerHTML = `
+            <div class="comentario-vazio-tipo">
+                💬 No comments yet
+            </div>
+        `;
         return;
     }
-    
-    // ✅ Mostrar a área de input
-    const wrappers = document.querySelectorAll(`.comentario-input-area-wrapper[data-doc-id="${docId}"]`);
-    wrappers.forEach(wrapper => {
-        wrapper.style.display = 'block';
-    });
     
     let html = '';
     
@@ -3671,17 +3688,22 @@ function renderComentarios(docId, comentarios) {
         const isOwn = c.username === currentUser;
         const perfilClass = perfilMap[state.perfil] || 'partner';
         const initials = c.username.substring(0, 2).toUpperCase();
-        const isUnread = c.username !== currentUser;
+        
+        const tipoClass = {
+            'lca': 'tipo-lca',
+            'lcc': 'tipo-lcc',
+            'imagem': 'tipo-imagem',
+            'geral': 'tipo-geral'
+        }[c.tipo] || 'tipo-geral';
         
         html += `
-            <div class="comentario-item ${isOwn ? 'comentario-proprio' : ''} ${isUnread ? 'comentario-nao-lido' : ''}">
+            <div class="comentario-item ${isOwn ? 'comentario-proprio' : ''} ${tipoClass}">
                 <div class="avatar">${initials}</div>
                 <div class="comentario-content">
                     <div class="comentario-header">
                         <span class="comentario-username">
                             ${c.username}
                             <span class="perfil-tag ${perfilClass}">${perfilClass}</span>
-                            ${isUnread ? '<span class="badge-novo">NEW</span>' : ''}
                         </span>
                         <span class="comentario-data">${c.created_at}</span>
                     </div>
@@ -3691,57 +3713,20 @@ function renderComentarios(docId, comentarios) {
         `;
     });
     
-    containers.forEach(container => {
-        container.innerHTML = html;
-    });
+    container.innerHTML = html;
     
-    // ✅ Controlar abertura automática
-    const bodies = document.querySelectorAll(`.comentarios-body[data-doc-id="${docId}"]`);
-    const icons = document.querySelectorAll(`.comentarios-toggle-icon[data-doc-id="${docId}"]`);
-    
-    // ✅ Se houver comentários não lidos, abrir automaticamente
-    if (hasUnread && comentarios.length > 0) {
-        bodies.forEach(body => {
-            body.classList.add('open');
-        });
-        icons.forEach(icon => {
-            icon.classList.add('open');
-        });
-    } else {
-        // ✅ Verificar se o utilizador abriu manualmente
-        const isManuallyOpen = sessionStorage.getItem(`comentarios_abertos_${docId}`) === 'true';
-        if (!isManuallyOpen) {
-            bodies.forEach(body => {
-                body.classList.remove('open');
-            });
-            icons.forEach(icon => {
-                icon.classList.remove('open');
-            });
-        }
+    const body = document.getElementById(`comentariosTipoBody_${docId}_${tipo}`);
+    if (body) {
+        body.scrollTop = body.scrollHeight;
     }
-    
-    // ✅ Scroll para o fim se estiver aberto
-    bodies.forEach(body => {
-        if (body.classList.contains('open')) {
-            body.scrollTop = body.scrollHeight;
-        }
-    });
 }
 
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-async function enviarComentario(docId) {
-    const textareas = document.querySelectorAll(`.comentario-textarea[data-doc-id="${docId}"]`);
-    const btns = document.querySelectorAll(`.comentarios-container .btn-enviar[onclick*="${docId}"]`);
+async function enviarComentarioTipo(docId, tipo) {
+    const textarea = document.querySelector(`.comentario-textarea-tipo[data-doc-id="${docId}"][data-tipo="${tipo}"]`);
+    const btn = textarea?.parentElement?.querySelector('.btn-enviar-tipo');
     
-    if (!textareas.length || !btns.length) return;
+    if (!textarea || !btn) return;
     
-    const textarea = textareas[0];
     const mensagem = textarea.value.trim();
     
     if (!mensagem) {
@@ -3749,79 +3734,71 @@ async function enviarComentario(docId) {
         return;
     }
     
-    btns.forEach(btn => {
-        btn.disabled = true;
-        btn.textContent = '⏳ Sending...';
-    });
+    btn.disabled = true;
+    btn.textContent = '⏳';
     
     try {
-        const response = await fetch(`${API_URL}/documentos/${docId}/comentarios`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ mensagem: mensagem })
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || 'Error sending comment');
+        const token = sessionStorage.getItem('doc_token');
+        if (!token) {
+            showToast('Session expired. Please login again.', 'error');
+            window.location.href = 'login.html';
+            return;
         }
         
-        textareas.forEach(t => {
-            t.value = '';
-            t.style.height = '44px';
+        const url = `${API_URL}/documentos/${docId}/comentarios`;
+        console.log(`📤 Enviando comentário ${tipo} para:`, url);
+        console.log(`📤 Mensagem:`, mensagem);
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                mensagem: mensagem,
+                tipo: tipo 
+            })
         });
         
-        comentariosCarregados[docId] = false;
-        await carregarComentarios(docId);
+        console.log(`📥 Resposta status:`, response.status);
         
-        // Abrir automaticamente
-        const bodies = document.querySelectorAll(`.comentarios-body[data-doc-id="${docId}"]`);
-        bodies.forEach(body => {
-            body.classList.add('open');
-        });
-        const icons = document.querySelectorAll(`.comentarios-toggle-icon[data-doc-id="${docId}"]`);
-        icons.forEach(icon => {
-            icon.classList.add('open');
-        });
-        sessionStorage.setItem(`comentarios_abertos_${docId}`, 'true');
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Erro resposta:', errorText);
+            let errorMessage = 'Error sending comment';
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorMessage = errorJson.detail || errorMessage;
+            } catch (e) {
+                errorMessage = errorText || errorMessage;
+            }
+            throw new Error(errorMessage);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Comentário enviado:', result);
+        
+        textarea.value = '';
+        textarea.style.height = '36px';
+        
+        comentariosCarregadosTipo[`${docId}_${tipo}`] = false;
+        await carregarComentariosTipo(docId, tipo);
+        
+        const body = document.getElementById(`comentariosTipoBody_${docId}_${tipo}`);
+        const icon = document.getElementById(`toggleIconTipo_${docId}_${tipo}`);
+        if (body) body.classList.add('open');
+        if (icon) icon.classList.add('open');
         
         showToast('✅ Comment sent!', 'success');
     } catch (error) {
-        console.error('Error sending comment:', error);
-        showToast('❌ Error sending comment: ' + error.message, 'error');
+        console.error('❌ Error sending comment:', error);
+        showToast('❌ Error: ' + error.message, 'error');
     } finally {
-        btns.forEach(btn => {
-            btn.disabled = false;
-            btn.textContent = '📤 Send';
-        });
+        btn.disabled = false;
+        btn.textContent = '📤 Send';
     }
 }
-
-function autoResizeTextarea(textarea) {
-    textarea.style.height = '44px';
-    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
-}
-
-// Inicializar listeners para auto-resize
-document.addEventListener('DOMContentLoaded', function() {
-    document.addEventListener('input', function(e) {
-        if (e.target.classList && e.target.classList.contains('comentario-textarea')) {
-            autoResizeTextarea(e.target);
-        }
-    });
-    
-    document.addEventListener('keydown', function(e) {
-        if (e.target.classList && e.target.classList.contains('comentario-textarea')) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                const docId = e.target.getAttribute('data-doc-id');
-                if (docId) {
-                    enviarComentario(parseInt(docId));
-                }
-            }
-        }
-    });
-});
 
 // =====================================================
 // NOTIFICAÇÕES
@@ -3951,6 +3928,34 @@ function irParaDocumento(link) {
 }
 
 // =====================================================
+// AUTO-RESIZE PARA TEXTAREAS DE TIPO
+// =====================================================
+
+document.addEventListener('input', function(e) {
+    if (e.target.classList && e.target.classList.contains('comentario-textarea-tipo')) {
+        e.target.style.height = '36px';
+        e.target.style.height = Math.min(e.target.scrollHeight, 80) + 'px';
+    }
+});
+
+// =====================================================
+// ENTER PARA ENVIAR COMENTÁRIOS POR TIPO
+// =====================================================
+
+document.addEventListener('keydown', function(e) {
+    if (e.target.classList && e.target.classList.contains('comentario-textarea-tipo')) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            const docId = e.target.getAttribute('data-doc-id');
+            const tipo = e.target.getAttribute('data-tipo');
+            if (docId && tipo) {
+                enviarComentarioTipo(parseInt(docId), tipo);
+            }
+        }
+    }
+});
+
+// =====================================================
 // INICIALIZAÇÃO
 // =====================================================
 
@@ -3995,62 +4000,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setInterval(carregarNotificacoesNaoLidas, 30000);
 });
-
-// =====================================================
-// UPLOAD DE IMAGEM - CONVERSÃO PARA BASE64
-// =====================================================
-
-let imagemBase64 = null;
-
-function uploadImagem() {
-    const fileInput = document.getElementById('imagemUpload');
-    const previewContainer = document.getElementById('previewImagemContainer');
-    const previewImg = document.getElementById('previewImagem');
-    const hiddenInput = document.getElementById('imagemUrl');
-    
-    if (!fileInput || !fileInput.files || !fileInput.files[0]) {
-        showToast('Please select an image first.', 'warning');
-        return;
-    }
-    
-    const file = fileInput.files[0];
-    
-    // Validar tamanho (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-        showToast('Image must be less than 5MB.', 'error');
-        return;
-    }
-    
-    // Validar tipo
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
-    if (!validTypes.includes(file.type)) {
-        showToast('Please select a valid image (JPG, PNG, GIF, WEBP, SVG).', 'error');
-        return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        imagemBase64 = e.target.result;
-        
-        // Mostrar preview
-        previewImg.src = imagemBase64;
-        previewContainer.style.display = 'block';
-        hiddenInput.value = imagemBase64;
-        
-        showToast('✅ Image uploaded successfully!', 'success');
-    };
-    reader.onerror = function() {
-        showToast('Error reading image file.', 'error');
-    };
-    reader.readAsDataURL(file);
-}
-
-function limparImagem() {
-    imagemBase64 = null;
-    document.getElementById('previewImagemContainer').style.display = 'none';
-    document.getElementById('imagemUrl').value = '';
-    document.getElementById('imagemUpload').value = '';
-}
 
 // =====================================================
 // EXPORTAÇÕES GLOBAIS
@@ -4101,7 +4050,10 @@ window.showToast = showToast;
 window.adicionarParceiroSelecionado = adicionarParceiroSelecionado;
 window.removerParceiroSelecionado = removerParceiroSelecionado;
 window.atualizarParceirosSelecionados = atualizarParceirosSelecionados;
-window.toggleComentarios = toggleComentarios;
-window.carregarComentarios = carregarComentarios;
-window.enviarComentario = enviarComentario;
-window.gerarCaixaComentarios = gerarCaixaComentarios;
+window.uploadImagem = uploadImagem;
+window.limparImagem = limparImagem;
+window.abrirModalImagem = abrirModalImagem;
+window.fecharModalImagem = fecharModalImagem;
+window.toggleComentariosTipo = toggleComentariosTipo;
+window.carregarComentariosTipo = carregarComentariosTipo;
+window.enviarComentarioTipo = enviarComentarioTipo;

@@ -308,7 +308,7 @@ body {
 }
 
 /* =====================================================
-   FILTROS - CORREÇÃO DE VISIBILIDADE
+   FILTROS
 ===================================================== */
 
 #filtrosContainer {
@@ -377,7 +377,6 @@ body {
     color: #ffffff;
 }
 
-/* Botão de filtros melhorado */
 .btn-filter-toggle {
     background: rgba(255, 255, 255, 0.06);
     color: rgba(255, 255, 255, 0.8);
@@ -406,7 +405,7 @@ body {
 }
 
 /* =====================================================
-   FORMULÁRIOS - Holoss Style
+   FORMULÁRIOS
 ===================================================== */
 
 .form-group {
@@ -449,7 +448,7 @@ body {
 }
 
 /* =====================================================
-   BOTÕES - Holoss Style
+   BOTÕES
 ===================================================== */
 
 .btn {
@@ -744,7 +743,6 @@ body {
     color: #ffffff;
 }
 
-/* Responsivo para filtros */
 @media (max-width: 900px) {
     #filtrosContainer .form-group {
         margin-bottom: 10px;
@@ -858,7 +856,6 @@ body {
     color: #fff;
 }
 
-/* Container do editor com transição suave */
 #editorLCA,
 #editorLCC {
     transition: opacity 0.3s ease;
@@ -875,7 +872,7 @@ body {
 }
 
 /* =====================================================
-   BOTÕES SHOW/HIDE E VERSION HISTORY - MESMO NÍVEL
+   BOTÕES SHOW/HIDE E VERSION HISTORY
 ===================================================== */
 
 .btn-toggle-content {
@@ -909,7 +906,6 @@ body {
     box-shadow: none;
 }
 
-/* Container dos botões - mesmo nível */
 .toggle-buttons-container {
     display: flex;
     flex-wrap: wrap;
@@ -919,467 +915,7 @@ body {
 }
 
 /* =====================================================
-   COMMENTS / CHAT - CORRIGIDO
-===================================================== */
-
-.comentarios-container {
-    margin-top: 20px;
-    background: rgba(255, 255, 255, 0.04);
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    overflow: hidden;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-/* Primeira caixa de comentários (topo) com mais espaçamento */
-.comentarios-container:first-of-type {
-    margin-top: 24px !important;
-    margin-bottom: 30px !important;
-    clear: both;
-}
-
-/* Última caixa de comentários (rodapé) */
-.comentarios-container:last-of-type {
-    margin-top: 24px !important;
-    clear: both;
-}
-
-.comentarios-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 18px;
-    background: rgba(255, 255, 255, 0.03);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    cursor: pointer;
-    user-select: none;
-    width: 100%;
-    box-sizing: border-box;
-    transition: background 0.2s ease;
-}
-
-.comentarios-header:hover {
-    background: rgba(255, 255, 255, 0.06);
-}
-
-.comentarios-header h4 {
-    margin: 0;
-    color: #fff;
-    font-size: 15px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.comentarios-header h4 .badge-comentarios {
-    background: rgba(254, 200, 0, 0.2);
-    color: #fec800;
-    padding: 2px 10px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.comentarios-header h4 .badge-nao-lidos {
-    background: #ff4444;
-    color: #fff;
-    padding: 2px 10px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
-    margin-left: 4px;
-    animation: pulse-badge 2s ease-in-out infinite;
-}
-
-@keyframes pulse-badge {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
-}
-
-.comentarios-header .comentarios-toggle-icon {
-    color: rgba(255, 255, 255, 0.4);
-    transition: transform 0.3s ease;
-    font-size: 14px;
-}
-
-.comentarios-header .comentarios-toggle-icon.open {
-    transform: rotate(180deg);
-}
-
-/* Corpo dos comentários */
-.comentarios-body {
-    padding: 0 18px;
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.4s ease, padding 0.4s ease;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.comentarios-body.open {
-    max-height: 600px;
-    padding: 18px;
-    overflow-y: auto;
-}
-
-.comentarios-body::-webkit-scrollbar {
-    width: 6px;
-}
-
-.comentarios-body::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 3px;
-}
-
-.comentarios-body::-webkit-scrollbar-thumb {
-    background: rgba(254, 200, 0, 0.3);
-    border-radius: 3px;
-}
-
-/* Lista de comentários */
-.comentarios-list {
-    width: 100%;
-    box-sizing: border-box;
-}
-
-/* Mensagem vazia - quando não há comentários */
-.comentario-vazio {
-    text-align: center;
-    padding: 12px 0;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.btn-add-comment {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px dashed rgba(255, 255, 255, 0.2);
-    color: rgba(255, 255, 255, 0.6);
-    padding: 8px 24px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 14px;
-    font-family: 'Inter', sans-serif;
-    transition: all 0.3s ease;
-    font-weight: 500;
-}
-
-.btn-add-comment:hover {
-    background: rgba(254, 200, 0, 0.1);
-    border-color: rgba(254, 200, 0, 0.3);
-    color: #fec800;
-    transform: translateY(-2px);
-}
-
-/* Wrapper da área de input - escondido quando não há comentários */
-.comentario-input-area-wrapper {
-    display: block;
-    width: 100%;
-    box-sizing: border-box;
-    transition: all 0.3s ease;
-}
-
-.comentario-input-area-wrapper[style*="display:none"] {
-    display: none !important;
-}
-
-/* Área de input */
-.comentario-input-area {
-    display: flex;
-    gap: 10px;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.comentario-input-area textarea {
-    flex: 1;
-    padding: 10px 14px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.06);
-    color: #fff;
-    font-size: 14px;
-    font-family: 'Inter', sans-serif;
-    resize: vertical;
-    min-height: 44px;
-    max-height: 120px;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.comentario-input-area textarea::placeholder {
-    color: rgba(255, 255, 255, 0.35);
-}
-
-.comentario-input-area textarea:focus {
-    outline: none;
-    border-color: #fec800;
-    box-shadow: 0 0 0 3px rgba(254, 200, 0, 0.1);
-}
-
-.comentario-input-area .btn-enviar {
-    padding: 10px 24px;
-    border-radius: 8px;
-    border: none;
-    background: linear-gradient(135deg, #fec800, #f5b800);
-    color: #0a2f57;
-    font-weight: 700;
-    font-size: 14px;
-    cursor: pointer;
-    transition: transform 0.16s ease, box-shadow 0.2s ease;
-    white-space: nowrap;
-    font-family: 'Inter', sans-serif;
-    height: 44px;
-    min-width: 80px;
-}
-
-.comentario-input-area .btn-enviar:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 20px rgba(254, 200, 0, 0.25);
-}
-
-.comentario-input-area .btn-enviar:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-}
-
-/* Cada comentário */
-.comentario-item {
-    display: flex;
-    gap: 12px;
-    padding: 10px 14px;
-    margin-bottom: 8px;
-    background: rgba(255, 255, 255, 0.04);
-    border-radius: 8px;
-    border-left: 3px solid rgba(254, 200, 0, 0.3);
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.comentario-item .avatar {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    border-radius: 50%;
-    background: rgba(254, 200, 0, 0.15);
-    color: #fec800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 14px;
-    text-transform: uppercase;
-}
-
-.comentario-item .comentario-content {
-    flex: 1;
-    min-width: 0;
-    width: 100%;
-}
-
-.comentario-item .comentario-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 4px 8px;
-    margin-bottom: 4px;
-    width: 100%;
-}
-
-.comentario-item .comentario-username {
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 4px;
-}
-
-.comentario-item .comentario-username .perfil-tag {
-    font-size: 10px;
-    font-weight: 500;
-    padding: 1px 8px;
-    border-radius: 10px;
-    text-transform: uppercase;
-}
-
-.perfil-tag.company {
-    background: rgba(52, 152, 219, 0.2);
-    color: #5dade2;
-}
-
-.perfil-tag.partner {
-    background: rgba(46, 204, 113, 0.2);
-    color: #58d68d;
-}
-
-.perfil-tag.admin {
-    background: rgba(254, 200, 0, 0.2);
-    color: #fec800;
-}
-
-.comentario-item .comentario-data {
-    color: rgba(255, 255, 255, 0.35);
-    font-size: 11px;
-    white-space: nowrap;
-}
-
-.comentario-item .comentario-mensagem {
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 14px;
-    line-height: 1.5;
-    word-wrap: break-word;
-    white-space: pre-wrap;
-    width: 100%;
-}
-
-/* Comentário próprio */
-.comentario-item.comentario-proprio {
-    border-left-color: rgba(52, 152, 219, 0.5);
-    background: rgba(52, 152, 219, 0.08);
-}
-
-.comentario-item.comentario-proprio .avatar {
-    background: rgba(52, 152, 219, 0.2);
-    color: #5dade2;
-}
-
-/* Comentário não lido */
-.comentario-item.comentario-nao-lido {
-    border-left-color: #ff4444;
-    background: rgba(255, 68, 68, 0.08);
-    position: relative;
-}
-
-.comentario-item.comentario-nao-lido::after {
-    content: '';
-    position: absolute;
-    left: -2px;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background: #ff4444;
-    border-radius: 2px 0 0 2px;
-}
-
-.badge-novo {
-    background: #ff4444;
-    color: #fff;
-    padding: 1px 8px;
-    border-radius: 10px;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    animation: pulse-badge 1.5s ease-in-out infinite;
-}
-
-/* =====================================================
-   FIX - ORDEM CORRETA DOS ELEMENTOS E ESPAÇAMENTO
-===================================================== */
-
-/* Espaçamento entre secções */
-.actions-container {
-    margin-bottom: 20px;
-}
-
-/* Comentários de topo com espaçamento */
-.comentarios-container:first-of-type {
-    margin-top: 24px !important;
-    margin-bottom: 30px !important;
-    clear: both;
-}
-
-/* Conteúdo do documento com separador visual */
-#conteudoDocumento {
-    margin-top: 16px;
-    clear: both;
-}
-
-/* O container do conteúdo tem um separador */
-div[style*="margin-top: 30px;"] {
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    padding-top: 20px;
-}
-
-/* Botão Show/Hide com margem */
-.btn-secondary.btn-sm[onclick*="toggleConteudoDocumento"] {
-    margin-bottom: 12px;
-}
-
-/* Editor com espaçamento */
-.editor-container {
-    margin-top: 30px !important;
-    clear: both;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    padding-top: 4px;
-}
-
-/* Histórico com espaçamento */
-#historicoVersoes {
-    margin-top: 12px;
-}
-
-/* Comentários do rodapé */
-.comentarios-container:last-of-type {
-    margin-top: 24px !important;
-    clear: both;
-}
-
-/* Garantir que nada fica colado */
-.clear-both {
-    clear: both;
-}
-
-/* Garantir que o conteúdo do documento não sobrepõe os comentários */
-#conteudoDocumento {
-    clear: both;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-/* Garantir que os comentários ficam abaixo do conteúdo */
-.comentarios-container {
-    clear: both;
-    margin-top: 20px;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-/* Separador visual entre conteúdo e comentários */
-.comentarios-container:first-of-type {
-    margin-top: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    padding-top: 4px;
-}
-
-/* Garantir que o editor não sobrepõe */
-.editor-container {
-    clear: both;
-    width: 100%;
-    box-sizing: border-box;
-    margin-top: 16px;
-}
-
-/* Clearfix para todos os containers */
-.actions-container,
-.comentarios-container,
-.editor-container,
-#conteudoDocumento {
-    clear: both;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-/* =====================================================
-   TÍTULOS DOS CAMPOS DO DOCUMENTO - MAIORES E NEGRITO
+   TÍTULOS DOS CAMPOS DO DOCUMENTO
 ===================================================== */
 
 .document-info-grid {
@@ -1418,7 +954,6 @@ div[style*="margin-top: 30px;"] {
    IMAGEM DO DOCUMENTO
 ===================================================== */
 
-/* Container da imagem */
 .document-image-container {
     margin-bottom: 20px;
     padding: 12px;
@@ -1452,7 +987,6 @@ div[style*="margin-top: 30px;"] {
     margin-bottom: 8px;
 }
 
-/* Botão de zoom */
 .btn-zoom {
     padding: 4px 12px;
     font-size: 12px;
@@ -1470,7 +1004,10 @@ div[style*="margin-top: 30px;"] {
     color: #fff;
 }
 
-/* Modal de zoom */
+/* =====================================================
+   MODAL DE ZOOM
+===================================================== */
+
 #modalImagem {
     position: fixed;
     top: 0;
@@ -1520,6 +1057,388 @@ div[style*="margin-top: 30px;"] {
 }
 
 /* =====================================================
+   COMENTÁRIOS POR TIPO (LCA, LCC, IMAGEM)
+===================================================== */
+
+.comentarios-tipo-container {
+    margin-top: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+}
+
+.comentarios-tipo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s ease;
+}
+
+.comentarios-tipo-header:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.comentarios-tipo-header .tipo-label {
+    font-weight: 600;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.comentarios-tipo-header .tipo-label.lca {
+    color: #81c784;
+}
+
+.comentarios-tipo-header .tipo-label.lcc {
+    color: #64b5f6;
+}
+
+.comentarios-tipo-header .tipo-label.imagem {
+    color: #ffb74d;
+}
+
+.comentarios-tipo-header .tipo-label.geral {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.comentarios-tipo-header .badge-tipo {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.6);
+    padding: 1px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+}
+
+.comentarios-tipo-header .toggle-icon {
+    color: rgba(255, 255, 255, 0.3);
+    transition: transform 0.3s ease;
+    font-size: 12px;
+}
+
+.comentarios-tipo-header .toggle-icon.open {
+    transform: rotate(180deg);
+}
+
+.comentarios-tipo-body {
+    padding: 0 14px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.comentarios-tipo-body.open {
+    max-height: 400px;
+    padding: 12px 14px;
+    overflow-y: auto;
+}
+
+.comentarios-tipo-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.comentarios-tipo-body::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 2px;
+}
+
+.comentarios-tipo-body::-webkit-scrollbar-thumb {
+    background: rgba(254, 200, 0, 0.2);
+    border-radius: 2px;
+}
+
+/* =====================================================
+   CADA COMENTÁRIO
+===================================================== */
+
+.comentario-item {
+    display: flex;
+    gap: 12px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    border-left: 3px solid rgba(254, 200, 0, 0.3);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Avatar */
+.comentario-item .avatar {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    background: rgba(254, 200, 0, 0.15);
+    color: #fec800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+}
+
+/* Conteúdo do comentário */
+.comentario-item .comentario-content {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+}
+
+/* Header: nome + data/hora na mesma linha */
+.comentario-item .comentario-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    margin-bottom: 4px;
+    width: 100%;
+}
+
+/* Nome do utilizador + tag de perfil */
+.comentario-item .comentario-username {
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+/* Tag de perfil (company, partner, admin) */
+.comentario-item .comentario-username .perfil-tag {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 1px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+}
+
+.perfil-tag.company {
+    background: rgba(52, 152, 219, 0.2);
+    color: #5dade2;
+}
+
+.perfil-tag.partner {
+    background: rgba(46, 204, 113, 0.2);
+    color: #58d68d;
+}
+
+.perfil-tag.admin {
+    background: rgba(254, 200, 0, 0.2);
+    color: #fec800;
+}
+
+/* Data/hora - alinhada à direita */
+.comentario-item .comentario-data {
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 11px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Mensagem do comentário */
+.comentario-item .comentario-mensagem {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    width: 100%;
+}
+
+/* Comentário próprio */
+.comentario-item.comentario-proprio {
+    border-left-color: rgba(52, 152, 219, 0.5);
+    background: rgba(52, 152, 219, 0.08);
+}
+
+.comentario-item.comentario-proprio .avatar {
+    background: rgba(52, 152, 219, 0.2);
+    color: #5dade2;
+}
+
+/* Cores por tipo */
+.comentario-item.tipo-lca {
+    border-left-color: #2e7d32;
+}
+
+.comentario-item.tipo-lcc {
+    border-left-color: #0d47a1;
+}
+
+.comentario-item.tipo-imagem {
+    border-left-color: #e65100;
+}
+
+.comentario-item.tipo-geral {
+    border-left-color: rgba(254, 200, 0, 0.3);
+}
+
+/* =====================================================
+   ÁREA DE INPUT
+===================================================== */
+
+.comentario-input-area-tipo {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.comentario-input-area-tipo textarea {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    resize: vertical;
+    min-height: 36px;
+    max-height: 80px;
+    transition: border-color 0.2s ease;
+}
+
+.comentario-input-area-tipo textarea:focus {
+    outline: none;
+    border-color: #fec800;
+    box-shadow: 0 0 0 3px rgba(254, 200, 0, 0.08);
+}
+
+.comentario-input-area-tipo .btn-enviar-tipo {
+    padding: 6px 16px;
+    border-radius: 6px;
+    border: none;
+    background: linear-gradient(135deg, #fec800, #f5b800);
+    color: #0a2f57;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    transition: transform 0.16s ease, box-shadow 0.2s ease;
+    white-space: nowrap;
+    font-family: 'Inter', sans-serif;
+    height: 36px;
+}
+
+.comentario-input-area-tipo .btn-enviar-tipo:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(254, 200, 0, 0.2);
+}
+
+.comentario-input-area-tipo .btn-enviar-tipo:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.comentario-vazio-tipo {
+    color: rgba(255, 255, 255, 0.25);
+    font-size: 13px;
+    text-align: center;
+    padding: 8px 0;
+}
+
+/* =====================================================
+   FIX - ORDEM CORRETA DOS ELEMENTOS E ESPAÇAMENTO
+===================================================== */
+
+.actions-container {
+    margin-bottom: 20px;
+}
+
+.comentarios-container:first-of-type {
+    margin-top: 24px !important;
+    margin-bottom: 30px !important;
+    clear: both;
+}
+
+.comentarios-container:last-of-type {
+    margin-top: 24px !important;
+    clear: both;
+}
+
+#conteudoDocumento {
+    margin-top: 16px;
+    clear: both;
+}
+
+div[style*="margin-top: 30px;"] {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding-top: 20px;
+}
+
+.btn-secondary.btn-sm[onclick*="toggleConteudoDocumento"] {
+    margin-bottom: 12px;
+}
+
+.editor-container {
+    margin-top: 30px !important;
+    clear: both;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding-top: 4px;
+}
+
+#historicoVersoes {
+    margin-top: 12px;
+}
+
+.comentarios-container:last-of-type {
+    margin-top: 24px !important;
+    clear: both;
+}
+
+.clear-both {
+    clear: both;
+}
+
+#conteudoDocumento {
+    clear: both;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.comentarios-container {
+    clear: both;
+    margin-top: 20px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.comentarios-container:first-of-type {
+    margin-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding-top: 4px;
+}
+
+.editor-container {
+    clear: both;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 16px;
+}
+
+.actions-container,
+.comentarios-container,
+.editor-container,
+#conteudoDocumento {
+    clear: both;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* =====================================================
    RESPONSIVE - COMENTÁRIOS E CARDS
 ===================================================== */
 
@@ -1537,31 +1456,6 @@ div[style*="margin-top: 30px;"] {
         font-size: 12px;
     }
     
-    .comentario-input-area {
-        flex-direction: column;
-        gap: 8px;
-    }
-    
-    .comentario-input-area .btn-enviar {
-        align-self: flex-end;
-        height: 40px;
-        padding: 8px 20px;
-        font-size: 13px;
-        min-width: 70px;
-    }
-    
-    .comentarios-header {
-        padding: 10px 14px;
-    }
-    
-    .comentarios-header h4 {
-        font-size: 14px;
-    }
-    
-    .comentarios-body.open {
-        padding: 12px 14px;
-    }
-    
     .comentario-item .comentario-header {
         flex-direction: column;
         align-items: flex-start;
@@ -1573,9 +1467,16 @@ div[style*="margin-top: 30px;"] {
         white-space: normal;
     }
     
-    .btn-add-comment {
-        padding: 6px 16px;
-        font-size: 13px;
+    .comentario-input-area-tipo {
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .comentario-input-area-tipo .btn-enviar-tipo {
+        align-self: flex-end;
+        height: 32px;
+        padding: 4px 14px;
+        font-size: 11px;
     }
     
     .btn-toggle-content {

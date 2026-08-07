@@ -490,6 +490,7 @@ def editar_documento(
         if current_user.perfil != PerfilUtilizador.PARCEIRO:
             raise HTTPException(status_code=403, detail="Only partners can edit documents")
         
+        # ✅ Verificar se o parceiro está associado ao documento
         is_associated = False
         if doc.parceiros:
             for p in doc.parceiros:
@@ -502,14 +503,15 @@ def editar_documento(
         if not is_associated:
             raise HTTPException(status_code=403, detail="Only the associated partner can edit")
         
+        # ✅ Permitir edição em RASCUNHO e ALTERACOES
         if doc.estado not in [EstadoDocumento.RASCUNHO, EstadoDocumento.ALTERACOES]:
             raise HTTPException(400, detail=f"Document is in status '{doc.estado}'. Only Draft or Changes Requested documents can be edited.")
         
         doc.dados = update.dados
-        # A imagem NÃO é alterada pelo parceiro
         db.commit()
         db.refresh(doc)
         
+        # ✅ Construir resposta
         if doc.parceiros:
             parceiros_ids = [p.username for p in doc.parceiros]
         elif doc.parceiro_id:
@@ -537,7 +539,7 @@ def editar_documento(
         print(traceback.format_exc())
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error editing: {str(e)}")
-
+    
 @app.post("/documentos/{doc_id}/submeter", response_model=DocumentoOut)
 def submeter_documento(
     doc_id: int,
@@ -664,18 +666,32 @@ def pedir_alteracoes(
     if doc.estado != EstadoDocumento.EM_REVISAO:
         raise HTTPException(400, detail="Can only request changes during review")
     
+    # ✅ Mudar para ALTERACOES - o parceiro pode editar neste estado
     doc.estado = EstadoDocumento.ALTERACOES
     criar_versao(db, doc, EstadoDocumento.ALTERACOES, criado_por=current_user.username, comentario=motivo.comentario or "Changes requested")
     db.commit()
     db.refresh(doc)
     
-    criar_notificacao_para_parceiro(
-        db=db,
-        documento=doc,
-        titulo="🔄 Changes requested",
-        mensagem=f"The company requested changes for '{doc.titulo}': {motivo.comentario or 'See details'}",
-        icone="🔄"
-    )
+    # ✅ Notificar o parceiro que pode editar novamente
+    if doc.parceiros:
+        for parceiro in doc.parceiros:
+            criar_notificacao_para_utilizador(
+                db=db,
+                username=parceiro.username,
+                titulo="🔄 Changes requested - Please edit and resubmit",
+                mensagem=f"The company requested changes for '{doc.titulo}': {motivo.comentario or 'See details'}",
+                link=f"/documentos?doc_id={doc.id}",
+                icone="🔄"
+            )
+    elif doc.parceiro_id:
+        criar_notificacao_para_utilizador(
+            db=db,
+            username=doc.parceiro_id,
+            titulo="🔄 Changes requested - Please edit and resubmit",
+            mensagem=f"The company requested changes for '{doc.titulo}': {motivo.comentario or 'See details'}",
+            link=f"/documentos?doc_id={doc.id}",
+            icone="🔄"
+        )
     
     return doc
 
@@ -863,10 +879,16 @@ def adicionar_comentario(
         if doc.empresa_id != current_user.username:
             raise HTTPException(status_code=403, detail="Access denied")
     
+    # Validar tipo
+    tipos_validos = ["geral", "lca", "lcc", "imagem"]
+    if comentario.tipo not in tipos_validos:
+        comentario.tipo = "geral"
+    
     novo_comentario = ComentarioDocumento(
         documento_id=doc_id,
         username=current_user.username,
-        mensagem=comentario.mensagem
+        mensagem=comentario.mensagem,
+        tipo=comentario.tipo
     )
     db.add(novo_comentario)
     db.commit()
@@ -891,14 +913,21 @@ def adicionar_comentario(
             if admin.username != current_user.username and admin.username not in usuarios_notificar:
                 usuarios_notificar.append(admin.username)
     
+    icones = {
+        "geral": "💬",
+        "lca": "🌱",
+        "lcc": "💰",
+        "imagem": "🖼️"
+    }
+    
     for username in usuarios_notificar:
         criar_notificacao(
             db=db,
             username=username,
-            titulo=f"💬 New comment on document",
+            titulo=f"{icones.get(comentario.tipo, '💬')} New comment on {comentario.tipo.upper()}",
             mensagem=f"{current_user.username} commented on '{doc.titulo}': {comentario.mensagem[:100]}{'...' if len(comentario.mensagem) > 100 else ''}",
             link=f"/documentos?doc_id={doc_id}",
-            icone="💬"
+            icone=icones.get(comentario.tipo, "💬")
         )
     
     return novo_comentario.to_dict()
@@ -906,6 +935,7 @@ def adicionar_comentario(
 @app.get("/documentos/{doc_id}/comentarios", response_model=List[ComentarioOut])
 def listar_comentarios(
     doc_id: int,
+    tipo: Optional[str] = Query(None, description="Filter by type: geral, lca, lcc, imagem"),
     db: Session = Depends(get_db),
     current_user: Utilizador = Depends(get_current_user)
 ):
@@ -928,9 +958,14 @@ def listar_comentarios(
         if doc.empresa_id != current_user.username:
             raise HTTPException(status_code=403, detail="Access denied")
     
-    comentarios = db.query(ComentarioDocumento).filter(
+    query = db.query(ComentarioDocumento).filter(
         ComentarioDocumento.documento_id == doc_id
-    ).order_by(ComentarioDocumento.created_at.asc()).all()
+    )
+    
+    if tipo:
+        query = query.filter(ComentarioDocumento.tipo == tipo)
+    
+    comentarios = query.order_by(ComentarioDocumento.created_at.asc()).all()
     
     return [c.to_dict() for c in comentarios]
 

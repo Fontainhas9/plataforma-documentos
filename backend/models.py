@@ -102,6 +102,7 @@ class ComentarioDocumento(Base):
     documento_id = Column(Integer, ForeignKey("documentos.id"), nullable=False)
     username = Column(String, nullable=False)
     mensagem = Column(Text, nullable=False)
+    tipo = Column(String, nullable=False, default="geral")  # 'geral', 'lca', 'lcc', 'imagem'
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     documento = relationship("Documento", back_populates="comentarios")
@@ -112,5 +113,6 @@ class ComentarioDocumento(Base):
             "documento_id": self.documento_id,
             "username": self.username,
             "mensagem": self.mensagem,
+            "tipo": self.tipo,
             "created_at": self.created_at.strftime("%d/%m/%Y %H:%M") if self.created_at else ""
         }

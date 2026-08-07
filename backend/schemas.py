@@ -69,12 +69,14 @@ class VersaoOut(BaseModel):
 # ---------- Comentários ----------
 class ComentarioCreate(BaseModel):
     mensagem: str
+    tipo: Optional[str] = "geral"  # 'geral', 'lca', 'lcc', 'imagem'
 
 class ComentarioOut(BaseModel):
     id: int
     documento_id: int
     username: str
     mensagem: str
+    tipo: str
     created_at: str
 
     class Config:
